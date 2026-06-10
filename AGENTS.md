@@ -126,6 +126,9 @@ When you generate or add an asset (including AI-generated art), create the file 
 - **Check your assets ship.** Run `npm run build` and confirm every image, sound, and video the game
   references is present in `dist/`. A path with no backing file under `public/` (or `public/cdn-assets/`)
   404s in the live game — see "Adding images and other assets" above.
+- **Replace the placeholder thumbnail.** `public/thumbnail.jpg` ships as a kit placeholder; swap in your
+  own art (exactly 512×512 JPG) before deploying. The CLI rejects a deploy that still uses a default
+  thumbnail. See `.rundot-docs/rundot-developer-platform/setting-your-game-thumbnail.md`.
 
 ## Harness-specific notes
 

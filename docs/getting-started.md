@@ -64,6 +64,9 @@ against any SDK surface, read its doc under [`../.rundot-docs/`](../.rundot-docs
 
 ## Deploying
 
+**Replace the placeholder thumbnail first.** The kit ships a placeholder `public/thumbnail.jpg`; swap in
+your own 512×512 JPG before deploying (the CLI rejects deploys that still use a default thumbnail).
+
 **Update the CLI before you submit.** Submitting/publishing a game from Studio (or `rundot deploy`) on an
 old CLI is not supported — update first:
 
