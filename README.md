@@ -64,7 +64,8 @@ lives in [`AGENTS.md`](AGENTS.md), point your coding agent at it.
 
 [`AGENTS.md`](AGENTS.md) has the full list with links into the local SDK docs, but the short version:
 reach for **STORAGE** (persist the world), **TIME** (daily rhythms), **growth timers** (seeds that sprout
-while the player is away, via the simulation system), **NOTIFICATIONS** (a gentle nudge, never a nag),
+while the player is away: a planted-at timestamp in the save, checked against server time),
+**NOTIFICATIONS** (a gentle nudge, never a nag),
 the **asset-gen** surfaces (IMAGE_GEN / SPRITE_GEN / AUDIO_GEN to make cozy art and sound solo),
 **PURCHASES** (cosmetic decoration packs), and **SHARING + CONTEXT** (show off your space, gift a friend
 a seed). Keep ads rewarded-only and optional. If you want a leaderboard, frame it as **co-opetition**

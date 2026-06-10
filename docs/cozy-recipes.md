@@ -59,16 +59,42 @@ day.
 ## Things that grow while you're away
 
 Seeds that sprout overnight, bread that bakes while the player sleeps, a stamina meter that refills with
-rest. The platform's server-authoritative simulation system does the timekeeping and the offline catch-up
-for you.
+rest. No dedicated SDK surface needed: store a planted-at timestamp in the save, compare it against
+server time on load. Offline growth is just arithmetic.
 
-**Surfaces:** BUILDING_TIMERS ([`BUILDING_TIMERS.md`](../.rundot-docs/rundot-developer-platform/api/BUILDING_TIMERS.md))
-for growth and passive generation, ENERGY_SYSTEM ([`ENERGY_SYSTEM.md`](../.rundot-docs/rundot-developer-platform/api/ENERGY_SYSTEM.md))
-for a gentle rest meter. Both are self-contained recipes in the SDK docs: JSON config under
-`.rundot/simulation/` (uploaded automatically by `rundot deploy`) plus a small client API. Read
-[`SERVER_AUTHORITATIVE.md`](../.rundot-docs/rundot-developer-platform/api/SERVER_AUTHORITATIVE.md) and
-[`SIMULATION_CONFIG.md`](../.rundot-docs/rundot-developer-platform/api/SIMULATION_CONFIG.md) first; the
-simulation surface has no kit wrapper yet, so add `src/services/simulation.ts` before calling it.
+**Surfaces:** TIME ([`TIME.md`](../.rundot-docs/rundot-developer-platform/api/TIME.md)) +
+STORAGE ([`STORAGE.md`](../.rundot-docs/rundot-developer-platform/api/STORAGE.md)), both already wrapped.
+
+The one rule: **the timestamp math runs against `getServerNow()`, never `Date.now()`**, so rolling the
+device clock doesn't fast-forward the garden.
+
+```ts
+import { getServerNow } from '../services/time';
+import { loadSave, persistSave } from '../services/storage';
+import { scheduleNotification } from '../services/notifications';
+
+const GROW_MS = 8 * 60 * 60 * 1000; // 8 hours, tune per plant
+
+export async function plantSeed(plot: string): Promise<void> {
+  const [now, save] = [await getServerNow(), await loadSave()];
+  await persistSave({ ...save, data: { ...save.data, [`plot_${plot}`]: now } });
+  // best-effort: a soft heads-up when it's ready
+  await scheduleNotification(`sprout_${plot}`, {
+    title: 'Something sprouted',
+    body: 'Your seedling is up.',
+    delaySeconds: GROW_MS / 1000,
+  });
+}
+
+export async function isSprouted(plot: string): Promise<boolean> {
+  const [now, save] = [await getServerNow(), await loadSave()];
+  const plantedAt = save.data[`plot_${plot}`] as number | undefined;
+  return plantedAt !== undefined && now - plantedAt >= GROW_MS;
+}
+```
+
+Client-side state means a determined player could edit their own garden. For a jam that's fine; nobody
+else's game gets hurt.
 
 The cozy framing is the point: a growth timer says "come back tomorrow and see", never "wait 4 hours or
 pay to skip". If the timer makes the player feel gated instead of anticipatory, shorten it or remove it.

@@ -9,6 +9,12 @@
 import { getSafeArea } from '../services/environment';
 import { theme } from '../theme';
 
+const EXAMPLE_PROMPTS = [
+  'Build a tiny tea shop where regulars wander in and I slowly learn their favorite orders.',
+  'I want a balcony garden. Seeds sprout overnight, and I can send a friend a cutting.',
+  "A lighthouse keeper's journal: one new page each morning, soft ambient sound, nothing to lose.",
+];
+
 export function StarterApp() {
   const safeArea = getSafeArea();
   const c = theme.colors;
@@ -52,6 +58,45 @@ export function StarterApp() {
           worth reaching for in a cozy game (save state, gentle notifications, AI art &amp; audio,
           cosmetic purchases).
         </p>
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing.sm,
+            marginTop: theme.spacing.lg,
+            width: '100%',
+            maxWidth: 420,
+          }}
+        >
+          <div
+            style={{
+              fontSize: theme.fontSize.sm,
+              fontWeight: theme.fontWeight.semibold,
+              color: c.text.muted,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}
+          >
+            Try telling your agent
+          </div>
+          {EXAMPLE_PROMPTS.map((prompt) => (
+            <div
+              key={prompt}
+              style={{
+                border: `1px solid ${c.border}`,
+                background: c.surface,
+                borderRadius: theme.borderRadius.sm,
+                padding: theme.spacing.md,
+                fontSize: theme.fontSize.sm,
+                lineHeight: 1.5,
+                textAlign: 'left',
+              }}
+            >
+              &ldquo;{prompt}&rdquo;
+            </div>
+          ))}
+        </div>
       </main>
     </div>
   );

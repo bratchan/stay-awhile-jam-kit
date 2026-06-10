@@ -45,14 +45,11 @@ Cozy games lean on a different set of surfaces than competitive ones. Read the l
   is a different pattern: SHARING + CONTEXT, see `docs/cozy-recipes.md`.)
 - **TIME** ([`TIME.md`](.rundot-docs/rundot-developer-platform/api/TIME.md)) — daily rhythms, day/night,
   "come back tomorrow." Always anchor timers on server time, never the device clock. `src/services/time.ts`.
-- **Growth timers & rest meters** ([`BUILDING_TIMERS.md`](.rundot-docs/rundot-developer-platform/api/BUILDING_TIMERS.md),
-  [`ENERGY_SYSTEM.md`](.rundot-docs/rundot-developer-platform/api/ENERGY_SYSTEM.md)) — seeds that sprout
-  while the player is away, bread that bakes overnight, a stamina meter that refills with rest. Both are
-  server-authoritative simulation recipes with offline catch-up built in; read
-  [`SERVER_AUTHORITATIVE.md`](.rundot-docs/rundot-developer-platform/api/SERVER_AUTHORITATIVE.md) and
-  [`SIMULATION_CONFIG.md`](.rundot-docs/rundot-developer-platform/api/SIMULATION_CONFIG.md) first if you
-  use them. Cozy framing matters: timers are "come back tomorrow" warmth, never a grind gate or a
-  pay-to-skip lever.
+- **Growth timers & rest meters** — seeds that sprout while the player is away, bread that bakes
+  overnight, a stamina meter that refills with rest. No dedicated surface needed: store a planted-at
+  timestamp in the save (STORAGE) and compare against server time (TIME) on load. The full pattern is in
+  [`docs/cozy-recipes.md`](docs/cozy-recipes.md). Cozy framing matters: timers are "come back tomorrow"
+  warmth, never a grind gate or a pay-to-skip lever.
 - **NOTIFICATIONS** ([`NOTIFICATIONS.md`](.rundot-docs/rundot-developer-platform/api/NOTIFICATIONS.md)) —
   a *gentle* nudge ("your garden missed you"), never streak-pressure nagging. `src/services/notifications.ts`.
 - **Asset generation** — make cozy art and sound solo:
@@ -85,7 +82,10 @@ option: everyone gets a fresh start every morning. `src/services/leaderboard.ts`
 framing is the creator's call.
 
 **Probably skip for cozy** (they pull toward competitive or grindy genres): BIGNUMBERS, GACHA_SYSTEM,
-PVP_SYSTEM, MULTIPLAYER. Reach for them only if the creator's idea genuinely needs one.
+PVP_SYSTEM, MULTIPLAYER. Skip the server-side simulation recipes too (SERVER_AUTHORITATIVE,
+SIMULATION_CONFIG, BUILDING_TIMERS, ENERGY_SYSTEM): timers work fine client-side with TIME + STORAGE
+(see [`docs/cozy-recipes.md`](docs/cozy-recipes.md)), and the simulation system is more setup than a jam
+game needs.
 
 ## Project conventions (keep these intact)
 
