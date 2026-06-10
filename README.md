@@ -28,9 +28,8 @@ rundot init
 npm run dev
 ```
 
-`npm run dev` opens the URL the CLI prints. It boots a blank welcome screen plus a dev-only SDK panel
-that shows the service wrappers working (save/load, server time, a rewarded ad). That's your starting
-point, delete `src/starter/*` and build your world.
+`npm run dev` opens the URL the CLI prints. It boots a blank welcome screen. That's your starting
+point: delete `src/starter/*` and build your world.
 
 When your game is ready, ship it (update the CLI first, see below):
 
@@ -47,13 +46,13 @@ Full walkthrough, prerequisites, and troubleshooting: [`docs/getting-started.md`
 
 **SDK wrappers** (`src/services/*`) are the point of the kit, fail-loud wrappers for STORAGE, TIME, ADS
 (rewarded-only), PURCHASES, NOTIFICATIONS, LEADERBOARD, ANALYTICS, SHARING, LIFECYCLES, and ENVIRONMENT.
-Your game code never calls `RundotGameAPI.*` directly; the wrappers own the SDK quirks. The starter's SDK
-panel exercises a few of them; the rest are ready to wire when you need them. See
-[`docs/sdk-wiring.md`](docs/sdk-wiring.md) for what each one does and its status.
+Your game code never calls `RundotGameAPI.*` directly; the wrappers own the SDK quirks. Every wrapper is
+built, unit-tested, and ready to wire when you need it. See
+[`docs/sdk-wiring.md`](docs/sdk-wiring.md) for what each one does.
 
 **A theme system** (`src/theme/*`) — edit `src/theme/default.ts` to set your colors, spacing, and type.
 
-**A blank starter** (`src/starter/*`) — a welcome screen and the dev SDK panel. Replace it with your game.
+**A blank starter** (`src/starter/*`) — a welcome screen. Replace it with your game.
 `src/App.tsx` is a one-line indirection to whatever root you build.
 
 That's it. No engine, no genre, no prescribed loop. The guidance for *which* SDK surfaces fit a cozy game
@@ -64,11 +63,15 @@ lives in [`AGENTS.md`](AGENTS.md), point your coding agent at it.
 ## Which SDK surfaces fit a cozy game
 
 [`AGENTS.md`](AGENTS.md) has the full list with links into the local SDK docs, but the short version:
-reach for **STORAGE** (persist the world), **TIME** (daily rhythms), **NOTIFICATIONS** (a gentle nudge,
-never a nag), the **asset-gen** surfaces (IMAGE_GEN / SPRITE_GEN / AUDIO_GEN to make cozy art and sound
-solo), **PURCHASES** (cosmetic decoration packs), and **SHARING** (show off your space). Keep ads
-rewarded-only and optional. If you want a leaderboard, frame it as **co-opetition** (shared/community
-goals), not a cutthroat high-score ladder.
+reach for **STORAGE** (persist the world), **TIME** (daily rhythms), **growth timers** (seeds that sprout
+while the player is away, via the simulation system), **NOTIFICATIONS** (a gentle nudge, never a nag),
+the **asset-gen** surfaces (IMAGE_GEN / SPRITE_GEN / AUDIO_GEN to make cozy art and sound solo),
+**PURCHASES** (cosmetic decoration packs), and **SHARING + CONTEXT** (show off your space, gift a friend
+a seed). Keep ads rewarded-only and optional. If you want a leaderboard, frame it as **co-opetition**
+(shared/community goals), not a cutthroat high-score ladder.
+
+For wiring patterns that combine these (daily check-in, growth timers, gifting, a cosmetic shop, a
+rewarded boost), see [`docs/cozy-recipes.md`](docs/cozy-recipes.md).
 
 ---
 
@@ -86,7 +89,7 @@ goals), not a cutthroat high-score ladder.
 src/
 ├── services/              # Run.Game SDK wrappers — fail-loud contracts (the kit)
 ├── theme/                 # theme tokens — edit default.ts for your look
-├── starter/               # the blank welcome screen + dev SDK panel — replace this
+├── starter/               # the blank welcome screen — replace this
 ├── components/            # ErrorBoundary
 ├── App.tsx                # one-line indirection — points at the starter by default
 └── main.tsx               # boot

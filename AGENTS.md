@@ -16,9 +16,12 @@ yourself adding "the standard cozy mechanic," stop and ask the creator what *the
 ## Read these before touching code
 
 1. **[`README.md`](README.md)** — what the kit is and how to build on it.
-2. **[`docs/sdk-wiring.md`](docs/sdk-wiring.md)** — what each `src/services/*` SDK wrapper does, what's
-   live vs. ready-to-wire, and where to extend.
-3. **`.rundot-docs/`** — the Run.Game SDK reference, regenerated on `npm install`. **Read the doc for any
+2. **[`docs/sdk-wiring.md`](docs/sdk-wiring.md)** — what each `src/services/*` SDK wrapper does and
+   where to extend.
+3. **[`docs/cozy-recipes.md`](docs/cozy-recipes.md)** — wiring patterns that combine surfaces (daily
+   check-in, growth timers, gifting, a cosmetic shop, a rewarded boost). Plumbing patterns, never a
+   prescribed loop.
+4. **`.rundot-docs/`** — the Run.Game SDK reference, regenerated on `npm install`. **Read the doc for any
    SDK surface before writing code against it** (the agents-index above lists every surface).
 
 ## What's in the box
@@ -27,8 +30,8 @@ yourself adding "the standard cozy mechanic," stop and ask the creator what *the
   only), PURCHASES, LEADERBOARD, NOTIFICATIONS, ANALYTICS, SHARING, LIFECYCLES, ENVIRONMENT. Your game
   code never calls `RundotGameAPI.*` directly — the wrappers own the error contracts and SDK quirks.
 - **`src/theme/*`** — a small theme-token system (edit `src/theme/default.ts` to change the look).
-- **`src/starter/*`** — the blank welcome screen + a dev-only SDK panel that proves the plumbing works.
-  Replace this folder with your game. `src/App.tsx` is a one-line indirection to the active root.
+- **`src/starter/*`** — the blank welcome screen. Replace this folder with your game. `src/App.tsx` is
+  a one-line indirection to the active root.
 
 ## SDK surfaces worth reaching for in a cozy game
 
@@ -36,9 +39,20 @@ Cozy games lean on a different set of surfaces than competitive ones. Read the l
 `.rundot-docs/rundot-developer-platform/api/` before wiring each. Reach for these:
 
 - **STORAGE** ([`STORAGE.md`](.rundot-docs/rundot-developer-platform/api/STORAGE.md)) — persist the world:
-  what they've grown, decorated, collected. Wrapper: `src/services/storage.ts`.
+  what they've grown, decorated, collected. Wrapper: `src/services/storage.ts`. The same doc covers
+  **`sharedStorage`**, per-player cross-app buckets, so a player's pantry or progress can travel between
+  your apps. No wrapper yet; add one per `docs/sdk-wiring.md` if you need it. (Player-to-player gifting
+  is a different pattern: SHARING + CONTEXT, see `docs/cozy-recipes.md`.)
 - **TIME** ([`TIME.md`](.rundot-docs/rundot-developer-platform/api/TIME.md)) — daily rhythms, day/night,
   "come back tomorrow." Always anchor timers on server time, never the device clock. `src/services/time.ts`.
+- **Growth timers & rest meters** ([`BUILDING_TIMERS.md`](.rundot-docs/rundot-developer-platform/api/BUILDING_TIMERS.md),
+  [`ENERGY_SYSTEM.md`](.rundot-docs/rundot-developer-platform/api/ENERGY_SYSTEM.md)) — seeds that sprout
+  while the player is away, bread that bakes overnight, a stamina meter that refills with rest. Both are
+  server-authoritative simulation recipes with offline catch-up built in; read
+  [`SERVER_AUTHORITATIVE.md`](.rundot-docs/rundot-developer-platform/api/SERVER_AUTHORITATIVE.md) and
+  [`SIMULATION_CONFIG.md`](.rundot-docs/rundot-developer-platform/api/SIMULATION_CONFIG.md) first if you
+  use them. Cozy framing matters: timers are "come back tomorrow" warmth, never a grind gate or a
+  pay-to-skip lever.
 - **NOTIFICATIONS** ([`NOTIFICATIONS.md`](.rundot-docs/rundot-developer-platform/api/NOTIFICATIONS.md)) —
   a *gentle* nudge ("your garden missed you"), never streak-pressure nagging. `src/services/notifications.ts`.
 - **Asset generation** — make cozy art and sound solo:
@@ -55,6 +69,9 @@ Cozy games lean on a different set of surfaces than competitive ones. Read the l
   Cozy games shouldn't nag; a gentle "watch to restock" is the ceiling. `src/services/ads.ts`.
 - **SHARING** ([`SHARING.md`](.rundot-docs/rundot-developer-platform/api/SHARING.md)) — let players show
   off their space; organic growth fits cozy better than ads. `src/services/sharing.ts`.
+- **CONTEXT** ([`CONTEXT.md`](.rundot-docs/rundot-developer-platform/api/CONTEXT.md)) — read the params a
+  player arrived with (share link, notification tap) so a friend's invite or gift lands them in the right
+  place immediately. The receiving half of SHARING and gifting.
 - **AI** ([`AI.md`](.rundot-docs/rundot-developer-platform/api/AI.md)) — optional cozy NPC dialogue / a
   chatty companion.
 - **HAPTICS, SAFE_AREA, LIFECYCLES, ANALYTICS, PROFILE** — polish and plumbing: tactile feedback, layout
@@ -63,12 +80,12 @@ Cozy games lean on a different set of surfaces than competitive ones. Read the l
 **Leaderboards: co-opetition, not a high-score ladder.** A cutthroat ranking isn't cozy. If you surface
 [`LEADERBOARD.md`](.rundot-docs/rundot-developer-platform/api/LEADERBOARD.md) at all, frame it as
 co-opetition — celebrate participation and shared/community goals (gardens grown this week, most welcomed
-visitors, a collective harvest), not winners and losers. `src/services/leaderboard.ts` is neutral; the
+visitors, a collective harvest), not winners and losers. Daily-period boards are the lowest-pressure
+option: everyone gets a fresh start every morning. `src/services/leaderboard.ts` is neutral; the
 framing is the creator's call.
 
-**Probably skip for cozy** (they pull toward competitive/idle genres): BIGNUMBERS, ENERGY_SYSTEM,
-BUILDING_TIMERS, GACHA_SYSTEM, PVP_SYSTEM, MULTIPLAYER, SERVER_AUTHORITATIVE, SIMULATION_CONFIG. Reach for
-them only if the creator's idea genuinely needs one.
+**Probably skip for cozy** (they pull toward competitive or grindy genres): BIGNUMBERS, GACHA_SYSTEM,
+PVP_SYSTEM, MULTIPLAYER. Reach for them only if the creator's idea genuinely needs one.
 
 ## Project conventions (keep these intact)
 
@@ -109,8 +126,6 @@ When you generate or add an asset (including AI-generated art), create the file 
 - **Check your assets ship.** Run `npm run build` and confirm every image, sound, and video the game
   references is present in `dist/`. A path with no backing file under `public/` (or `public/cdn-assets/`)
   404s in the live game — see "Adding images and other assets" above.
-- **The dev SDK panel never ships.** The starter's SDK panel is gated on `isDev()`, so players never see
-  it. Replacing `src/starter/*` with your game removes it entirely.
 
 ## Harness-specific notes
 

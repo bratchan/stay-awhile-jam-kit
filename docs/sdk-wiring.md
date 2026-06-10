@@ -7,21 +7,23 @@ extend. The kit ships the wrappers; your game decides when to call them — ther
 regenerated on `npm install`. Read the surface's doc before writing code against it; treat the generated
 docs as canonical when they disagree with this file.
 
-For *which* surfaces fit a cozy game, see [`../AGENTS.md`](../AGENTS.md).
+For *which* surfaces fit a cozy game, see [`../AGENTS.md`](../AGENTS.md). For wiring patterns that
+combine them (daily check-in, growth timers, gifting, a cosmetic shop, a rewarded boost), see
+[`cozy-recipes.md`](cozy-recipes.md).
 
 ---
 
 ## Status at a glance
 
-The kit's only running code is the blank starter and its dev-only **SDK panel** (`src/starter/SdkPanel.tsx`),
-which exercises a few wrappers so you can see the plumbing. Everything else is built and ready to wire.
+The kit's only running code is the blank starter. Every wrapper is built, unit-tested, and ready to
+wire when your game needs it.
 
 | Surface | Service | Status |
 |---|---|---|
-| Storage | `storage.ts` | **Exercised** — save/load round-trip in the SDK panel |
-| Time | `time.ts` | **Exercised** — server-time delta in the SDK panel |
-| Environment | `environment.ts` | **Exercised** — dev flag, role, device, safe-area insets |
-| Ads (rewarded) | `ads.ts` | **Exercised** — a demo rewarded placement in the SDK panel |
+| Storage | `storage.ts` | **Ready to wire** — versioned save/load round-trip |
+| Time | `time.ts` | **Ready to wire** — server-time anchor, never the device clock |
+| Environment | `environment.ts` | **Ready to wire** — dev flag, role, device, safe-area insets |
+| Ads (rewarded) | `ads.ts` | **Ready to wire** — rewarded placements with a daily cap |
 | Purchases (IAP) | `iap.ts` | **Ready to wire** — RunBucks spend + subscriptions |
 | Notifications | `notifications.ts` | **Ready to wire** — schedule a reminder with your copy |
 | Sharing | `sharing.ts` | **Ready to wire** — share a moment with kit-stamped params |
@@ -119,8 +121,8 @@ to persist save (persist aggressively on `onSleep` — `onQuit` isn't guaranteed
 reload + refresh server time. `disposeKitLifecycles()` for HMR teardown.
 
 ### ENVIRONMENT — `environment.ts`
-Wraps [`system`](../.rundot-docs/rundot-developer-platform/api/ENVIRONMENT.md). `isDev()` (gates the
-starter's dev SDK panel), `isMobile()`/`isWeb()`, `getDevice()`, `getSafeArea()` (host-chrome + notch
+Wraps [`system`](../.rundot-docs/rundot-developer-platform/api/ENVIRONMENT.md). `isDev()` (gate any
+dev-only diagnostics you build), `isMobile()`/`isWeb()`, `getDevice()`, `getSafeArea()` (host-chrome + notch
 insets — pad your root so bottom UI clears the chrome), `getMyRole()` (`owner`/`editor`/`none`, for
 creator-only tools in production). Safe defaults on failure.
 

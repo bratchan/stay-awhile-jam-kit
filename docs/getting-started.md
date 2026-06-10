@@ -3,9 +3,8 @@
 Clone the kit, boot it, and build your own cozy game on top of it.
 
 The kit wires up the Run.Game SDK for you: saving, server time, in-app purchases, rewarded ads,
-notifications, sharing, and analytics. `npm run dev` boots a blank welcome screen plus a dev-only SDK
-panel that exercises a few of the service wrappers so you can see them working. There's no game here —
-that's yours to build.
+notifications, sharing, and analytics. `npm run dev` boots a blank welcome screen. There's no game
+here, that's yours to build.
 
 ---
 
@@ -36,9 +35,8 @@ npm run dev
 ```
 
 Step 4 opens a URL the CLI prints. You'll see the Run.Game playground sandbox hosting the kit's blank
-welcome screen, with a dev-only **SDK panel** below it: it shows the service wrappers running (server
-time, environment, a save/load round-trip, a rewarded ad) so you can see the plumbing and copy the call
-patterns. Replace `src/starter/*` with your game.
+welcome screen. Replace `src/starter/*` with your game, and reach for the SDK through the wrappers in
+`src/services/*` as you build.
 
 ### Game-jam entry
 
@@ -55,18 +53,16 @@ for your look, replace `src/starter/*` with your screens, and reach for SDK surf
 `src/services/*` as you need them. **All SDK access goes through `src/services/*`** — don't call
 `RundotGameAPI.*` from your app code.
 
-For *which* surfaces fit a cozy game (save state, gentle notifications, AI art & audio generation,
-cosmetic purchases, sharing, and a co-opetition take on leaderboards), read [`../AGENTS.md`](../AGENTS.md).
-For what each wrapper does and its status, read [`sdk-wiring.md`](sdk-wiring.md). Before writing code
+For *which* surfaces fit a cozy game (save state, growth timers, gentle notifications, AI art & audio
+generation, cosmetic purchases, sharing and gifting, and a co-opetition take on leaderboards), read
+[`../AGENTS.md`](../AGENTS.md). For wiring patterns that combine them, read
+[`cozy-recipes.md`](cozy-recipes.md). For what each wrapper does, read
+[`sdk-wiring.md`](sdk-wiring.md). Before writing code
 against any SDK surface, read its doc under [`../.rundot-docs/`](../.rundot-docs/).
 
 ---
 
 ## Deploying
-
-The starter's **SDK panel** is a developer diagnostic, not a player-facing surface. The kit gates it on
-`isDev()`, so it never shows in a deployed build, and replacing `src/starter/*` with your own game
-removes it entirely.
 
 **Update the CLI before you submit.** Submitting/publishing a game from Studio (or `rundot deploy`) on an
 old CLI is not supported — update first:
