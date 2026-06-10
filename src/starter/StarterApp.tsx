@@ -52,13 +52,6 @@ export function StarterApp() {
         <p style={{ fontSize: theme.fontSize.lg, color: c.text.muted, margin: 0, maxWidth: 420, lineHeight: 1.5 }}>
           Your cozy game starts here. This screen is a blank scaffold, not a game.
         </p>
-        <p style={{ fontSize: theme.fontSize.sm, color: c.text.muted, margin: 0, maxWidth: 420, lineHeight: 1.6 }}>
-          Replace <code>src/starter/*</code> with your own world. The Run.Game SDK is already
-          wired through <code>src/services/*</code>; read <code>AGENTS.md</code> for the surfaces
-          worth reaching for in a cozy game (save state, gentle notifications, AI art &amp; audio,
-          cosmetic purchases).
-        </p>
-
         <div
           style={{
             display: 'flex',
@@ -97,6 +90,18 @@ export function StarterApp() {
             </div>
           ))}
         </div>
+
+        <p style={{ fontSize: theme.fontSize.sm, color: c.text.muted, margin: 0 }}>
+          Bring your own art and sound, or grab free assets from{' '}
+          <a
+            href="https://github.com/series-ai/jam-ready-assets"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: c.primary, fontWeight: theme.fontWeight.semibold }}
+          >
+            jam-ready-assets
+          </a>
+        </p>
       </main>
     </div>
   );

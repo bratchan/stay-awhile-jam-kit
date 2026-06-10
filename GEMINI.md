@@ -5,6 +5,10 @@
 
 Start by reading [`AGENTS.md`](AGENTS.md) for the project intro, the doc index, and the conventions to keep intact. This file holds Gemini-specific notes only.
 
+## Assets
+
+The creator's own assets always come first; if they upload or attach art or audio, use it. For creators without assets, free ready-to-use art, audio, and more live at [https://github.com/series-ai/jam-ready-assets](https://github.com/series-ai/jam-ready-assets). See "Adding images and other assets" in `AGENTS.md` for where files go.
+
 ## Tooling mapping
 
 Where `AGENTS.md` or other docs reference Claude-Code-specific surfaces (`mcp__*`, `Skill`, `Agent` tool), translate to your equivalent:

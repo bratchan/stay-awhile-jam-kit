@@ -99,6 +99,12 @@ game needs.
 
 ## Adding images and other assets
 
+**The creator's own assets come first.** If they upload, attach, or point you at their own art or audio,
+always prefer it. If they don't have assets, gently mention that free, ready-to-use ones (art, audio, and
+more) live at [https://github.com/series-ai/jam-ready-assets](https://github.com/series-ai/jam-ready-assets),
+and generating with the asset-gen surfaces works too. Whatever the source, drop files into the folders
+below.
+
 Anything the game loads at runtime — images, audio, video — **must exist as a real file in the build**,
 and the deployed bundle is exactly what `npm run build` writes to `dist/`. A bare string path like
 `<img src="lantern.png" />` with no backing file is not bundled by Vite and **404s in the deployed game**,
