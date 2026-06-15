@@ -8,8 +8,8 @@
  * `mode`/`period` and let the server auto-resolve.
  *
  * There's no built-in score meaning — your game decides what a score is and when
- * to submit it via {@link submitScore}. Debouncing is the caller's job; this
- * wrapper just submits what it's given. (The Stay Awhile jam itself is judged on
+ * to submit it via {@link submitScore}. The wrapper throttles to the server's
+ * 60s rate limit, so a per-tick caller can submit freely. (The Stay Awhile jam itself is judged on
  * average daily players, computed platform-side, so a leaderboard is optional.)
  *
  * Cozy note: a raw high-score ladder isn't cozy. If you surface a board at all,
@@ -71,24 +71,55 @@ function toKitEntry(e: {
   return entry;
 }
 
+// The server accepts at most one submission per player per 60s; submitting
+// faster is rejected. Mirror that window client-side so a per-tick caller never
+// floods the backend. keep-best means a skipped intermediate submit is harmless:
+// the player's best still lands on the first call past the window.
+const MIN_SUBMIT_INTERVAL_MS = 60_000;
+let lastSubmitAtMs = 0;
+
+/** Test seam: clears the client-side submit throttle between cases. */
+export function resetSubmitThrottle(): void {
+  lastSubmitAtMs = 0;
+}
+
+function isRateLimited(err: unknown): boolean {
+  return /rate limit/i.test(err instanceof Error ? err.message : String(err));
+}
+
 /**
- * Submit a score. Best-effort: retries once on failure, then logs
- * `leaderboard_submit_failed` and returns `false` without throwing — a
- * leaderboard outage must never block the game. Returns `true` when the server
- * accepted the score.
+ * Submit a score. Best-effort: never throws, never blocks the game.
+ *
+ * Throttled to the server's 60s rate limit, so you can call this every tick or
+ * on every score change and it submits at most once per minute (keep-best means
+ * the player's best still lands). A rate-limit rejection is a benign skip. Any
+ * other error is retried once, then logged as `leaderboard_submit_failed` and
+ * swallowed. Returns `true` only when the server accepted the score.
  *
  * `durationMs` is required by the SDK; for a cumulative metric there's no
  * meaningful run duration, so it defaults to 0.
  */
 export async function submitScore(score: number, durationMs = 0): Promise<boolean> {
+  if (Date.now() - lastSubmitAtMs < MIN_SUBMIT_INTERVAL_MS) {
+    return false;
+  }
+
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const result = await RundotGameAPI.leaderboard.submitScore({
         score,
         duration: durationMs,
       });
+      lastSubmitAtMs = Date.now();
       return result.accepted;
     } catch (err) {
+      // Submitted too soon is expected, not an outage: start the cooldown and
+      // skip quietly rather than retrying (which stays inside the window) or
+      // logging a failure.
+      if (isRateLimited(err)) {
+        lastSubmitAtMs = Date.now();
+        return false;
+      }
       if (attempt === 0) {
         console.warn('[kit/sdk] leaderboard:submit retry:', err);
         continue;

@@ -5,6 +5,7 @@ vi.mock('@series-inc/rundot-game-sdk/api', () => import('../__mocks__/rundot-gam
 import RundotGameAPI, { resetRundotMock } from '../__mocks__/rundot-game-sdk';
 import {
   submitScore,
+  resetSubmitThrottle,
   getTopN,
   getPodiumWithContext,
   getMyRank,
@@ -13,6 +14,7 @@ import {
 
 beforeEach(() => {
   resetRundotMock();
+  resetSubmitThrottle();
 });
 
 describe('submitScore', () => {
@@ -33,7 +35,27 @@ describe('submitScore', () => {
   it('logs leaderboard_submit_failed and returns false after two failures (never blocks the game)', async () => {
     RundotGameAPI.leaderboard.submitScore.mockRejectedValue(new Error('down'));
     expect(await submitScore(2)).toBe(false);
-    expect(RundotGameAPI.analytics.recordCustomEvent).toHaveBeenCalledWith('leaderboard_submit_failed', undefined);
+    expect(RundotGameAPI.analytics.recordCustomEvent).toHaveBeenCalledWith(
+      'leaderboard_submit_failed',
+      undefined,
+    );
+  });
+
+  it('throttles a second submit inside the 60s window (one network call)', async () => {
+    RundotGameAPI.leaderboard.submitScore.mockResolvedValue({ accepted: true, rank: 1 });
+    expect(await submitScore(10)).toBe(true);
+    expect(await submitScore(11)).toBe(false);
+    expect(RundotGameAPI.leaderboard.submitScore).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a rate-limit rejection as a benign skip: no retry, no failure event', async () => {
+    RundotGameAPI.leaderboard.submitScore.mockRejectedValueOnce(new Error('Rate limit exceeded'));
+    expect(await submitScore(5)).toBe(false);
+    expect(RundotGameAPI.leaderboard.submitScore).toHaveBeenCalledTimes(1);
+    expect(RundotGameAPI.analytics.recordCustomEvent).not.toHaveBeenCalledWith(
+      'leaderboard_submit_failed',
+      undefined,
+    );
   });
 });
 
