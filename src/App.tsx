@@ -1,10 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { getSafeArea } from './services/environment';
 
 type Scene = 'menu' | 'shop' | 'visit' | 'story' | 'summary' | 'upgrades' | 'collection';
 type Species = 'bear' | 'fox' | 'frog' | 'rabbit' | 'moth';
 type ArrivalState = 'ready' | 'waiting';
-type ServiceKind = 'tea' | 'coffee' | 'cake';
+type ServiceKind =
+  | 'blackTea'
+  | 'greenTea'
+  | 'chamomiletea'
+  | 'peppermintTea'
+  | 'lemon'
+  | 'basicCoffee'
+  | 'americano'
+  | 'latte'
+  | 'cappuccino'
+  | 'mocha';
+type RecipeCategory = 'Tea' | 'Coffee';
+type CareAction = 'purr' | 'quiet';
+type LedgerTab = 'recipes' | 'training' | 'comfort';
 
 interface StoryChapter {
   title: string;
@@ -40,17 +54,36 @@ interface Upgrade {
 interface ServiceItem {
   id: ServiceKind;
   label: string;
+  name: string;
+  category: RecipeCategory;
+  imageSrc: string;
+  cost: number;
+  quality: number;
   moodBoost: number;
   tipBonus: number;
   happinessGain: number;
+  reputationBonus: number;
+  description: string;
+}
+
+interface CooldownUpgrade {
+  id: string;
+  name: string;
+  action: CareAction;
+  cost: number;
+  reductionMs: number;
+  description: string;
 }
 
 interface GameState {
   day: number;
   shopHappiness: number;
   teaCups: number;
+  reputation: number;
+  reputationToday: number;
   stories: string[];
   upgrades: string[];
+  recipes: string[];
   customerSlot: number;
   visitsToday: number;
   tipsToday: number;
@@ -59,11 +92,116 @@ interface GameState {
   customerVisits: Record<string, number>;
 }
 
+interface VisitCare {
+  purrs: number;
+  quiets: number;
+}
+
+interface ArrivalTimer {
+  id: number;
+  slot: TableSlot;
+  dueAt: number;
+  timeout: number;
+  remainingMs: number | null;
+}
+
+interface SessionArrivalTimer {
+  id: number;
+  slot: TableSlot;
+  remainingMs: number;
+}
+
+interface SessionSnapshot {
+  version: number;
+  savedAt: number;
+  game: GameState;
+  scene: Scene;
+  isPaused: boolean;
+  mood: number;
+  purrBeat: number;
+  arrivalState: ArrivalState;
+  selectedSlot: TableSlot;
+  tableCount: number;
+  seatCustomerSlots: Array<number | null>;
+  servedSlots: TableSlot[];
+  careBySlot: Partial<Record<TableSlot, VisitCare>>;
+  patienceRemaining: number;
+  dayElapsedMs: number;
+  purrCooldownRemainingMs: number;
+  quietCooldownRemainingMs: number;
+  nextCustomerSlot: number;
+  nextArrivalTimerId: number;
+  arrivalTimers: SessionArrivalTimer[];
+  activeLedgerTab: LedgerTab;
+}
+
+interface InitialAppState {
+  restoredSession: boolean;
+  game: GameState;
+  scene: Scene;
+  isPaused: boolean;
+  mood: number;
+  purrBeat: number;
+  arrivalState: ArrivalState;
+  selectedSlot: TableSlot;
+  tableCount: number;
+  seatCustomerSlots: Array<number | null>;
+  servedSlots: TableSlot[];
+  careBySlot: Partial<Record<TableSlot, VisitCare>>;
+  patienceRemaining: number;
+  dayElapsedMs: number;
+  purrCooldownRemainingMs: number;
+  quietCooldownRemainingMs: number;
+  nextCustomerSlot: number;
+  nextArrivalTimerId: number;
+  arrivalTimers: SessionArrivalTimer[];
+  activeLedgerTab: LedgerTab;
+}
+
+interface RuntimeSessionState {
+  game: GameState;
+  scene: Scene;
+  isPaused: boolean;
+  mood: number;
+  purrBeat: number;
+  arrivalState: ArrivalState;
+  selectedSlot: TableSlot;
+  tableCount: number;
+  seatCustomerSlots: Array<number | null>;
+  servedSlots: TableSlot[];
+  careBySlot: Partial<Record<TableSlot, VisitCare>>;
+  patienceRemaining: number;
+  dayElapsedMs: number;
+  purrReadyAt: number;
+  quietReadyAt: number;
+  actionNow: number;
+  nextCustomerSlot: number;
+  nextArrivalTimerId: number;
+  activeLedgerTab: LedgerTab;
+}
+
+interface ShopRank {
+  name: string;
+  min: number;
+}
+
 const SAVE_KEY = 'tea-shop-cat-save-v1';
-const VISITS_PER_DAY = 3;
+const SESSION_KEY = 'tea-shop-cat-session-v1';
+const SESSION_VERSION = 1;
 const ARRIVAL_DELAY_MS = 2400;
 const PATIENCE_TICK_MS = 250;
+const SHOP_CLOCK_TICK_MS = 250;
+const SHOP_DAY_REAL_MS = 120_000;
+const SERVED_PATIENCE_SLOWDOWN = 2;
 const TABLE_SLOTS = [0, 1, 2] as const;
+const SHOP_DAY_START_HOUR = 8;
+const SHOP_DAY_LENGTH_HOURS = 10;
+const YEAR_LENGTH_DAYS = 365;
+const GOOD_SHOP_SCORE = 70;
+const STARTER_RECIPE_ID = 'blackTea';
+const BASE_PURR_COOLDOWN_MS = 6_000;
+const BASE_QUIET_COOLDOWN_MS = 4_000;
+type TableSlot = (typeof TABLE_SLOTS)[number];
 
 const CUSTOMERS = [
   {
@@ -252,34 +390,207 @@ const UPGRADES = [
 
 const SERVICE_ITEMS = [
   {
-    id: 'tea',
-    label: 'tea',
+    id: 'blackTea',
+    label: 'black tea',
+    name: 'Black Tea',
+    category: 'Tea',
+    imageSrc: '/items/blackTea.png',
+    cost: 0,
+    quality: 4,
     moodBoost: 14,
     tipBonus: 8,
     happinessGain: 2,
+    reputationBonus: 1,
+    description: 'A dependable, full-bodied cup. Every good shop starts with a steady pour.',
   },
   {
-    id: 'coffee',
-    label: 'coffee',
+    id: 'greenTea',
+    label: 'green tea',
+    name: 'Green Tea',
+    category: 'Tea',
+    imageSrc: '/items/greenTea.png',
+    cost: 85,
+    quality: 8,
     moodBoost: 12,
     tipBonus: 10,
     happinessGain: 1,
+    reputationBonus: 2,
+    description: 'A bright, gentle tea for guests who want the room to feel a little lighter.',
   },
   {
-    id: 'cake',
-    label: 'cake',
+    id: 'chamomiletea',
+    label: 'chamomile tea',
+    name: 'Chamomile Tea',
+    category: 'Tea',
+    imageSrc: '/items/chamomiletea.png',
+    cost: 120,
+    quality: 10,
     moodBoost: 16,
     tipBonus: 12,
     happinessGain: 2,
+    reputationBonus: 3,
+    description: 'Soft flowers in a warm cup, perfect for customers who need a quiet minute.',
+  },
+  {
+    id: 'peppermintTea',
+    label: 'peppermint tea',
+    name: 'Peppermint Tea',
+    category: 'Tea',
+    imageSrc: '/items/peppermintTea.png',
+    cost: 165,
+    quality: 13,
+    moodBoost: 18,
+    tipBonus: 15,
+    happinessGain: 3,
+    reputationBonus: 4,
+    description: 'Fresh mint leaves make the whole table feel awake and cared for.',
+  },
+  {
+    id: 'lemon',
+    label: 'lemon tea',
+    name: 'Lemon Tea',
+    category: 'Tea',
+    imageSrc: '/items/lemon.png',
+    cost: 230,
+    quality: 17,
+    moodBoost: 20,
+    tipBonus: 18,
+    happinessGain: 4,
+    reputationBonus: 5,
+    description: 'A golden citrus recipe that makes the shop feel known for something special.',
+  },
+  {
+    id: 'basicCoffee',
+    label: 'basic coffee',
+    name: 'Basic Coffee',
+    category: 'Coffee',
+    imageSrc: '/items/basicCoffee.png',
+    cost: 95,
+    quality: 7,
+    moodBoost: 11,
+    tipBonus: 9,
+    happinessGain: 1,
+    reputationBonus: 2,
+    description: 'A clean, simple cup for guests who like their comfort direct.',
+  },
+  {
+    id: 'americano',
+    label: 'americano',
+    name: 'Americano',
+    category: 'Coffee',
+    imageSrc: '/items/americano.png',
+    cost: 135,
+    quality: 11,
+    moodBoost: 13,
+    tipBonus: 12,
+    happinessGain: 2,
+    reputationBonus: 3,
+    description: 'Smooth and steady, with enough depth to make the afternoon feel longer.',
+  },
+  {
+    id: 'latte',
+    label: 'latte',
+    name: 'Latte',
+    category: 'Coffee',
+    imageSrc: '/items/latte.png',
+    cost: 185,
+    quality: 14,
+    moodBoost: 17,
+    tipBonus: 15,
+    happinessGain: 3,
+    reputationBonus: 4,
+    description: 'A creamy heart in the cup, made for customers who notice little kindnesses.',
+  },
+  {
+    id: 'cappuccino',
+    label: 'cappuccino',
+    name: 'Cappuccino',
+    category: 'Coffee',
+    imageSrc: '/items/cappuccino.png',
+    cost: 225,
+    quality: 16,
+    moodBoost: 19,
+    tipBonus: 17,
+    happinessGain: 3,
+    reputationBonus: 5,
+    description: 'Foamy, warm, and just fancy enough to feel like a treat.',
+  },
+  {
+    id: 'mocha',
+    label: 'mocha',
+    name: 'Mocha',
+    category: 'Coffee',
+    imageSrc: '/items/mocha.png',
+    cost: 280,
+    quality: 20,
+    moodBoost: 22,
+    tipBonus: 21,
+    happinessGain: 4,
+    reputationBonus: 6,
+    description: 'Chocolatey comfort with a flourish, the kind of recipe people remember.',
   },
 ] as const satisfies readonly [ServiceItem, ...ServiceItem[]];
+
+const LEGACY_RECIPE_IDS: Record<string, ServiceKind> = {
+  tea: 'blackTea',
+  coffee: 'basicCoffee',
+  cake: 'chamomiletea',
+  scone: 'peppermintTea',
+  cocoa: 'lemon',
+};
+
+const COOLDOWN_UPGRADES = [
+  {
+    id: 'purr-practice',
+    name: 'Purr Practice',
+    action: 'purr',
+    cost: 110,
+    reductionMs: 1_500,
+    description: 'Shortens the purr cooldown so the cat can reassure guests more often.',
+  },
+  {
+    id: 'soft-rumble',
+    name: 'Soft Rumble',
+    action: 'purr',
+    cost: 210,
+    reductionMs: 1_500,
+    description: 'A steadier purr rhythm for busier shop days.',
+  },
+  {
+    id: 'quiet-cushion',
+    name: 'Quiet Cushion',
+    action: 'quiet',
+    cost: 95,
+    reductionMs: 1_000,
+    description: 'Shortens the sit quietly cooldown with a more comfortable listening spot.',
+  },
+  {
+    id: 'listening-ritual',
+    name: 'Listening Ritual',
+    action: 'quiet',
+    cost: 175,
+    reductionMs: 1_000,
+    description: 'A practiced little pause that helps the cat settle in again sooner.',
+  },
+] as const satisfies readonly [CooldownUpgrade, ...CooldownUpgrade[]];
+
+const SHOP_RANKS = [
+  { name: 'New', min: 0 },
+  { name: 'Known', min: 25 },
+  { name: 'Liked', min: 45 },
+  { name: 'Good', min: GOOD_SHOP_SCORE },
+  { name: 'Beloved', min: 88 },
+] as const satisfies readonly [ShopRank, ...ShopRank[]];
 
 const DEFAULT_GAME: GameState = {
   day: 1,
   shopHappiness: 62,
   teaCups: 90,
+  reputation: 0,
+  reputationToday: 0,
   stories: [],
   upgrades: [],
+  recipes: [STARTER_RECIPE_ID],
   customerSlot: 0,
   visitsToday: 0,
   tipsToday: 0,
@@ -297,9 +608,23 @@ function getCustomer(slot: number): Customer {
   return CUSTOMERS[index] ?? CUSTOMERS[0];
 }
 
-function getService(slot: number): ServiceItem {
-  const index = ((slot % SERVICE_ITEMS.length) + SERVICE_ITEMS.length) % SERVICE_ITEMS.length;
-  return SERVICE_ITEMS[index] ?? SERVICE_ITEMS[0];
+function getOwnedRecipeIds(recipeIds: string[]): string[] {
+  const validIds = new Set<string>(SERVICE_ITEMS.map((recipe) => recipe.id));
+  const owned = [STARTER_RECIPE_ID, ...recipeIds]
+    .map((id) => (validIds.has(id) ? id : LEGACY_RECIPE_IDS[id]))
+    .filter((id): id is ServiceKind => Boolean(id));
+  return Array.from(new Set(owned));
+}
+
+function getOwnedRecipes(recipeIds: string[]): ServiceItem[] {
+  const ownedIds = new Set(getOwnedRecipeIds(recipeIds));
+  return SERVICE_ITEMS.filter((recipe) => ownedIds.has(recipe.id));
+}
+
+function getService(slot: number, recipeIds: string[]): ServiceItem {
+  const recipes = getOwnedRecipes(recipeIds);
+  const index = ((slot % recipes.length) + recipes.length) % recipes.length;
+  return recipes[index] ?? SERVICE_ITEMS[0];
 }
 
 function getTableCount(day: number, slot: number): number {
@@ -309,11 +634,92 @@ function getTableCount(day: number, slot: number): number {
   return 1;
 }
 
+function clampTableSlot(slot: number, tableCount: number): TableSlot {
+  const maxSlot = Math.max(0, Math.min(tableCount, TABLE_SLOTS.length) - 1);
+  return clamp(Math.floor(slot), 0, maxSlot) as TableSlot;
+}
+
+function createSeatSlots(startSlot: number, tableCount: number): Array<number | null> {
+  return TABLE_SLOTS.map((slot) => (slot < tableCount ? startSlot + slot : null));
+}
+
+function chooseOccupiedSlot(seats: Array<number | null>, preferredSlot: TableSlot): TableSlot {
+  if (seats[preferredSlot] != null) return preferredSlot;
+  return TABLE_SLOTS.find((slot) => seats[slot] != null) ?? preferredSlot;
+}
+
+function hasOccupiedSeats(seats: Array<number | null>): boolean {
+  return TABLE_SLOTS.some((slot) => seats[slot] != null);
+}
+
+function shopDayMinutes(progress: number): number {
+  const safeProgress = clamp(progress, 0, 100);
+  return SHOP_DAY_START_HOUR * 60 + (safeProgress / 100) * SHOP_DAY_LENGTH_HOURS * 60;
+}
+
+function formatShopTime(progress: number): string {
+  const totalMinutes = Math.round(shopDayMinutes(progress));
+  const hour24 = Math.floor(totalMinutes / 60) % 24;
+  const minute = totalMinutes % 60;
+  const displayHour = hour24 % 12 || 12;
+  const suffix = hour24 >= 12 ? 'PM' : 'AM';
+  return `${displayHour}:${minute.toString().padStart(2, '0')} ${suffix}`;
+}
+
 function getOwnedComfort(upgradeIds: string[]): number {
   return upgradeIds.reduce((total, id) => {
     const upgrade = UPGRADES.find((item) => item.id === id);
     return total + (upgrade?.comfort ?? 0);
   }, 0);
+}
+
+function getRecipeQuality(recipeIds: string[]): number {
+  return getOwnedRecipes(recipeIds).reduce((total, recipe) => total + recipe.quality, 0);
+}
+
+function getActionCooldown(upgradeIds: string[], action: CareAction): number {
+  const base = action === 'purr' ? BASE_PURR_COOLDOWN_MS : BASE_QUIET_COOLDOWN_MS;
+  const reduction = COOLDOWN_UPGRADES.reduce((total, upgrade) => {
+    if (upgrade.action !== action || !upgradeIds.includes(upgrade.id)) return total;
+    return total + upgrade.reductionMs;
+  }, 0);
+  return Math.max(1_500, base - reduction);
+}
+
+function getShopQuality(game: GameState, totalComfort: number): number {
+  const happinessScore = game.shopHappiness * 0.3;
+  const recipeScore = Math.min(getRecipeQuality(game.recipes), 28);
+  const comfortScore = Math.min(totalComfort * 4, 22);
+  const reputationScore = Math.min(game.reputation / 10, 20);
+  return Math.round(clamp(happinessScore + recipeScore + comfortScore + reputationScore, 0, 100));
+}
+
+function getShopRank(shopQuality: number): ShopRank {
+  return [...SHOP_RANKS].reverse().find((rank) => shopQuality >= rank.min) ?? SHOP_RANKS[0];
+}
+
+function getYearProgress(day: number): number {
+  return clamp(((day - 1) / YEAR_LENGTH_DAYS) * 100, 0, 100);
+}
+
+function getDaysRemaining(day: number): number {
+  return clamp(YEAR_LENGTH_DAYS - day + 1, 0, YEAR_LENGTH_DAYS);
+}
+
+function getVisitCare(careBySlot: Partial<Record<TableSlot, VisitCare>>, slot: TableSlot): VisitCare {
+  return careBySlot[slot] ?? { purrs: 0, quiets: 0 };
+}
+
+function getReputationGain(service: ServiceItem, served: boolean, care: VisitCare, completedStory: boolean): number {
+  const servedGain = served ? 2 + service.reputationBonus : 0;
+  const purrGain = served && care.purrs > 0 ? 4 + Math.min(care.purrs, 2) * 2 : 0;
+  const quietGain = care.quiets > 0 ? 1 + Math.min(care.quiets, 2) : 0;
+  const storyGain = completedStory ? 3 : 0;
+  return servedGain + purrGain + quietGain + storyGain;
+}
+
+function formatCooldown(ms: number): string {
+  return `${Math.ceil(ms / 1000)}s`;
 }
 
 function getStoryForVisit(customer: Customer, visitNumber: number): StoryChapter {
@@ -322,7 +728,7 @@ function getStoryForVisit(customer: Customer, visitNumber: number): StoryChapter
   }
   const index = (visitNumber - 2) % customer.followUps.length;
   const chapter = customer.followUps[index] ?? customer.followUps[0] ?? {
-    title: `${customer.name}'s Return`,
+    title: `${customer.name}'s Corner`,
     text: `${customer.name} settles in again, and the familiar corner of the shop feels a little more like theirs.`,
   };
   return {
@@ -359,75 +765,323 @@ function numericValue(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
+function normalizeGame(value: unknown, fallback = DEFAULT_GAME): GameState {
+  const parsed = value != null && typeof value === 'object' ? (value as Partial<GameState>) : {};
+
+  return {
+    day: clamp(Math.floor(numericValue(parsed.day, fallback.day)), 1, 999),
+    shopHappiness: clamp(
+      Math.floor(numericValue(parsed.shopHappiness, fallback.shopHappiness)),
+      0,
+      100,
+    ),
+    teaCups: clamp(Math.floor(numericValue(parsed.teaCups, fallback.teaCups)), 0, 9999),
+    reputation: clamp(Math.floor(numericValue(parsed.reputation, fallback.reputation)), 0, 999_999),
+    reputationToday: clamp(
+      Math.floor(numericValue(parsed.reputationToday, fallback.reputationToday)),
+      0,
+      9999,
+    ),
+    stories: stringList(parsed.stories),
+    upgrades: stringList(parsed.upgrades),
+    recipes: getOwnedRecipeIds(stringList(parsed.recipes)),
+    customerSlot: clamp(
+      Math.floor(numericValue(parsed.customerSlot, fallback.customerSlot)),
+      0,
+      9999,
+    ),
+    visitsToday: clamp(
+      Math.floor(numericValue(parsed.visitsToday, fallback.visitsToday)),
+      0,
+      9999,
+    ),
+    tipsToday: clamp(Math.floor(numericValue(parsed.tipsToday, fallback.tipsToday)), 0, 9999),
+    storiesToday: clamp(
+      Math.floor(numericValue(parsed.storiesToday, fallback.storiesToday)),
+      0,
+      9999,
+    ),
+    missedToday: clamp(
+      Math.floor(numericValue(parsed.missedToday, fallback.missedToday)),
+      0,
+      9999,
+    ),
+    customerVisits: numberRecord(parsed.customerVisits),
+  };
+}
+
 function loadGame(): GameState {
   try {
     const raw = window.localStorage.getItem(SAVE_KEY);
     if (!raw) return DEFAULT_GAME;
-    const parsed = JSON.parse(raw) as Partial<GameState>;
-
-    return {
-      day: clamp(Math.floor(numericValue(parsed.day, DEFAULT_GAME.day)), 1, 999),
-      shopHappiness: clamp(
-        Math.floor(numericValue(parsed.shopHappiness, DEFAULT_GAME.shopHappiness)),
-        0,
-        100,
-      ),
-      teaCups: clamp(Math.floor(numericValue(parsed.teaCups, DEFAULT_GAME.teaCups)), 0, 9999),
-      stories: stringList(parsed.stories),
-      upgrades: stringList(parsed.upgrades),
-      customerSlot: clamp(
-        Math.floor(numericValue(parsed.customerSlot, DEFAULT_GAME.customerSlot)),
-        0,
-        9999,
-      ),
-      visitsToday: clamp(
-        Math.floor(numericValue(parsed.visitsToday, DEFAULT_GAME.visitsToday)),
-        0,
-        VISITS_PER_DAY,
-      ),
-      tipsToday: clamp(Math.floor(numericValue(parsed.tipsToday, DEFAULT_GAME.tipsToday)), 0, 9999),
-      storiesToday: clamp(
-        Math.floor(numericValue(parsed.storiesToday, DEFAULT_GAME.storiesToday)),
-        0,
-        VISITS_PER_DAY,
-      ),
-      missedToday: clamp(
-        Math.floor(numericValue(parsed.missedToday, DEFAULT_GAME.missedToday)),
-        0,
-        9999,
-      ),
-      customerVisits: numberRecord(parsed.customerVisits),
-    };
+    return normalizeGame(JSON.parse(raw));
   } catch {
     return DEFAULT_GAME;
   }
 }
 
+function sceneValue(value: unknown, fallback: Scene): Scene {
+  if (
+    value === 'menu' ||
+    value === 'shop' ||
+    value === 'visit' ||
+    value === 'story' ||
+    value === 'summary' ||
+    value === 'upgrades' ||
+    value === 'collection'
+  ) {
+    return value;
+  }
+  return fallback;
+}
+
+function arrivalStateValue(value: unknown, fallback: ArrivalState): ArrivalState {
+  return value === 'ready' || value === 'waiting' ? value : fallback;
+}
+
+function ledgerTabValue(value: unknown, fallback: LedgerTab): LedgerTab {
+  return value === 'recipes' || value === 'training' || value === 'comfort' ? value : fallback;
+}
+
+function tableSlotValue(value: unknown, fallback: TableSlot): TableSlot {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return clampTableSlot(value, TABLE_SLOTS.length);
+}
+
+function tableSlotList(value: unknown): TableSlot[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
+    .map((item) => tableSlotValue(item, 0));
+}
+
+function seatSlotList(value: unknown, fallback: Array<number | null>): Array<number | null> {
+  if (!Array.isArray(value)) return fallback;
+  return TABLE_SLOTS.map((slot) => {
+    const item = value[slot];
+    if (item === null) return null;
+    if (typeof item !== 'number' || !Number.isFinite(item)) return fallback[slot] ?? null;
+    return clamp(Math.floor(item), 0, 9999);
+  });
+}
+
+function visitCareRecord(value: unknown): Partial<Record<TableSlot, VisitCare>> {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) return {};
+  const output: Partial<Record<TableSlot, VisitCare>> = {};
+  for (const slot of TABLE_SLOTS) {
+    const raw = (value as Record<string, unknown>)[String(slot)];
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    const care = raw as Partial<VisitCare>;
+    output[slot] = {
+      purrs: clamp(Math.floor(numericValue(care.purrs, 0)), 0, 99),
+      quiets: clamp(Math.floor(numericValue(care.quiets, 0)), 0, 99),
+    };
+  }
+  return output;
+}
+
+function sessionArrivalTimers(value: unknown): SessionArrivalTimer[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Partial<SessionArrivalTimer> => item != null && typeof item === 'object')
+    .map((item, index) => ({
+      id: clamp(Math.floor(numericValue(item.id, index + 1)), 1, 9999),
+      slot: tableSlotValue(item.slot, 0),
+      remainingMs: clamp(Math.floor(numericValue(item.remainingMs, ARRIVAL_DELAY_MS)), 0, ARRIVAL_DELAY_MS),
+    }));
+}
+
+function defaultInitialState(game: GameState): InitialAppState {
+  const tableCount = getTableCount(game.day, game.customerSlot);
+  const seatCustomerSlots = createSeatSlots(game.customerSlot, tableCount);
+  return {
+    restoredSession: false,
+    game,
+    scene: 'menu',
+    isPaused: false,
+    mood: 40,
+    purrBeat: 0,
+    arrivalState: 'ready',
+    selectedSlot: 0,
+    tableCount,
+    seatCustomerSlots,
+    servedSlots: [],
+    careBySlot: {},
+    patienceRemaining: getCustomer(game.customerSlot).patienceMs,
+    dayElapsedMs: 0,
+    purrCooldownRemainingMs: 0,
+    quietCooldownRemainingMs: 0,
+    nextCustomerSlot: game.customerSlot + tableCount,
+    nextArrivalTimerId: 0,
+    arrivalTimers: [],
+    activeLedgerTab: 'recipes',
+  };
+}
+
+function loadSession(savedGame: GameState): InitialAppState {
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    if (!raw) return defaultInitialState(savedGame);
+
+    const parsed = JSON.parse(raw) as Partial<SessionSnapshot>;
+    if (parsed.version !== SESSION_VERSION) return defaultInitialState(savedGame);
+
+    const game = normalizeGame(parsed.game, savedGame);
+    const tableCount = clamp(Math.floor(numericValue(parsed.tableCount, 1)), 0, TABLE_SLOTS.length);
+    const fallbackSeats = createSeatSlots(game.customerSlot, tableCount);
+    const seatCustomerSlots = seatSlotList(parsed.seatCustomerSlots, fallbackSeats);
+    const hasSeats = hasOccupiedSeats(seatCustomerSlots);
+    let scene = sceneValue(parsed.scene, 'menu');
+    if ((scene === 'visit' || scene === 'story') && !hasSeats) scene = 'shop';
+    if ((scene === 'shop' || scene === 'visit') && numericValue(parsed.dayElapsedMs, 0) >= SHOP_DAY_REAL_MS) {
+      scene = 'summary';
+    }
+
+    const selectedSlot = tableSlotValue(parsed.selectedSlot, chooseOccupiedSlot(seatCustomerSlots, 0));
+    const selectedCustomerSlot = seatCustomerSlots[chooseOccupiedSlot(seatCustomerSlots, selectedSlot)] ?? 0;
+    const selectedCustomer = getCustomer(selectedCustomerSlot);
+
+    return {
+      restoredSession: true,
+      game,
+      scene,
+      isPaused: Boolean(parsed.isPaused),
+      mood: clamp(Math.floor(numericValue(parsed.mood, 40)), 0, 100),
+      purrBeat: clamp(Math.floor(numericValue(parsed.purrBeat, 0)), 0, 9999),
+      arrivalState: arrivalStateValue(parsed.arrivalState, hasSeats ? 'ready' : 'waiting'),
+      selectedSlot,
+      tableCount,
+      seatCustomerSlots,
+      servedSlots: tableSlotList(parsed.servedSlots).filter((slot) => seatCustomerSlots[slot] != null),
+      careBySlot: visitCareRecord(parsed.careBySlot),
+      patienceRemaining: clamp(
+        Math.floor(numericValue(parsed.patienceRemaining, selectedCustomer.patienceMs)),
+        0,
+        selectedCustomer.patienceMs,
+      ),
+      dayElapsedMs: clamp(Math.floor(numericValue(parsed.dayElapsedMs, 0)), 0, SHOP_DAY_REAL_MS),
+      purrCooldownRemainingMs: clamp(
+        Math.floor(numericValue(parsed.purrCooldownRemainingMs, 0)),
+        0,
+        BASE_PURR_COOLDOWN_MS,
+      ),
+      quietCooldownRemainingMs: clamp(
+        Math.floor(numericValue(parsed.quietCooldownRemainingMs, 0)),
+        0,
+        BASE_QUIET_COOLDOWN_MS,
+      ),
+      nextCustomerSlot: clamp(
+        Math.floor(numericValue(parsed.nextCustomerSlot, game.customerSlot + tableCount)),
+        0,
+        9999,
+      ),
+      nextArrivalTimerId: clamp(Math.floor(numericValue(parsed.nextArrivalTimerId, 0)), 0, 9999),
+      arrivalTimers: sessionArrivalTimers(parsed.arrivalTimers),
+      activeLedgerTab: ledgerTabValue(parsed.activeLedgerTab, 'recipes'),
+    };
+  } catch {
+    return defaultInitialState(savedGame);
+  }
+}
+
+function loadInitialAppState(): InitialAppState {
+  return loadSession(loadGame());
+}
+
 function TeaShopCat() {
   const safeArea = getSafeArea();
-  const [scene, setScene] = useState<Scene>('menu');
-  const [game, setGame] = useState<GameState>(() => loadGame());
-  const [mood, setMood] = useState(40);
-  const [purrBeat, setPurrBeat] = useState(0);
-  const [arrivalState, setArrivalState] = useState<ArrivalState>('ready');
-  const [serviceServed, setServiceServed] = useState(false);
-  const [patienceRemaining, setPatienceRemaining] = useState(() => getCustomer(0).patienceMs);
+  const [initialState] = useState<InitialAppState>(() => loadInitialAppState());
+  const [scene, setScene] = useState<Scene>(initialState.scene);
+  const [game, setGame] = useState<GameState>(initialState.game);
+  const [isPaused, setIsPaused] = useState(initialState.isPaused);
+  const [mood, setMood] = useState(initialState.mood);
+  const [purrBeat, setPurrBeat] = useState(initialState.purrBeat);
+  const [arrivalState, setArrivalState] = useState<ArrivalState>(initialState.arrivalState);
+  const [selectedSlot, setSelectedSlot] = useState<TableSlot>(initialState.selectedSlot);
+  const [tableCount, setTableCount] = useState(initialState.tableCount);
+  const [seatCustomerSlots, setSeatCustomerSlots] = useState<Array<number | null>>(() =>
+    initialState.seatCustomerSlots,
+  );
+  const [servedSlots, setServedSlots] = useState<TableSlot[]>(initialState.servedSlots);
+  const [careBySlot, setCareBySlot] = useState<Partial<Record<TableSlot, VisitCare>>>(
+    initialState.careBySlot,
+  );
+  const [patienceRemaining, setPatienceRemaining] = useState(initialState.patienceRemaining);
+  const [dayElapsedMs, setDayElapsedMs] = useState(initialState.dayElapsedMs);
+  const [actionNow, setActionNow] = useState(() => Date.now());
+  const [purrReadyAt, setPurrReadyAt] = useState(() => Date.now() + initialState.purrCooldownRemainingMs);
+  const [quietReadyAt, setQuietReadyAt] = useState(() => Date.now() + initialState.quietCooldownRemainingMs);
+  const [activeLedgerTab, setActiveLedgerTab] = useState<LedgerTab>(initialState.activeLedgerTab);
+  const nextCustomerSlotRef = useRef(initialState.nextCustomerSlot);
+  const arrivalTimersRef = useRef<ArrivalTimer[]>(
+    initialState.arrivalTimers.map((timer) => ({
+      ...timer,
+      dueAt: Date.now() + timer.remainingMs,
+      timeout: 0,
+    })),
+  );
+  const arrivalTimerIdRef = useRef(initialState.nextArrivalTimerId);
+  const isPausedRef = useRef(initialState.isPaused);
+  const pauseStartedAtRef = useRef(initialState.isPaused ? Date.now() : 0);
+  const sessionStateRef = useRef<RuntimeSessionState | null>(null);
+  const skipInitialPatienceResetRef = useRef(initialState.restoredSession);
 
-  const currentCustomer = getCustomer(game.customerSlot);
-  const currentService = getService(game.customerSlot);
+  const selectedOccupiedSlot = chooseOccupiedSlot(seatCustomerSlots, selectedSlot);
+  const selectedCustomerSlot = seatCustomerSlots[selectedOccupiedSlot] ?? nextCustomerSlotRef.current;
+  const currentCustomer = getCustomer(selectedCustomerSlot);
+  const currentService = getService(selectedCustomerSlot, game.recipes);
+  const serviceServed = servedSlots.includes(selectedOccupiedSlot);
   const currentVisitNumber = getCustomerVisitCount(game, currentCustomer.id) + 1;
   const currentStory = getStoryForVisit(currentCustomer, currentVisitNumber);
-  const tableCount = arrivalState === 'ready' ? getTableCount(game.day, game.customerSlot) : 0;
   const visibleCustomers = useMemo(
-    () => TABLE_SLOTS.slice(0, tableCount).map((offset) => getCustomer(game.customerSlot + offset)),
-    [game.customerSlot, tableCount],
+    () =>
+      TABLE_SLOTS.map((slot) => {
+        const customerSlot = slot < tableCount ? (seatCustomerSlots[slot] ?? null) : null;
+        return customerSlot === null ? null : getCustomer(customerSlot);
+      }),
+    [seatCustomerSlots, tableCount],
   );
+  const hasSeatedCustomers = hasOccupiedSeats(seatCustomerSlots);
 
   const ownedUpgradeNames = useMemo(() => new Set(game.upgrades), [game.upgrades]);
   const totalComfort = useMemo(() => getOwnedComfort(game.upgrades), [game.upgrades]);
-  const dailyProgress = Math.round((game.visitsToday / VISITS_PER_DAY) * 100);
+  const ownedRecipes = useMemo(() => getOwnedRecipes(game.recipes), [game.recipes]);
+  const recipeQuality = useMemo(() => getRecipeQuality(game.recipes), [game.recipes]);
+  const shopQuality = useMemo(() => getShopQuality(game, totalComfort), [game, totalComfort]);
+  const shopRank = useMemo(() => getShopRank(shopQuality), [shopQuality]);
+  const yearProgress = getYearProgress(game.day);
+  const daysRemaining = getDaysRemaining(game.day);
   const storyChapterCount = getStoryChapterCount(game);
   const patiencePercent = Math.ceil((patienceRemaining / currentCustomer.patienceMs) * 100);
+  const clockProgress = clamp((dayElapsedMs / SHOP_DAY_REAL_MS) * 100, 0, 100);
+  const shopTimeLabel = formatShopTime(clockProgress);
+  const purrCooldownMs = getActionCooldown(game.upgrades, 'purr');
+  const quietCooldownMs = getActionCooldown(game.upgrades, 'quiet');
+  const purrCooldownRemaining = Math.max(0, purrReadyAt - actionNow);
+  const quietCooldownRemaining = Math.max(0, quietReadyAt - actionNow);
+  const showTopBar = scene !== 'menu' && scene !== 'summary';
+
+  sessionStateRef.current = {
+    game,
+    scene,
+    isPaused,
+    mood,
+    purrBeat,
+    arrivalState,
+    selectedSlot,
+    tableCount,
+    seatCustomerSlots,
+    servedSlots,
+    careBySlot,
+    patienceRemaining,
+    dayElapsedMs,
+    purrReadyAt,
+    quietReadyAt,
+    actionNow,
+    nextCustomerSlot: nextCustomerSlotRef.current,
+    nextArrivalTimerId: arrivalTimerIdRef.current,
+    activeLedgerTab,
+  };
 
   useEffect(() => {
     try {
@@ -438,71 +1092,413 @@ function TeaShopCat() {
   }, [game]);
 
   useEffect(() => {
-    if (arrivalState !== 'waiting') return undefined;
-    const timer = window.setTimeout(() => setArrivalState('ready'), ARRIVAL_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [arrivalState, game.customerSlot]);
+    persistSessionSnapshot();
+
+    const interval = window.setInterval(() => persistSessionSnapshot(), 1000);
+    const persistOnExit = () => persistSessionSnapshot();
+    const persistOnHidden = () => {
+      if (document.visibilityState === 'hidden') persistSessionSnapshot();
+    };
+
+    window.addEventListener('pagehide', persistOnExit);
+    window.addEventListener('beforeunload', persistOnExit);
+    document.addEventListener('visibilitychange', persistOnHidden);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('pagehide', persistOnExit);
+      window.removeEventListener('beforeunload', persistOnExit);
+      document.removeEventListener('visibilitychange', persistOnHidden);
+    };
+  }, []);
 
   useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+
+  useEffect(
+    () => () => {
+      arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer.timeout));
+      arrivalTimersRef.current = [];
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (arrivalTimersRef.current.length === 0) return;
+    const now = Date.now();
+    if (isPausedRef.current) {
+      pauseArrivalTimers(now);
+    } else {
+      resumeArrivalTimers(now);
+    }
+  }, []);
+
+  useEffect(() => {
+    const nextSelectedSlot = chooseOccupiedSlot(seatCustomerSlots, selectedSlot);
+    if (nextSelectedSlot !== selectedSlot) {
+      setSelectedSlot(nextSelectedSlot);
+    }
+
+    const nextServedSlots = servedSlots.filter(
+      (slot) => slot < tableCount && seatCustomerSlots[slot] != null,
+    );
+    if (nextServedSlots.length !== servedSlots.length) {
+      setServedSlots(nextServedSlots);
+    }
+
+    if (arrivalState === 'waiting' && hasSeatedCustomers) {
+      setArrivalState('ready');
+    }
+  }, [arrivalState, hasSeatedCustomers, seatCustomerSlots, selectedSlot, servedSlots, tableCount]);
+
+  useEffect(() => {
+    if (isPaused) return undefined;
+    if (scene !== 'shop' && scene !== 'visit' && scene !== 'story') return undefined;
+    if (dayElapsedMs >= SHOP_DAY_REAL_MS) return undefined;
+
+    const interval = window.setInterval(() => {
+      setDayElapsedMs((prev) => clamp(prev + SHOP_CLOCK_TICK_MS, 0, SHOP_DAY_REAL_MS));
+    }, SHOP_CLOCK_TICK_MS);
+
+    return () => window.clearInterval(interval);
+  }, [dayElapsedMs, isPaused, scene]);
+
+  useEffect(() => {
+    if (isPaused) return undefined;
+    if (scene !== 'visit') return undefined;
+
+    const interval = window.setInterval(() => setActionNow(Date.now()), 250);
+    return () => window.clearInterval(interval);
+  }, [isPaused, scene]);
+
+  useEffect(() => {
+    if (isPaused) return;
+    if (dayElapsedMs < SHOP_DAY_REAL_MS) return;
+    if (scene === 'shop' || scene === 'visit') {
+      closeShopForDay();
+    }
+  }, [dayElapsedMs, isPaused, scene]);
+
+  useEffect(() => {
+    if (skipInitialPatienceResetRef.current) {
+      skipInitialPatienceResetRef.current = false;
+      return;
+    }
+
     setPatienceRemaining(currentCustomer.patienceMs);
   }, [currentCustomer.id, currentCustomer.patienceMs, arrivalState]);
 
   useEffect(() => {
-    if (arrivalState !== 'ready' || serviceServed) return undefined;
+    if (isPaused) return undefined;
+    if (arrivalState !== 'ready' || !hasSeatedCustomers) return undefined;
     if (scene !== 'shop' && scene !== 'visit') return undefined;
 
     const interval = window.setInterval(() => {
-      setPatienceRemaining((prev) => clamp(prev - PATIENCE_TICK_MS, 0, currentCustomer.patienceMs));
+      const drain = serviceServed ? PATIENCE_TICK_MS / SERVED_PATIENCE_SLOWDOWN : PATIENCE_TICK_MS;
+      setPatienceRemaining((prev) => clamp(prev - drain, 0, currentCustomer.patienceMs));
     }, PATIENCE_TICK_MS);
 
     return () => window.clearInterval(interval);
-  }, [arrivalState, currentCustomer.patienceMs, scene, serviceServed]);
+  }, [arrivalState, currentCustomer.patienceMs, hasSeatedCustomers, isPaused, scene, serviceServed]);
 
   useEffect(() => {
-    if (arrivalState !== 'ready' || serviceServed || patienceRemaining > 0) return;
-    customerLeaves();
-  }, [arrivalState, patienceRemaining, serviceServed]);
+    if (isPaused) return;
+    if (arrivalState !== 'ready' || !hasSeatedCustomers || patienceRemaining > 0) return;
+    if (serviceServed) {
+      servedCustomerLeaves();
+    } else {
+      customerLeaves();
+    }
+  }, [arrivalState, hasSeatedCustomers, isPaused, patienceRemaining, serviceServed]);
 
-  function startingMood(served: boolean): number {
+  function startingMood(customer: Customer, service: ServiceItem, served: boolean): number {
     const comfortMoodBoost = Math.min(totalComfort * 2, 18);
-    const serviceBoost = served ? currentService.moodBoost : 0;
-    return clamp(currentCustomer.moodStart + comfortMoodBoost + serviceBoost, 0, 96);
+    const serviceBoost = served ? service.moodBoost : 0;
+    return clamp(customer.moodStart + comfortMoodBoost + serviceBoost, 0, 96);
+  }
+
+  function clearArrivalTimers() {
+    arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer.timeout));
+    arrivalTimersRef.current = [];
+  }
+
+  function createSessionSnapshot(now = Date.now()): SessionSnapshot | null {
+    const state = sessionStateRef.current;
+    if (!state) return null;
+
+    const timerBase = state.isPaused ? state.actionNow : now;
+    return {
+      version: SESSION_VERSION,
+      savedAt: now,
+      game: state.game,
+      scene: state.scene,
+      isPaused: state.isPaused,
+      mood: state.mood,
+      purrBeat: state.purrBeat,
+      arrivalState: state.arrivalState,
+      selectedSlot: state.selectedSlot,
+      tableCount: state.tableCount,
+      seatCustomerSlots: state.seatCustomerSlots,
+      servedSlots: state.servedSlots,
+      careBySlot: state.careBySlot,
+      patienceRemaining: state.patienceRemaining,
+      dayElapsedMs: state.dayElapsedMs,
+      purrCooldownRemainingMs: Math.max(0, state.purrReadyAt - timerBase),
+      quietCooldownRemainingMs: Math.max(0, state.quietReadyAt - timerBase),
+      nextCustomerSlot: state.nextCustomerSlot,
+      nextArrivalTimerId: state.nextArrivalTimerId,
+      arrivalTimers: arrivalTimersRef.current.map((timer) => ({
+        id: timer.id,
+        slot: timer.slot,
+        remainingMs: Math.max(0, timer.remainingMs ?? timer.dueAt - now),
+      })),
+      activeLedgerTab: state.activeLedgerTab,
+    };
+  }
+
+  function persistSessionSnapshot() {
+    try {
+      const snapshot = createSessionSnapshot();
+      if (snapshot) window.localStorage.setItem(SESSION_KEY, JSON.stringify(snapshot));
+    } catch {
+      // Local session restore is a browser convenience; storage can be unavailable in preview.
+    }
+  }
+
+  function clearSessionSnapshot() {
+    try {
+      window.localStorage.removeItem(SESSION_KEY);
+    } catch {
+      // Local session restore is a browser convenience; storage can be unavailable in preview.
+    }
+  }
+
+  function completeSeatArrival(timerId: number) {
+    const queuedTimer = arrivalTimersRef.current.find((timer) => timer.id === timerId);
+    if (!queuedTimer) return;
+
+    arrivalTimersRef.current = arrivalTimersRef.current.filter((timer) => timer.id !== timerId);
+
+    if (isPausedRef.current) {
+      arrivalTimersRef.current.push({
+        ...queuedTimer,
+        timeout: 0,
+        remainingMs: Math.max(0, queuedTimer.dueAt - Date.now()),
+      });
+      return;
+    }
+
+    const arrivingCustomerSlot = nextCustomerSlotRef.current;
+    nextCustomerSlotRef.current += 1;
+
+    setSeatCustomerSlots((prev) => {
+      if (prev[queuedTimer.slot] != null) return prev;
+      const nextSeats = [...prev];
+      nextSeats[queuedTimer.slot] = arrivingCustomerSlot;
+      setSelectedSlot((currentSlot) => chooseOccupiedSlot(nextSeats, currentSlot));
+      return nextSeats;
+    });
+    setGame((prev) => ({
+      ...prev,
+      customerSlot: Math.max(prev.customerSlot, nextCustomerSlotRef.current),
+    }));
+    setArrivalState('ready');
+  }
+
+  function pauseArrivalTimers(now: number) {
+    arrivalTimersRef.current = arrivalTimersRef.current.map((timer) => {
+      window.clearTimeout(timer.timeout);
+      return {
+        ...timer,
+        timeout: 0,
+        remainingMs: Math.max(0, timer.dueAt - now),
+      };
+    });
+  }
+
+  function resumeArrivalTimers(now: number) {
+    arrivalTimersRef.current = arrivalTimersRef.current.map((timer) => {
+      const delayMs = Math.max(0, timer.remainingMs ?? timer.dueAt - now);
+      return {
+        ...timer,
+        dueAt: now + delayMs,
+        timeout: window.setTimeout(() => completeSeatArrival(timer.id), delayMs),
+        remainingMs: null,
+      };
+    });
+  }
+
+  function prepareSeatsForShop(day: number, startSlot: number): number {
+    clearArrivalTimers();
+    const nextTableCount = getTableCount(day, startSlot);
+    const nextSeats = createSeatSlots(startSlot, nextTableCount);
+    const nextCustomerSlot = startSlot + nextTableCount;
+
+    nextCustomerSlotRef.current = nextCustomerSlot;
+    setTableCount(nextTableCount);
+    setSeatCustomerSlots(nextSeats);
+    setSelectedSlot(chooseOccupiedSlot(nextSeats, 0));
+    setPatienceRemaining(getCustomer(startSlot).patienceMs);
+    setServedSlots([]);
+    setCareBySlot({});
+    setArrivalState(hasOccupiedSeats(nextSeats) ? 'ready' : 'waiting');
+
+    return nextCustomerSlot;
+  }
+
+  function vacateSeat(slot: TableSlot): boolean {
+    const nextSeats = [...seatCustomerSlots];
+    nextSeats[slot] = null;
+    setSeatCustomerSlots(nextSeats);
+    setSelectedSlot(chooseOccupiedSlot(nextSeats, slot));
+    setServedSlots((prev) => prev.filter((servedSlot) => servedSlot !== slot));
+    setCareBySlot((prev) => {
+      const nextCare = { ...prev };
+      delete nextCare[slot];
+      return nextCare;
+    });
+
+    const stillOccupied = hasOccupiedSeats(nextSeats);
+    setArrivalState(stillOccupied ? 'ready' : 'waiting');
+    return stillOccupied;
+  }
+
+  function queueSeatArrival(slot: TableSlot) {
+    if (dayElapsedMs >= SHOP_DAY_REAL_MS) return;
+
+    const timerId = arrivalTimerIdRef.current + 1;
+    const now = Date.now();
+    arrivalTimerIdRef.current = timerId;
+
+    arrivalTimersRef.current.push({
+      id: timerId,
+      slot,
+      dueAt: now + ARRIVAL_DELAY_MS,
+      timeout: isPausedRef.current
+        ? 0
+        : window.setTimeout(() => completeSeatArrival(timerId), ARRIVAL_DELAY_MS),
+      remainingMs: isPausedRef.current ? ARRIVAL_DELAY_MS : null,
+    });
+  }
+
+  function pauseGame() {
+    if (isPausedRef.current) return;
+
+    const now = Date.now();
+    pauseStartedAtRef.current = now;
+    isPausedRef.current = true;
+    pauseArrivalTimers(now);
+    setActionNow(now);
+    setIsPaused(true);
+  }
+
+  function resumeGame() {
+    if (!isPausedRef.current) return;
+
+    const now = Date.now();
+    const pausedAt = pauseStartedAtRef.current;
+    const pausedMs = Math.max(0, now - pausedAt);
+    pauseStartedAtRef.current = 0;
+    isPausedRef.current = false;
+    resumeArrivalTimers(now);
+    setPurrReadyAt((prev) => (prev > pausedAt ? prev + pausedMs : prev));
+    setQuietReadyAt((prev) => (prev > pausedAt ? prev + pausedMs : prev));
+    setActionNow(now);
+    setIsPaused(false);
+  }
+
+  function clearPauseState() {
+    pauseStartedAtRef.current = 0;
+    isPausedRef.current = false;
+    setIsPaused(false);
+  }
+
+  function closeShopForDay() {
+    clearArrivalTimers();
+    clearPauseState();
+    setSeatCustomerSlots(TABLE_SLOTS.map(() => null));
+    setServedSlots([]);
+    setCareBySlot({});
+    setSelectedSlot(0);
+    setArrivalState('ready');
+    setMood(40);
+    setPurrBeat(0);
+    setPurrReadyAt(0);
+    setQuietReadyAt(0);
+    setScene('summary');
+  }
+
+  function finishSeatDeparture(slot: TableSlot) {
+    vacateSeat(slot);
+    if (dayElapsedMs >= SHOP_DAY_REAL_MS) {
+      closeShopForDay();
+    } else {
+      queueSeatArrival(slot);
+      setScene('shop');
+    }
   }
 
   function startDay() {
+    clearPauseState();
+    const nextCustomerSlot = prepareSeatsForShop(game.day, game.customerSlot);
     setGame((prev) => ({
       ...prev,
+      customerSlot: nextCustomerSlot,
       visitsToday: 0,
       tipsToday: 0,
       storiesToday: 0,
       missedToday: 0,
+      reputationToday: 0,
       shopHappiness: clamp(prev.shopHappiness, 35, 100),
     }));
+    setDayElapsedMs(0);
     setMood(40);
     setPurrBeat(0);
-    setArrivalState('ready');
-    setServiceServed(false);
+    setPurrReadyAt(0);
+    setQuietReadyAt(0);
     setScene('shop');
   }
 
   function continueDay() {
+    clearPauseState();
+    if (!hasSeatedCustomers) {
+      const nextCustomerSlot = prepareSeatsForShop(game.day, game.customerSlot);
+      setGame((prev) => ({ ...prev, customerSlot: nextCustomerSlot }));
+      setArrivalState('ready');
+    } else if (game.customerSlot < nextCustomerSlotRef.current) {
+      setGame((prev) => ({ ...prev, customerSlot: nextCustomerSlotRef.current }));
+      setArrivalState('ready');
+    } else {
+      setArrivalState('ready');
+    }
     setMood(40);
     setPurrBeat(0);
-    setArrivalState('ready');
-    setServiceServed(false);
+    setActionNow(Date.now());
+    setSelectedSlot(chooseOccupiedSlot(seatCustomerSlots, selectedSlot));
     setScene('shop');
   }
 
-  function beginVisit() {
-    if (arrivalState !== 'ready') return;
-    setMood(startingMood(serviceServed));
+  function beginVisit(slot = selectedOccupiedSlot) {
+    if (isPausedRef.current) return;
+    if (arrivalState !== 'ready' || !hasSeatedCustomers) return;
+    const nextSlot = clampTableSlot(slot, tableCount);
+    const customerSlot = seatCustomerSlots[nextSlot];
+    if (customerSlot == null) return;
+    const customer = getCustomer(customerSlot);
+    const service = getService(customerSlot, game.recipes);
+    setSelectedSlot(nextSlot);
+    setMood(startingMood(customer, service, servedSlots.includes(nextSlot)));
     setPurrBeat(0);
+    setActionNow(Date.now());
     setScene('visit');
   }
 
   function serveRequest() {
+    if (isPausedRef.current) return;
     if (arrivalState !== 'ready' || serviceServed) return;
-    setServiceServed(true);
+    setServedSlots((prev) => (prev.includes(selectedOccupiedSlot) ? prev : [...prev, selectedOccupiedSlot]));
+    setPatienceRemaining((prev) => Math.max(prev, currentCustomer.patienceMs * 0.65));
     if (scene === 'visit') {
       const nextMood = clamp(mood + currentService.moodBoost, 0, 100);
       setMood(nextMood);
@@ -513,6 +1509,15 @@ function TeaShopCat() {
   }
 
   function purr() {
+    if (isPausedRef.current) return;
+    const now = Date.now();
+    setActionNow(now);
+    if (purrReadyAt > now) return;
+    setPurrReadyAt(now + purrCooldownMs);
+    setCareBySlot((prev) => {
+      const care = getVisitCare(prev, selectedOccupiedSlot);
+      return { ...prev, [selectedOccupiedSlot]: { ...care, purrs: care.purrs + 1 } };
+    });
     const catBedBoost = ownedUpgradeNames.has('cat-bed') ? 5 : 0;
     const nextMood = clamp(mood + 18 + catBedBoost, 0, 100);
     setMood(nextMood);
@@ -523,6 +1528,15 @@ function TeaShopCat() {
   }
 
   function sitQuietly() {
+    if (isPausedRef.current) return;
+    const now = Date.now();
+    setActionNow(now);
+    if (quietReadyAt > now) return;
+    setQuietReadyAt(now + quietCooldownMs);
+    setCareBySlot((prev) => {
+      const care = getVisitCare(prev, selectedOccupiedSlot);
+      return { ...prev, [selectedOccupiedSlot]: { ...care, quiets: care.quiets + 1 } };
+    });
     const nextMood = clamp(mood + 10, 0, 100);
     setMood(nextMood);
     if (nextMood >= 100) {
@@ -531,25 +1545,29 @@ function TeaShopCat() {
   }
 
   function collectStory() {
+    if (isPausedRef.current) return;
     const alreadyCollected = game.stories.includes(currentCustomer.id);
-    const finishingDay = game.visitsToday + 1 >= VISITS_PER_DAY;
     const serviceTipBonus = serviceServed ? currentService.tipBonus : 0;
     const serviceHappinessGain = serviceServed ? currentService.happinessGain : 0;
     const comfortTipBonus = totalComfort * 3;
+    const departingSlot = selectedOccupiedSlot;
+    const care = getVisitCare(careBySlot, departingSlot);
+    const reputationGain = getReputationGain(currentService, serviceServed, care, true);
 
     setGame((prev) => ({
       ...prev,
       stories: alreadyCollected ? prev.stories : [...prev.stories, currentCustomer.id],
       storiesToday: prev.storiesToday + 1,
-      visitsToday: clamp(prev.visitsToday + 1, 0, VISITS_PER_DAY),
+      visitsToday: clamp(prev.visitsToday + 1, 0, 9999),
       tipsToday: prev.tipsToday + currentCustomer.tip + serviceTipBonus + comfortTipBonus,
       teaCups: prev.teaCups + currentCustomer.tip + serviceTipBonus + comfortTipBonus,
+      reputation: prev.reputation + reputationGain,
+      reputationToday: prev.reputationToday + reputationGain,
       shopHappiness: clamp(
         prev.shopHappiness + currentCustomer.happinessGain + serviceHappinessGain,
         0,
         100,
       ),
-      customerSlot: prev.customerSlot + 1,
       customerVisits: {
         ...prev.customerVisits,
         [currentCustomer.id]: getCustomerVisitCount(prev, currentCustomer.id) + 1,
@@ -558,31 +1576,51 @@ function TeaShopCat() {
 
     setMood(40);
     setPurrBeat(0);
-    setServiceServed(false);
-    if (finishingDay) {
-      setArrivalState('ready');
-      setScene('summary');
-    } else {
-      setArrivalState('waiting');
-      setScene('shop');
-    }
+    finishSeatDeparture(departingSlot);
+  }
+
+  function servedCustomerLeaves() {
+    const departingSlot = selectedOccupiedSlot;
+    const serviceTipBonus = currentService.tipBonus;
+    const serviceHappinessGain = currentService.happinessGain;
+    const comfortTipBonus = totalComfort * 3;
+    const care = getVisitCare(careBySlot, departingSlot);
+    const reputationGain = getReputationGain(currentService, true, care, false);
+
+    setGame((prev) => ({
+      ...prev,
+      visitsToday: clamp(prev.visitsToday + 1, 0, 9999),
+      tipsToday: prev.tipsToday + currentCustomer.tip + serviceTipBonus + comfortTipBonus,
+      teaCups: prev.teaCups + currentCustomer.tip + serviceTipBonus + comfortTipBonus,
+      reputation: prev.reputation + reputationGain,
+      reputationToday: prev.reputationToday + reputationGain,
+      shopHappiness: clamp(
+        prev.shopHappiness + Math.ceil(currentCustomer.happinessGain / 2) + serviceHappinessGain,
+        0,
+        100,
+      ),
+    }));
+
+    setMood(40);
+    setPurrBeat(0);
+    finishSeatDeparture(departingSlot);
   }
 
   function customerLeaves() {
+    const departingSlot = selectedOccupiedSlot;
     setGame((prev) => ({
       ...prev,
-      customerSlot: prev.customerSlot + 1,
       missedToday: prev.missedToday + 1,
       shopHappiness: clamp(prev.shopHappiness - 3, 0, 100),
     }));
     setMood(40);
     setPurrBeat(0);
-    setServiceServed(false);
-    setArrivalState('waiting');
-    setScene('shop');
+    finishSeatDeparture(departingSlot);
   }
 
   function endDay() {
+    clearArrivalTimers();
+    clearPauseState();
     setGame((prev) => ({
       ...prev,
       day: prev.day + 1,
@@ -590,10 +1628,17 @@ function TeaShopCat() {
       tipsToday: 0,
       storiesToday: 0,
       missedToday: 0,
+      reputationToday: 0,
       shopHappiness: clamp(prev.shopHappiness - 3, 0, 100),
     }));
+    setDayElapsedMs(0);
+    setSeatCustomerSlots(TABLE_SLOTS.map(() => null));
+    setServedSlots([]);
+    setCareBySlot({});
     setArrivalState('ready');
-    setServiceServed(false);
+    setSelectedSlot(0);
+    setPurrReadyAt(0);
+    setQuietReadyAt(0);
     setScene('menu');
   }
 
@@ -612,12 +1657,56 @@ function TeaShopCat() {
     });
   }
 
+  function buyRecipe(id: string) {
+    const recipe = SERVICE_ITEMS.find((item) => item.id === id);
+    if (!recipe || recipe.id === STARTER_RECIPE_ID) return;
+
+    setGame((prev) => {
+      const ownedRecipes = getOwnedRecipeIds(prev.recipes);
+      if (ownedRecipes.includes(id) || prev.teaCups < recipe.cost) return prev;
+      return {
+        ...prev,
+        teaCups: prev.teaCups - recipe.cost,
+        recipes: [...ownedRecipes, id],
+        shopHappiness: clamp(prev.shopHappiness + recipe.happinessGain, 0, 100),
+      };
+    });
+  }
+
+  function buyCooldownUpgrade(id: string) {
+    const upgrade = COOLDOWN_UPGRADES.find((item) => item.id === id);
+    if (!upgrade) return;
+
+    setGame((prev) => {
+      if (prev.upgrades.includes(id) || prev.teaCups < upgrade.cost) return prev;
+      return {
+        ...prev,
+        teaCups: prev.teaCups - upgrade.cost,
+        upgrades: [...prev.upgrades, id],
+      };
+    });
+  }
+
   function resetSave() {
+    clearArrivalTimers();
+    clearPauseState();
+    clearSessionSnapshot();
+    const resetTableCount = getTableCount(DEFAULT_GAME.day, DEFAULT_GAME.customerSlot);
+    const resetSeats = createSeatSlots(DEFAULT_GAME.customerSlot, resetTableCount);
+    nextCustomerSlotRef.current = DEFAULT_GAME.customerSlot + resetTableCount;
     setGame(DEFAULT_GAME);
+    setTableCount(resetTableCount);
+    setSeatCustomerSlots(resetSeats);
+    setDayElapsedMs(0);
+    setCareBySlot({});
     setMood(40);
     setPurrBeat(0);
     setArrivalState('ready');
-    setServiceServed(false);
+    setSelectedSlot(0);
+    setServedSlots([]);
+    setPurrReadyAt(0);
+    setQuietReadyAt(0);
+    setActionNow(Date.now());
     setScene('menu');
   }
 
@@ -634,15 +1723,19 @@ function TeaShopCat() {
         </div>
       </div>
       <div className="tea-shell">
-        {scene === 'shop' || scene === 'visit' || scene === 'upgrades' || scene === 'collection' ? (
+        {showTopBar ? (
           <TopBar
             game={game}
-            totalComfort={totalComfort}
-            dailyProgress={dailyProgress}
+            shopQuality={shopQuality}
+            shopRank={shopRank}
+            clockProgress={clockProgress}
+            shopTimeLabel={shopTimeLabel}
+            yearProgress={yearProgress}
             onMenu={() => setScene('menu')}
             onShop={() => setScene('shop')}
             onStories={() => setScene('collection')}
             onUpgrades={() => setScene('upgrades')}
+            onPause={pauseGame}
           />
         ) : null}
 
@@ -659,14 +1752,17 @@ function TeaShopCat() {
 
         {scene === 'shop' ? (
           <ShopScreen
-            game={game}
             customers={visibleCustomers}
+            seatCustomerSlots={seatCustomerSlots}
+            recipes={game.recipes}
             currentCustomer={currentCustomer}
             tableCount={tableCount}
             arrivalState={arrivalState}
+            selectedSlot={selectedOccupiedSlot}
             activeService={currentService}
-            serviceServed={serviceServed}
+            servedSlots={servedSlots}
             patiencePercent={patiencePercent}
+            clockProgress={clockProgress}
             onServe={serveRequest}
             onVisit={beginVisit}
             onStories={() => setScene('collection')}
@@ -679,10 +1775,11 @@ function TeaShopCat() {
             customer={currentCustomer}
             service={currentService}
             serviceServed={serviceServed}
-            visitNumber={currentVisitNumber}
             patiencePercent={patiencePercent}
             mood={mood}
             purrBeat={purrBeat}
+            purrCooldownRemaining={purrCooldownRemaining}
+            quietCooldownRemaining={quietCooldownRemaining}
             onServe={serveRequest}
             onPurr={purr}
             onQuiet={sitQuietly}
@@ -694,18 +1791,33 @@ function TeaShopCat() {
           <StoryScreen
             customer={currentCustomer}
             story={currentStory}
-            visitNumber={currentVisitNumber}
             onCollect={collectStory}
           />
         ) : null}
 
-        {scene === 'summary' ? <SummaryScreen game={game} onEndDay={endDay} /> : null}
+        {scene === 'summary' ? (
+          <SummaryScreen
+            game={game}
+            shopQuality={shopQuality}
+            shopRank={shopRank}
+            daysRemaining={daysRemaining}
+            onEndDay={endDay}
+          />
+        ) : null}
 
         {scene === 'upgrades' ? (
           <UpgradesScreen
             game={game}
             totalComfort={totalComfort}
-            onBuy={buyUpgrade}
+            recipeQuality={recipeQuality}
+            ownedRecipes={ownedRecipes}
+            purrCooldownMs={purrCooldownMs}
+            quietCooldownMs={quietCooldownMs}
+            activeTab={activeLedgerTab}
+            onTabChange={setActiveLedgerTab}
+            onBuyUpgrade={buyUpgrade}
+            onBuyRecipe={buyRecipe}
+            onBuyCooldown={buyCooldownUpgrade}
             onBack={() => setScene('shop')}
           />
         ) : null}
@@ -713,6 +1825,8 @@ function TeaShopCat() {
         {scene === 'collection' ? (
           <CollectionScreen game={game} onBack={() => setScene('shop')} />
         ) : null}
+
+        {isPaused ? <PauseOverlay game={game} shopTimeLabel={shopTimeLabel} onResume={resumeGame} /> : null}
       </div>
     </div>
   );
@@ -720,38 +1834,61 @@ function TeaShopCat() {
 
 interface TopBarProps {
   game: GameState;
-  totalComfort: number;
-  dailyProgress: number;
+  shopQuality: number;
+  shopRank: ShopRank;
+  clockProgress: number;
+  shopTimeLabel: string;
+  yearProgress: number;
   onMenu: () => void;
   onShop: () => void;
   onStories: () => void;
   onUpgrades: () => void;
+  onPause: () => void;
 }
 
-function TopBar({ game, totalComfort, dailyProgress, onMenu, onShop, onStories, onUpgrades }: TopBarProps) {
+function TopBar({
+  game,
+  shopQuality,
+  shopRank,
+  clockProgress,
+  shopTimeLabel,
+  yearProgress,
+  onMenu,
+  onShop,
+  onStories,
+  onUpgrades,
+  onPause,
+}: TopBarProps) {
   return (
     <header className="top-bar" aria-label="Tea shop status">
-      <div className="day-chip">
+      <div className="day-chip day-chip-year">
         <SunIcon />
-        <span>Day {game.day}</span>
+        <div>
+          <span>Day {Math.min(game.day, YEAR_LENGTH_DAYS)}/{YEAR_LENGTH_DAYS}</span>
+          <Meter value={yearProgress} label="Year progress" />
+        </div>
       </div>
       <div className="happiness-meter">
         <CatHeadIcon />
         <div>
           <div className="meter-label">
-            <span>Shop Happiness</span>
-            <strong>{game.shopHappiness}%</strong>
+            <span>Shop Quality</span>
+            <strong>{shopQuality}%</strong>
           </div>
-          <Meter value={game.shopHappiness} label="Shop happiness" />
+          <Meter value={shopQuality} label="Shop quality" />
         </div>
       </div>
-      <div className="day-meter" aria-label="Customers helped today">
-        <span>{game.visitsToday}/{VISITS_PER_DAY}</span>
-        <Meter value={dailyProgress} label="Daily visits" />
+      <div className="day-meter" aria-label="Shop time">
+        <span>{shopTimeLabel}</span>
+        <Meter value={clockProgress} label="Shop day progress" />
       </div>
-      <div className="comfort-chip" aria-label={`Shop comfort ${totalComfort}`}>
+      <div className="rank-chip" aria-label={`Shop rank ${shopRank.name}`}>
+        <StarIcon />
+        <span>{shopRank.name}</span>
+      </div>
+      <div className="reputation-chip" aria-label={`Reputation ${game.reputation}`}>
         <HeartIcon />
-        <strong>{totalComfort}</strong>
+        <strong>{game.reputation}</strong>
       </div>
       <div className="cup-bank">
         <CupIcon />
@@ -770,8 +1907,34 @@ function TopBar({ game, totalComfort, dailyProgress, onMenu, onShop, onStories, 
         <IconButton label="Menu" onClick={onMenu}>
           <MenuIcon />
         </IconButton>
+        <IconButton label="Pause" onClick={onPause}>
+          <PauseIcon />
+        </IconButton>
       </nav>
     </header>
+  );
+}
+
+interface PauseOverlayProps {
+  game: GameState;
+  shopTimeLabel: string;
+  onResume: () => void;
+}
+
+function PauseOverlay({ game, shopTimeLabel, onResume }: PauseOverlayProps) {
+  return (
+    <div className="pause-overlay" role="dialog" aria-modal="true" aria-label="Game paused">
+      <section className="pause-dialog">
+        <PauseIcon />
+        <p className="eyebrow">Paused</p>
+        <h2>Tea Break</h2>
+        <p>Day {Math.min(game.day, YEAR_LENGTH_DAYS)} at {shopTimeLabel}</p>
+        <button className="primary-button" type="button" onClick={onResume}>
+          <PawIcon />
+          Resume
+        </button>
+      </section>
+    </div>
   );
 }
 
@@ -844,34 +2007,42 @@ function MenuScreen({ game, onStart, onContinue, onStories, onUpgrades, onReset 
 }
 
 interface ShopScreenProps {
-  game: GameState;
-  customers: Customer[];
+  customers: Array<Customer | null>;
+  seatCustomerSlots: Array<number | null>;
+  recipes: string[];
   currentCustomer: Customer;
   tableCount: number;
   arrivalState: ArrivalState;
+  selectedSlot: TableSlot;
   activeService: ServiceItem;
-  serviceServed: boolean;
+  servedSlots: TableSlot[];
   patiencePercent: number;
+  clockProgress: number;
   onServe: () => void;
-  onVisit: () => void;
+  onVisit: (slot?: TableSlot) => void;
   onStories: () => void;
   storyChapterCount: number;
 }
 
 function ShopScreen({
-  game,
   customers,
+  seatCustomerSlots,
+  recipes,
   currentCustomer,
   tableCount,
   arrivalState,
+  selectedSlot,
   activeService,
-  serviceServed,
+  servedSlots,
   patiencePercent,
+  clockProgress,
   onServe,
   onVisit,
   onStories,
   storyChapterCount,
 }: ShopScreenProps) {
+  const canVisitSelectedCustomer = arrivalState === 'ready' && Boolean(customers[selectedSlot]);
+
   return (
     <main className="shop-screen">
       <section className="shop-stage" aria-label="Tea shop floor">
@@ -893,14 +2064,16 @@ function ShopScreen({
         </div>
 
         <div className="floor-lines" />
+        <WallClock progress={clockProgress} />
 
         {TABLE_SLOTS.map((slot) => {
           const customer = customers[slot];
           const isOccupied = Boolean(customer) && slot < tableCount;
-          const isActive = isOccupied && slot === 0 && arrivalState === 'ready';
-          const service = slot === 0 ? activeService : getService(game.customerSlot + slot);
-          const previousVisits = customer ? getCustomerVisitCount(game, customer.id) : 0;
-          const returnCount = Math.max(0, previousVisits);
+          const isActive = isOccupied && slot === selectedSlot && arrivalState === 'ready';
+          const customerSlot = seatCustomerSlots[slot] ?? null;
+          const service =
+            slot === selectedSlot || customerSlot === null ? activeService : getService(customerSlot, recipes);
+          const seatServed = servedSlots.includes(slot);
 
           return (
             <div
@@ -911,20 +2084,25 @@ function ShopScreen({
             >
               {isOccupied && customer ? (
                 <>
-                  <span className="speech-bubble">{isActive ? '...' : customer.seat}</span>
-                  {returnCount > 0 ? <span className="return-badge">Return {returnCount}</span> : null}
-                  <AnimalAvatar customer={customer} size="table" />
+                  <button
+                    className="customer-visit-button"
+                    onClick={() => onVisit(slot)}
+                    type="button"
+                    aria-label={`Sit with ${customer.name}`}
+                  >
+                    <AnimalAvatar customer={customer} size="table" />
+                  </button>
                   <button
                     className={`service-request ${isActive ? '' : 'muted'}`}
-                    disabled={!isActive || serviceServed}
+                    disabled={!isActive || seatServed}
                     onClick={onServe}
                     type="button"
                     aria-label={`Serve ${service.label}`}
                     title={`Serve ${service.label}`}
                   >
-                    {serviceServed && isActive ? <CheckIcon /> : <ServiceIcon kind={service.id} />}
+                    {seatServed ? <CheckIcon /> : <ServiceIcon kind={service.id} />}
                   </button>
-                  {isActive && !serviceServed ? (
+                  {isActive && !seatServed ? (
                     <div className="patience-strip" aria-label={`${customer.name} patience`}>
                       <span style={{ width: `${clamp(patiencePercent, 0, 100)}%` }} />
                     </div>
@@ -934,7 +2112,7 @@ function ShopScreen({
                 <span className="empty-chair" aria-hidden="true" />
               )}
               <span className="tea-table">
-                {isOccupied ? <ServiceIcon kind={service.id} /> : null}
+                {isOccupied && seatServed ? <ServiceIcon kind={service.id} /> : null}
               </span>
             </div>
           );
@@ -955,9 +2133,14 @@ function ShopScreen({
           </div>
         ) : null}
 
-        <button className="sit-button" disabled={arrivalState !== 'ready'} type="button" onClick={onVisit}>
-          {arrivalState === 'ready' ? <PawIcon /> : <BellIcon />}
-          {arrivalState === 'ready' ? `Sit with ${currentCustomer.name}` : 'Waiting for customer'}
+        <button
+          className="sit-button"
+          disabled={!canVisitSelectedCustomer}
+          type="button"
+          onClick={() => onVisit(selectedSlot)}
+        >
+          {canVisitSelectedCustomer ? <PawIcon /> : <BellIcon />}
+          {canVisitSelectedCustomer ? `Sit with ${currentCustomer.name}` : 'Waiting for customer'}
         </button>
 
         <button className="story-bag" type="button" onClick={onStories}>
@@ -969,14 +2152,41 @@ function ShopScreen({
   );
 }
 
+interface WallClockProps {
+  progress: number;
+}
+
+function WallClock({ progress }: WallClockProps) {
+  const safeProgress = clamp(progress, 0, 100);
+  const dayMinutes = shopDayMinutes(safeProgress);
+  const hourAngle = ((dayMinutes / 60) % 12) * 30;
+  const style = {
+    '--clock-progress-angle': `${safeProgress * 3.6}deg`,
+    '--clock-hour-angle': `${hourAngle}deg`,
+  } as CSSProperties;
+
+  return (
+    <div
+      className="wall-clock"
+      style={style}
+      role="img"
+      aria-label={`Shop day ${Math.round(safeProgress)}% complete`}
+    >
+      <span className="clock-hand clock-hand-hour" />
+      <span className="clock-pin" />
+    </div>
+  );
+}
+
 interface VisitScreenProps {
   customer: Customer;
   service: ServiceItem;
   serviceServed: boolean;
-  visitNumber: number;
   patiencePercent: number;
   mood: number;
   purrBeat: number;
+  purrCooldownRemaining: number;
+  quietCooldownRemaining: number;
   onServe: () => void;
   onPurr: () => void;
   onQuiet: () => void;
@@ -987,15 +2197,19 @@ function VisitScreen({
   customer,
   service,
   serviceServed,
-  visitNumber,
   patiencePercent,
   mood,
   purrBeat,
+  purrCooldownRemaining,
+  quietCooldownRemaining,
   onServe,
   onPurr,
   onQuiet,
   onBack,
 }: VisitScreenProps) {
+  const purrReady = purrCooldownRemaining <= 0;
+  const quietReady = quietCooldownRemaining <= 0;
+
   return (
     <main className="visit-screen">
       <section className="visit-stage" aria-label={`Sitting with ${customer.name}`}>
@@ -1029,7 +2243,6 @@ function VisitScreen({
         </div>
         <div className="mood-panel">
           <div className="visit-meta-row">
-            <span>{visitNumber > 1 ? `Return ${visitNumber - 1}` : 'First visit'}</span>
             <span>{serviceServed ? 'Order served' : 'Waiting on order'}</span>
           </div>
           <div className="meter-label">
@@ -1057,13 +2270,13 @@ function VisitScreen({
             </button>
           </div>
           <div className="visit-actions">
-            <button className="primary-button" type="button" onClick={onPurr}>
+            <button className="primary-button" type="button" onClick={onPurr} disabled={!purrReady}>
               <PawIcon />
-              Purr
+              {purrReady ? 'Purr' : `Purr ${formatCooldown(purrCooldownRemaining)}`}
             </button>
-            <button className="paper-button" type="button" onClick={onQuiet}>
+            <button className="paper-button" type="button" onClick={onQuiet} disabled={!quietReady}>
               <CupIcon />
-              Sit Quietly
+              {quietReady ? 'Sit Quietly' : `Quiet ${formatCooldown(quietCooldownRemaining)}`}
             </button>
           </div>
         </div>
@@ -1075,11 +2288,10 @@ function VisitScreen({
 interface StoryScreenProps {
   customer: Customer;
   story: StoryChapter;
-  visitNumber: number;
   onCollect: () => void;
 }
 
-function StoryScreen({ customer, story, visitNumber, onCollect }: StoryScreenProps) {
+function StoryScreen({ customer, story, onCollect }: StoryScreenProps) {
   return (
     <main className="story-screen">
       <div className="soft-shop-bg" />
@@ -1092,9 +2304,6 @@ function StoryScreen({ customer, story, visitNumber, onCollect }: StoryScreenPro
         <div className="story-portrait">
           <AnimalAvatar customer={customer} size="portrait" />
         </div>
-        <span className="story-chapter-badge">
-          {visitNumber > 1 ? `Return ${visitNumber - 1}` : 'First visit'}
-        </span>
         <h3>{story.title}</h3>
         <p>{story.text}</p>
         <button className="primary-button" type="button" onClick={onCollect}>
@@ -1108,10 +2317,15 @@ function StoryScreen({ customer, story, visitNumber, onCollect }: StoryScreenPro
 
 interface SummaryScreenProps {
   game: GameState;
+  shopQuality: number;
+  shopRank: ShopRank;
+  daysRemaining: number;
   onEndDay: () => void;
 }
 
-function SummaryScreen({ game, onEndDay }: SummaryScreenProps) {
+function SummaryScreen({ game, shopQuality, shopRank, daysRemaining, onEndDay }: SummaryScreenProps) {
+  const goalMet = shopQuality >= GOOD_SHOP_SCORE;
+
   return (
     <main className="summary-screen">
       <section className="summary-card" aria-label="End of day summary">
@@ -1123,10 +2337,17 @@ function SummaryScreen({ game, onEndDay }: SummaryScreenProps) {
         <dl className="summary-list">
           <div>
             <dt>
-              <CatHeadIcon />
-              Shop Happiness
+              <StarIcon />
+              Shop Rank
             </dt>
-            <dd>{game.shopHappiness}%</dd>
+            <dd>{shopRank.name} {shopQuality}%</dd>
+          </div>
+          <div>
+            <dt>
+              <HeartIcon />
+              Reputation
+            </dt>
+            <dd>+{game.reputationToday}</dd>
           </div>
           <div>
             <dt>
@@ -1149,6 +2370,13 @@ function SummaryScreen({ game, onEndDay }: SummaryScreenProps) {
             </dt>
             <dd>{game.missedToday}</dd>
           </div>
+          <div>
+            <dt>
+              <SunIcon />
+              Year Goal
+            </dt>
+            <dd>{goalMet ? 'Good rank' : `${daysRemaining} days left`}</dd>
+          </div>
         </dl>
         <button className="primary-button" type="button" onClick={onEndDay}>
           <SunIcon />
@@ -1165,18 +2393,54 @@ function SummaryScreen({ game, onEndDay }: SummaryScreenProps) {
 interface UpgradesScreenProps {
   game: GameState;
   totalComfort: number;
-  onBuy: (id: string) => void;
+  recipeQuality: number;
+  ownedRecipes: ServiceItem[];
+  purrCooldownMs: number;
+  quietCooldownMs: number;
+  activeTab: LedgerTab;
+  onTabChange: (tab: LedgerTab) => void;
+  onBuyUpgrade: (id: string) => void;
+  onBuyRecipe: (id: string) => void;
+  onBuyCooldown: (id: string) => void;
   onBack: () => void;
 }
 
-function UpgradesScreen({ game, totalComfort, onBuy, onBack }: UpgradesScreenProps) {
+function UpgradesScreen({
+  game,
+  totalComfort,
+  recipeQuality,
+  ownedRecipes,
+  purrCooldownMs,
+  quietCooldownMs,
+  activeTab,
+  onTabChange,
+  onBuyUpgrade,
+  onBuyRecipe,
+  onBuyCooldown,
+  onBack,
+}: UpgradesScreenProps) {
+  const [activeRecipeCategory, setActiveRecipeCategory] = useState<RecipeCategory>('Coffee');
+  const ownedRecipeIds = new Set(ownedRecipes.map((recipe) => recipe.id));
+  const recipeCategories = ['Tea', 'Coffee'] as const;
+  const visibleRecipes = SERVICE_ITEMS.filter((recipe) => recipe.category === activeRecipeCategory);
+  const tabs = [
+    { id: 'recipes', label: 'Recipes' },
+    { id: 'training', label: 'Training' },
+    { id: 'comfort', label: 'Comfort' },
+  ] as const satisfies readonly { id: LedgerTab; label: string }[];
+
   return (
     <main className="upgrades-screen">
       <section className="shop-ledger" aria-label="Shop upgrades">
         <div className="ledger-head">
           <div>
             <p className="eyebrow">Shop</p>
-            <h2>Upgrades</h2>
+            <h2>Ledger</h2>
+          </div>
+          <div className="comfort-total">
+            <StarIcon />
+            <span>Recipes</span>
+            <strong>+{recipeQuality}</strong>
           </div>
           <div className="comfort-total">
             <HeartIcon />
@@ -1188,39 +2452,169 @@ function UpgradesScreen({ game, totalComfort, onBuy, onBack }: UpgradesScreenPro
             <strong>{game.teaCups}</strong>
           </div>
         </div>
-        <div className="upgrade-tabs" aria-label="Upgrade categories">
-          <span>Furniture</span>
-          <span>Decor</span>
-          <span>Comfort</span>
+        <div className="upgrade-tabs" aria-label="Upgrade categories" role="tablist">
+          {tabs.map((tab) => (
+            <button
+              aria-controls={`ledger-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              className={activeTab === tab.id ? 'active' : ''}
+              id={`ledger-tab-${tab.id}`}
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              role="tab"
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <div className="upgrade-grid">
-          {UPGRADES.map((upgrade) => {
-            const owned = game.upgrades.includes(upgrade.id);
-            const canBuy = game.teaCups >= upgrade.cost && !owned;
-
-            return (
-              <article className={`upgrade-item ${owned ? 'owned' : ''}`} key={upgrade.id}>
-                <div className="upgrade-art">
-                  <UpgradeIcon id={upgrade.id} />
-                </div>
-                <div>
-                  <span className="upgrade-kind">{upgrade.kind}</span>
-                  <h3>{upgrade.name}</h3>
-                  <p>{upgrade.description}</p>
-                  <span className="comfort-bonus">Comfort +{upgrade.comfort}</span>
-                </div>
+        <div className="ledger-sections">
+          {activeTab === 'recipes' ? (
+          <section
+            aria-labelledby="ledger-tab-recipes"
+            className="ledger-section"
+            id="ledger-recipes"
+            role="tabpanel"
+          >
+            <div className="section-head">
+              <h3>Recipe List</h3>
+              <span>Quality +{recipeQuality}</span>
+            </div>
+            <div className="recipe-category-tabs" aria-label="Recipe types" role="tablist">
+              {recipeCategories.map((category) => (
                 <button
-                  className={owned ? 'owned-button' : 'buy-button'}
-                  disabled={!canBuy}
-                  onClick={() => onBuy(upgrade.id)}
+                  aria-selected={activeRecipeCategory === category}
+                  className={activeRecipeCategory === category ? 'active' : ''}
+                  key={category}
+                  onClick={() => setActiveRecipeCategory(category)}
+                  role="tab"
                   type="button"
                 >
-                  {owned ? 'Owned' : `${upgrade.cost}`}
-                  {!owned ? <CupIcon /> : null}
+                  {category}
                 </button>
-              </article>
-            );
-          })}
+              ))}
+            </div>
+            <div className="recipe-group">
+              <h4>{activeRecipeCategory}</h4>
+              <div className="upgrade-grid">
+                {visibleRecipes.map((recipe) => {
+                  const owned = ownedRecipeIds.has(recipe.id);
+                  const canBuy = game.teaCups >= recipe.cost && !owned;
+
+                  return (
+                    <article className={`upgrade-item ${owned ? 'owned' : ''}`} key={recipe.id}>
+                      <div className="upgrade-art recipe-art">
+                        <ServiceIcon kind={recipe.id} />
+                      </div>
+                      <div>
+                        <span className="upgrade-kind">{recipe.category} Recipe</span>
+                        <h3>{recipe.name}</h3>
+                        <p>{recipe.description}</p>
+                        <span className="comfort-bonus">Quality +{recipe.quality}</span>
+                      </div>
+                      <button
+                        className={owned ? 'owned-button' : 'buy-button'}
+                        disabled={!canBuy}
+                        onClick={() => onBuyRecipe(recipe.id)}
+                        type="button"
+                      >
+                        {owned ? 'Owned' : `${recipe.cost}`}
+                        {!owned ? <CupIcon /> : null}
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+          ) : null}
+
+          {activeTab === 'training' ? (
+          <section
+            aria-labelledby="ledger-tab-training"
+            className="ledger-section"
+            id="ledger-training"
+            role="tabpanel"
+          >
+            <div className="section-head">
+              <h3>Cat Training</h3>
+              <span>Purr {formatCooldown(purrCooldownMs)} / Quiet {formatCooldown(quietCooldownMs)}</span>
+            </div>
+            <div className="upgrade-grid">
+              {COOLDOWN_UPGRADES.map((upgrade) => {
+                const owned = game.upgrades.includes(upgrade.id);
+                const canBuy = game.teaCups >= upgrade.cost && !owned;
+                const actionLabel = upgrade.action === 'purr' ? 'Purr' : 'Quiet';
+
+                return (
+                  <article className={`upgrade-item ${owned ? 'owned' : ''}`} key={upgrade.id}>
+                    <div className="upgrade-art training-art">
+                      {upgrade.action === 'purr' ? <PawIcon /> : <CupIcon />}
+                    </div>
+                    <div>
+                      <span className="upgrade-kind">Training</span>
+                      <h3>{upgrade.name}</h3>
+                      <p>{upgrade.description}</p>
+                      <span className="comfort-bonus">{actionLabel} -{formatCooldown(upgrade.reductionMs)}</span>
+                    </div>
+                    <button
+                      className={owned ? 'owned-button' : 'buy-button'}
+                      disabled={!canBuy}
+                      onClick={() => onBuyCooldown(upgrade.id)}
+                      type="button"
+                    >
+                      {owned ? 'Owned' : `${upgrade.cost}`}
+                      {!owned ? <CupIcon /> : null}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+          ) : null}
+
+          {activeTab === 'comfort' ? (
+          <section
+            aria-labelledby="ledger-tab-comfort"
+            className="ledger-section"
+            id="ledger-comfort"
+            role="tabpanel"
+          >
+            <div className="section-head">
+              <h3>Shop Comfort</h3>
+              <span>Comfort {totalComfort}</span>
+            </div>
+            <div className="upgrade-grid">
+              {UPGRADES.map((upgrade) => {
+                const owned = game.upgrades.includes(upgrade.id);
+                const canBuy = game.teaCups >= upgrade.cost && !owned;
+
+                return (
+                  <article className={`upgrade-item ${owned ? 'owned' : ''}`} key={upgrade.id}>
+                    <div className="upgrade-art">
+                      <UpgradeIcon id={upgrade.id} />
+                    </div>
+                    <div>
+                      <span className="upgrade-kind">{upgrade.kind}</span>
+                      <h3>{upgrade.name}</h3>
+                      <p>{upgrade.description}</p>
+                      <span className="comfort-bonus">Comfort +{upgrade.comfort}</span>
+                    </div>
+                    <button
+                      className={owned ? 'owned-button' : 'buy-button'}
+                      disabled={!canBuy}
+                      onClick={() => onBuyUpgrade(upgrade.id)}
+                      type="button"
+                    >
+                      {owned ? 'Owned' : `${upgrade.cost}`}
+                      {!owned ? <CupIcon /> : null}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+          ) : null}
         </div>
         <button className="paper-button ledger-back" type="button" onClick={onBack}>
           <ShopIcon />
@@ -1281,7 +2675,6 @@ interface StoryEntryProps {
 function StoryEntry({ customer, game }: StoryEntryProps) {
   const visits = getCustomerVisitCount(game, customer.id);
   const latestStory = getStoryForVisit(customer, visits);
-  const returns = Math.max(0, visits - 1);
 
   return (
     <article className="story-entry">
@@ -1289,7 +2682,6 @@ function StoryEntry({ customer, game }: StoryEntryProps) {
       <div>
         <div className="story-entry-head">
           <h3>{latestStory.title}</h3>
-          <span>{returns} returns</span>
         </div>
         <p>{latestStory.text}</p>
         <span className="visit-counter">Visits {visits}</span>
@@ -1463,9 +2855,17 @@ interface ServiceIconProps {
 }
 
 function ServiceIcon({ kind }: ServiceIconProps) {
-  if (kind === 'coffee') return <CoffeeIcon />;
-  if (kind === 'cake') return <CakeIcon />;
-  return <CupIcon />;
+  const service = SERVICE_ITEMS.find((item) => item.id === kind) ?? SERVICE_ITEMS[0];
+
+  return (
+    <img
+      alt=""
+      aria-hidden="true"
+      className="service-icon-img"
+      draggable={false}
+      src={service.imageSrc}
+    />
+  );
 }
 
 function CupIcon() {
@@ -1475,29 +2875,6 @@ function CupIcon() {
       <path d="M22 13h3a3 3 0 0 1 0 6h-3" fill="none" stroke="#7a4c31" strokeWidth="2" />
       <path d="M8 25h15" stroke="#7a4c31" strokeWidth="2" strokeLinecap="round" />
       <path d="M14 9c-1-2 2-3 1-5" stroke="#d6805e" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CoffeeIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M8 13h14v7a6 6 0 0 1-12 0v-7Z" fill="#efe1ca" stroke="#6b432e" strokeWidth="2" />
-      <path d="M22 15h3a3 3 0 0 1 0 6h-3" fill="none" stroke="#6b432e" strokeWidth="2" />
-      <path d="M10 15h10v3H10Z" fill="#7a4c31" opacity="0.9" />
-      <path d="M8 26h15" stroke="#6b432e" strokeWidth="2" strokeLinecap="round" />
-      <path d="M13 10c-1-2 2-3 1-5M19 10c-1-2 2-3 1-5" stroke="#a86b42" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CakeIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M7 15h18v9H7Z" fill="#f0bd73" stroke="#7a4c31" strokeWidth="2" />
-      <path d="M8 13c2-4 13-5 16 0v4H8v-4Z" fill="#fff1cf" stroke="#7a4c31" strokeWidth="2" />
-      <path d="M11 18h3M18 18h3M10 23h13" stroke="#c8793b" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="16" cy="11" r="2" fill="#df7070" />
     </svg>
   );
 }
@@ -1595,10 +2972,33 @@ function MenuIcon() {
   );
 }
 
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="9" y="7" width="5" height="18" rx="2" fill="#7a4c31" />
+      <rect x="18" y="7" width="5" height="18" rx="2" fill="#7a4c31" />
+    </svg>
+  );
+}
+
 function HeartIcon() {
   return (
     <svg viewBox="0 0 32 32" aria-hidden="true">
       <path d="M16 27S5 20 5 12a6 6 0 0 1 11-3 6 6 0 0 1 11 3c0 8-11 15-11 15Z" fill="#df7070" stroke="#8b4545" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path
+        d="m16 4 3.4 7 7.7 1.1-5.6 5.4 1.3 7.6L16 21.5l-6.8 3.6 1.3-7.6-5.6-5.4 7.7-1.1L16 4Z"
+        fill="#e8bf63"
+        stroke="#7a5a30"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
     </svg>
   );
 }
