@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "@series-inc/rundot-game-sdk": "^5.20.0",
+    "fflate": "^0.8.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.14"
