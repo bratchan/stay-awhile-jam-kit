@@ -1,0 +1,4040 @@
+{
+  "version": 1,
+  "layouts": {
+    "shadow": {
+      "enabled": true,
+      "character": {
+        "x": 27,
+        "y": 63
+      },
+      "table": {
+        "x": 54,
+        "y": 72
+      },
+      "drink": {
+        "x": 54,
+        "y": 65
+      },
+      "cat": {
+        "x": 51,
+        "y": 91
+      },
+      "bubble": {
+        "x": 46,
+        "y": 23
+      },
+      "order": {
+        "x": 32,
+        "y": 38
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 126,
+      "drinkScale": 100,
+      "catScale": 89,
+      "talking": {
+        "character": {
+          "x": 41,
+          "y": 94
+        },
+        "cat": {
+          "x": 41,
+          "y": 68
+        },
+        "bubble": {
+          "x": 18,
+          "y": 25
+        },
+        "drink": {
+          "x": 50,
+          "y": 79
+        },
+        "patience": {
+          "x": 58,
+          "y": 11
+        },
+        "characterScale": 180,
+        "drinkScale": 86,
+        "catScale": 55,
+        "defaultImageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
+        "imageSrc": "/admin-uploads/shadow/1782154679051-shadowtalking.png",
+        "enabledImageSrcs": [
+          "/admin-uploads/shadow/1782154679051-shadowtalking.png",
+          "/admin-uploads/shadow/1782154679068-shadowthinking.png",
+          "/admin-uploads/shadow/1782154679075-shadow-up.png"
+        ],
+        "hiddenImageSrcs": [
+          "/characters/shadow/ShadowTest_01.png",
+          "/characters/shadow/ShadowTest_02.png",
+          "/characters/shadow/ShadowTest_03.png",
+          "/characters/shadow/ShadowTest_04.png"
+        ]
+      }
+    },
+    "matthew": {
+      "enabled": true,
+      "character": {
+        "x": 32,
+        "y": 48
+      },
+      "table": {
+        "x": 48,
+        "y": 72
+      },
+      "drink": {
+        "x": 50,
+        "y": 61
+      },
+      "cat": {
+        "x": 66,
+        "y": 78
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "liam": {
+      "enabled": true,
+      "character": {
+        "x": 32,
+        "y": 48
+      },
+      "table": {
+        "x": 48,
+        "y": 72
+      },
+      "drink": {
+        "x": 50,
+        "y": 61
+      },
+      "cat": {
+        "x": 66,
+        "y": 78
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "alfrin": {
+      "enabled": true,
+      "character": {
+        "x": 32,
+        "y": 48
+      },
+      "table": {
+        "x": 48,
+        "y": 72
+      },
+      "drink": {
+        "x": 50,
+        "y": 61
+      },
+      "cat": {
+        "x": 66,
+        "y": 78
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "alaric": {
+      "enabled": true,
+      "character": {
+        "x": 32,
+        "y": 48
+      },
+      "table": {
+        "x": 48,
+        "y": 72
+      },
+      "drink": {
+        "x": 50,
+        "y": 61
+      },
+      "cat": {
+        "x": 66,
+        "y": 78
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "eli": {
+      "enabled": true,
+      "character": {
+        "x": 32,
+        "y": 48
+      },
+      "table": {
+        "x": 48,
+        "y": 72
+      },
+      "drink": {
+        "x": 50,
+        "y": 61
+      },
+      "cat": {
+        "x": 66,
+        "y": 78
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "miles": {
+      "enabled": true,
+      "character": {
+        "x": 32,
+        "y": 48
+      },
+      "table": {
+        "x": 48,
+        "y": 72
+      },
+      "drink": {
+        "x": 50,
+        "y": 61
+      },
+      "cat": {
+        "x": 66,
+        "y": 78
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "nia": {
+      "enabled": true,
+      "character": {
+        "x": 32,
+        "y": 48
+      },
+      "table": {
+        "x": 48,
+        "y": 72
+      },
+      "drink": {
+        "x": 50,
+        "y": 61
+      },
+      "cat": {
+        "x": 66,
+        "y": 78
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "gene": {
+      "enabled": true,
+      "character": {
+        "x": 32,
+        "y": 48
+      },
+      "table": {
+        "x": 48,
+        "y": 72
+      },
+      "drink": {
+        "x": 50,
+        "y": 61
+      },
+      "cat": {
+        "x": 66,
+        "y": 78
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "quou": {
+      "enabled": true,
+      "character": {
+        "x": 32,
+        "y": 48
+      },
+      "table": {
+        "x": 48,
+        "y": 72
+      },
+      "drink": {
+        "x": 50,
+        "y": 61
+      },
+      "cat": {
+        "x": 66,
+        "y": 78
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "liam-eli": {
+      "enabled": true,
+      "character": {
+        "x": 30,
+        "y": 58
+      },
+      "table": {
+        "x": 30,
+        "y": 76
+      },
+      "drink": {
+        "x": 30,
+        "y": 73
+      },
+      "cat": {
+        "x": 50,
+        "y": 82
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "matthew-shadow": {
+      "enabled": true,
+      "character": {
+        "x": 30,
+        "y": 58
+      },
+      "table": {
+        "x": 30,
+        "y": 76
+      },
+      "drink": {
+        "x": 30,
+        "y": 73
+      },
+      "cat": {
+        "x": 50,
+        "y": 82
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    },
+    "alaric-eli": {
+      "enabled": true,
+      "character": {
+        "x": 30,
+        "y": 58
+      },
+      "table": {
+        "x": 30,
+        "y": 76
+      },
+      "drink": {
+        "x": 30,
+        "y": 73
+      },
+      "cat": {
+        "x": 50,
+        "y": 82
+      },
+      "bubble": {
+        "x": 24,
+        "y": 24
+      },
+      "order": {
+        "x": 43,
+        "y": 43
+      },
+      "patience": {
+        "x": 43,
+        "y": 47
+      },
+      "characterScale": 100,
+      "drinkScale": 100,
+      "catScale": 100,
+      "talking": {
+        "character": {
+          "x": 47,
+          "y": 54
+        },
+        "cat": {
+          "x": 73,
+          "y": 70
+        },
+        "bubble": {
+          "x": 27,
+          "y": 18
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "patience": {
+          "x": 43,
+          "y": 79
+        },
+        "characterScale": 100,
+        "drinkScale": 100,
+        "catScale": 82,
+        "defaultImageSrc": "",
+        "imageSrc": "",
+        "enabledImageSrcs": [],
+        "hiddenImageSrcs": []
+      }
+    }
+  },
+  "seatSpots": {
+    "shadow": {
+      "0": {
+        "marker": {
+          "x": 18,
+          "y": 86
+        },
+        "drink": {
+          "x": 20,
+          "y": 50
+        },
+        "order": {
+          "x": 29,
+          "y": 37
+        },
+        "patience": {
+          "x": 23,
+          "y": 49
+        },
+        "moodIcon": {
+          "x": 26,
+          "y": 16
+        },
+        "scale": 88,
+        "drinkScale": 50
+      },
+      "1": {
+        "marker": {
+          "x": 49,
+          "y": 73
+        },
+        "drink": {
+          "x": 51,
+          "y": 46
+        },
+        "order": {
+          "x": 42,
+          "y": 24
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 23
+        },
+        "scale": 70,
+        "drinkScale": 45
+      },
+      "2": {
+        "marker": {
+          "x": 80,
+          "y": 84
+        },
+        "drink": {
+          "x": 83,
+          "y": 49
+        },
+        "order": {
+          "x": 73,
+          "y": 28
+        },
+        "patience": {
+          "x": 87,
+          "y": 50
+        },
+        "moodIcon": {
+          "x": 88,
+          "y": 27
+        },
+        "scale": 88,
+        "drinkScale": 56
+      }
+    },
+    "matthew": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "liam": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "alfrin": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "alaric": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "eli": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "miles": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "nia": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "gene": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "quou": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "liam-eli": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "matthew-shadow": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    },
+    "alaric-eli": {
+      "0": {
+        "marker": {
+          "x": 31,
+          "y": 80
+        },
+        "drink": {
+          "x": 39,
+          "y": 72
+        },
+        "order": {
+          "x": 40,
+          "y": 55
+        },
+        "patience": {
+          "x": 31,
+          "y": 47
+        },
+        "moodIcon": {
+          "x": 37,
+          "y": 49
+        },
+        "scale": 112,
+        "drinkScale": 112
+      },
+      "1": {
+        "marker": {
+          "x": 50,
+          "y": 76
+        },
+        "drink": {
+          "x": 58,
+          "y": 68
+        },
+        "order": {
+          "x": 59,
+          "y": 51
+        },
+        "patience": {
+          "x": 50,
+          "y": 43
+        },
+        "moodIcon": {
+          "x": 56,
+          "y": 46
+        },
+        "scale": 100,
+        "drinkScale": 100
+      },
+      "2": {
+        "marker": {
+          "x": 78,
+          "y": 79
+        },
+        "drink": {
+          "x": 86,
+          "y": 71
+        },
+        "order": {
+          "x": 87,
+          "y": 54
+        },
+        "patience": {
+          "x": 78,
+          "y": 46
+        },
+        "moodIcon": {
+          "x": 83,
+          "y": 49
+        },
+        "scale": 88,
+        "drinkScale": 88
+      }
+    }
+  },
+  "characterSettings": {
+    "shadow": {
+      "enabled": true,
+      "tipStyle": "good",
+      "tipBase": 35,
+      "patienceMs": 20000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
+        "scale": 237,
+        "x": 50,
+        "y": 5
+      }
+    },
+    "matthew": {
+      "enabled": true,
+      "tipStyle": "high",
+      "tipBase": 42,
+      "patienceMs": 24000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "",
+        "scale": 100,
+        "x": 50,
+        "y": 36
+      }
+    },
+    "liam": {
+      "enabled": true,
+      "tipStyle": "steady",
+      "tipBase": 31,
+      "patienceMs": 15000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "",
+        "scale": 100,
+        "x": 50,
+        "y": 36
+      }
+    },
+    "alfrin": {
+      "enabled": true,
+      "tipStyle": "poor",
+      "tipBase": 28,
+      "patienceMs": 13000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "",
+        "scale": 100,
+        "x": 50,
+        "y": 36
+      }
+    },
+    "alaric": {
+      "enabled": true,
+      "tipStyle": "good",
+      "tipBase": 38,
+      "patienceMs": 18000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "",
+        "scale": 100,
+        "x": 50,
+        "y": 36
+      }
+    },
+    "eli": {
+      "enabled": true,
+      "tipStyle": "steady",
+      "tipBase": 33,
+      "patienceMs": 19000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "",
+        "scale": 100,
+        "x": 50,
+        "y": 36
+      }
+    },
+    "miles": {
+      "enabled": true,
+      "tipStyle": "high",
+      "tipBase": 44,
+      "patienceMs": 27000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "",
+        "scale": 100,
+        "x": 50,
+        "y": 36
+      }
+    },
+    "nia": {
+      "enabled": true,
+      "tipStyle": "good",
+      "tipBase": 36,
+      "patienceMs": 17000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "",
+        "scale": 100,
+        "x": 50,
+        "y": 36
+      }
+    },
+    "gene": {
+      "enabled": true,
+      "tipStyle": "poor",
+      "tipBase": 25,
+      "patienceMs": 16000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "",
+        "scale": 100,
+        "x": 50,
+        "y": 36
+      }
+    },
+    "quou": {
+      "enabled": true,
+      "tipStyle": "steady",
+      "tipBase": 34,
+      "patienceMs": 22000,
+      "afterHoursComment": "Oh, you're closed. I should head out.",
+      "portrait": {
+        "imageSrc": "",
+        "scale": 100,
+        "x": 50,
+        "y": 36
+      }
+    }
+  },
+  "chats": {
+    "shadow": [
+      {
+        "id": "shadow-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "shadow-story-0",
+            "kind": "story",
+            "title": "Quiet Corners",
+            "summary": "Shadow asks for the seat where the window reflection hides her from the busiest part of the room.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "shadow-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Shadow asks for the seat where the window reflection hides her from the busiest part of the room.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Shadow asks for the seat where the window reflection hides her from the busiest part of the room."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "shadow-story-1",
+            "kind": "story",
+            "title": "The Unsent Call",
+            "summary": "She keeps checking her phone, then admits some people are easier to miss than to answer.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "shadow-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "She keeps checking her phone, then admits some people are easier to miss than to answer.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "She keeps checking her phone, then admits some people are easier to miss than to answer."
+            ],
+            "catReply": null,
+            "triggerStoryId": "shadow-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "shadow-story-2",
+            "kind": "story",
+            "title": "A Softer Exit",
+            "summary": "Shadow leaves through the front door today instead of slipping out before anyone can wave.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "shadow-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Shadow leaves through the front door today instead of slipping out before anyone can wave.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Shadow leaves through the front door today instead of slipping out before anyone can wave."
+            ],
+            "catReply": null,
+            "triggerStoryId": "shadow-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "shadow-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "shadow-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "shadow-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "shadow-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "shadow-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "matthew": [
+      {
+        "id": "matthew-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "matthew-story-0",
+            "kind": "story",
+            "title": "Her Birthday",
+            "summary": "Hey there, cat. I'm having a problem. Can't decide what I should do for my wife. Her birthday is this week and I don't know if I should go big or not. What do you think?",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hey there, cat. I'm having a problem. Can't decide what I should do for my wife. Her birthday is this week and I don't know if I should go big or not. What do you think?",
+                "imageSrc": "",
+                "catReply": null
+              },
+              {
+                "id": "matthew-story-0-cat-reply-0",
+                "kind": "catReply",
+                "text": "",
+                "imageSrc": "",
+                "catReply": [
+                  {
+                    "id": 1,
+                    "label": "Meow",
+                    "reply": "A big meow, huh? Maybe she should get one ridiculous, memorable thing."
+                  },
+                  {
+                    "id": 2,
+                    "label": "Meow",
+                    "reply": "A softer meow. Maybe thoughtful matters more than expensive."
+                  }
+                ]
+              }
+            ],
+            "bubbles": [
+              "Hey there, cat. I'm having a problem. Can't decide what I should do for my wife. Her birthday is this week and I don't know if I should go big or not. What do you think?"
+            ],
+            "catReply": [
+              {
+                "id": 1,
+                "label": "Meow",
+                "reply": "A big meow, huh? Maybe she should get one ridiculous, memorable thing."
+              },
+              {
+                "id": 2,
+                "label": "Meow",
+                "reply": "A softer meow. Maybe thoughtful matters more than expensive."
+              }
+            ],
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "matthew-story-1",
+            "kind": "story",
+            "title": "Birthday Report",
+            "summary": "Five days later, Matthew comes in glowing and admits the birthday went better than he feared. He says the gift worked because it felt like he was actually listening.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "Five days later, Matthew comes in glowing and admits the birthday went better than he feared. He says the gift worked because it felt like he was actually listening.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Five days later, Matthew comes in glowing and admits the birthday went better than he feared. He says the gift worked because it felt like he was actually listening."
+            ],
+            "catReply": null,
+            "triggerStoryId": "matthew-story-0",
+            "triggerDelayDays": 5,
+            "moodIconIds": []
+          },
+          {
+            "id": "matthew-story-2",
+            "kind": "story",
+            "title": "A Better Joke",
+            "summary": "Matthew practices a joke under his breath until it stops sounding like a shield.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Matthew practices a joke under his breath until it stops sounding like a shield.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Matthew practices a joke under his breath until it stops sounding like a shield."
+            ],
+            "catReply": null,
+            "triggerStoryId": "matthew-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "matthew-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "matthew-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "matthew-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "liam": [
+      {
+        "id": "liam-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "liam-story-0",
+            "kind": "story",
+            "title": "Late Again",
+            "summary": "Liam arrives already apologizing, even though no one has accused him of anything yet.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Liam arrives already apologizing, even though no one has accused him of anything yet.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Liam arrives already apologizing, even though no one has accused him of anything yet."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "liam-story-1",
+            "kind": "story",
+            "title": "The Borrowed Pen",
+            "summary": "He borrows a pen to write three reminders, then leaves the pen behind with a fourth reminder attached.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "He borrows a pen to write three reminders, then leaves the pen behind with a fourth reminder attached.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "He borrows a pen to write three reminders, then leaves the pen behind with a fourth reminder attached."
+            ],
+            "catReply": null,
+            "triggerStoryId": "liam-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "liam-story-2",
+            "kind": "story",
+            "title": "Five Minutes Early",
+            "summary": "Liam shows up early for once and looks suspiciously proud of the miracle.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Liam shows up early for once and looks suspiciously proud of the miracle.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Liam shows up early for once and looks suspiciously proud of the miracle."
+            ],
+            "catReply": null,
+            "triggerStoryId": "liam-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "liam-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "liam-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "liam-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "alfrin": [
+      {
+        "id": "alfrin-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "alfrin-story-0",
+            "kind": "story",
+            "title": "Sharp Sugar",
+            "summary": "Alfrin asks whether the tea is meant to be comforting or merely pretending.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alfrin-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Alfrin asks whether the tea is meant to be comforting or merely pretending.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Alfrin asks whether the tea is meant to be comforting or merely pretending."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alfrin-story-1",
+            "kind": "story",
+            "title": "A Better Question",
+            "summary": "He returns with one less complaint and one very specific compliment about the cup.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alfrin-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "He returns with one less complaint and one very specific compliment about the cup.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "He returns with one less complaint and one very specific compliment about the cup."
+            ],
+            "catReply": null,
+            "triggerStoryId": "alfrin-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alfrin-story-2",
+            "kind": "story",
+            "title": "No Witnesses",
+            "summary": "Alfrin smiles at the cat, then immediately checks if anyone saw.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alfrin-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Alfrin smiles at the cat, then immediately checks if anyone saw.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Alfrin smiles at the cat, then immediately checks if anyone saw."
+            ],
+            "catReply": null,
+            "triggerStoryId": "alfrin-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alfrin-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alfrin-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alfrin-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alfrin-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "alfrin-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "alaric": [
+      {
+        "id": "alaric-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "alaric-story-0",
+            "kind": "story",
+            "title": "The Old Song",
+            "summary": "Alaric taps the table in a rhythm he says belonged to a song his family never wrote down.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Alaric taps the table in a rhythm he says belonged to a song his family never wrote down.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Alaric taps the table in a rhythm he says belonged to a song his family never wrote down."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alaric-story-1",
+            "kind": "story",
+            "title": "Half Remembered",
+            "summary": "He hums the missing middle of the song and laughs when the cat yawns on the final note.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "He hums the missing middle of the song and laughs when the cat yawns on the final note.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "He hums the missing middle of the song and laughs when the cat yawns on the final note."
+            ],
+            "catReply": null,
+            "triggerStoryId": "alaric-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alaric-story-2",
+            "kind": "story",
+            "title": "Written Down",
+            "summary": "Alaric leaves a napkin covered in music notes and says the shop can keep the tune safe.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Alaric leaves a napkin covered in music notes and says the shop can keep the tune safe.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Alaric leaves a napkin covered in music notes and says the shop can keep the tune safe."
+            ],
+            "catReply": null,
+            "triggerStoryId": "alaric-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alaric-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alaric-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "alaric-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "eli": [
+      {
+        "id": "eli-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "eli-story-0",
+            "kind": "story",
+            "title": "Blue Thread",
+            "summary": "Eli winds blue thread around one finger while deciding how much of the day to say out loud.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "eli-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Eli winds blue thread around one finger while deciding how much of the day to say out loud.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Eli winds blue thread around one finger while deciding how much of the day to say out loud."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "eli-story-1",
+            "kind": "story",
+            "title": "A Small Repair",
+            "summary": "She fixes a loose sleeve button without thinking and says taking care of small things counts.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "eli-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "She fixes a loose sleeve button without thinking and says taking care of small things counts.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "She fixes a loose sleeve button without thinking and says taking care of small things counts."
+            ],
+            "catReply": null,
+            "triggerStoryId": "eli-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "eli-story-2",
+            "kind": "story",
+            "title": "The Good Needle",
+            "summary": "Eli brings the needle she trusts most and lets the cat bat at the thread after the hard part is done.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "eli-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Eli brings the needle she trusts most and lets the cat bat at the thread after the hard part is done.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Eli brings the needle she trusts most and lets the cat bat at the thread after the hard part is done."
+            ],
+            "catReply": null,
+            "triggerStoryId": "eli-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "eli-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "eli-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "eli-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "eli-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "eli-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "miles": [
+      {
+        "id": "miles-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "miles-story-0",
+            "kind": "story",
+            "title": "Lucky Shoes",
+            "summary": "Miles claims her lucky shoes only work if she orders something warm before noon.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "miles-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Miles claims her lucky shoes only work if she orders something warm before noon.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Miles claims her lucky shoes only work if she orders something warm before noon."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "miles-story-1",
+            "kind": "story",
+            "title": "A Good Bet",
+            "summary": "She wins a tiny bet with herself and spends the prize on an extra cookie for the counter.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "miles-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "She wins a tiny bet with herself and spends the prize on an extra cookie for the counter.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "She wins a tiny bet with herself and spends the prize on an extra cookie for the counter."
+            ],
+            "catReply": null,
+            "triggerStoryId": "miles-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "miles-story-2",
+            "kind": "story",
+            "title": "No Luck Needed",
+            "summary": "Miles admits the shoes are not lucky, exactly, but they remind her to walk in like she belongs.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "miles-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Miles admits the shoes are not lucky, exactly, but they remind her to walk in like she belongs.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Miles admits the shoes are not lucky, exactly, but they remind her to walk in like she belongs."
+            ],
+            "catReply": null,
+            "triggerStoryId": "miles-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "miles-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "miles-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "miles-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "miles-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "miles-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "nia": [
+      {
+        "id": "nia-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "nia-story-0",
+            "kind": "story",
+            "title": "No Crowds",
+            "summary": "Nia waits for the quietest table and thanks the cat for not asking why.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "nia-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Nia waits for the quietest table and thanks the cat for not asking why.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Nia waits for the quietest table and thanks the cat for not asking why."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "nia-story-1",
+            "kind": "story",
+            "title": "The Wide Door",
+            "summary": "She says some rooms feel easier to enter when she already knows where the exits are.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "nia-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "She says some rooms feel easier to enter when she already knows where the exits are.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "She says some rooms feel easier to enter when she already knows where the exits are."
+            ],
+            "catReply": null,
+            "triggerStoryId": "nia-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "nia-story-2",
+            "kind": "story",
+            "title": "A Chosen Chair",
+            "summary": "Nia picks the same chair again, then decides maybe a favorite place can start small.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "nia-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Nia picks the same chair again, then decides maybe a favorite place can start small.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Nia picks the same chair again, then decides maybe a favorite place can start small."
+            ],
+            "catReply": null,
+            "triggerStoryId": "nia-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "nia-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "nia-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "nia-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "nia-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "nia-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "gene": [
+      {
+        "id": "gene-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "gene-story-0",
+            "kind": "story",
+            "title": "Exact Change",
+            "summary": "Gene counts coins twice, then admits the habit started during a year when every little thing mattered.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "gene-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Gene counts coins twice, then admits the habit started during a year when every little thing mattered.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Gene counts coins twice, then admits the habit started during a year when every little thing mattered."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "gene-story-1",
+            "kind": "story",
+            "title": "A Bigger Tip",
+            "summary": "He leaves one extra coin today and says he is practicing not bracing for the worst.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "gene-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "He leaves one extra coin today and says he is practicing not bracing for the worst.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "He leaves one extra coin today and says he is practicing not bracing for the worst."
+            ],
+            "catReply": null,
+            "triggerStoryId": "gene-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "gene-story-2",
+            "kind": "story",
+            "title": "Enough",
+            "summary": "Gene stops counting halfway through and decides the cat looks trustworthy with money.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "gene-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Gene stops counting halfway through and decides the cat looks trustworthy with money.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Gene stops counting halfway through and decides the cat looks trustworthy with money."
+            ],
+            "catReply": null,
+            "triggerStoryId": "gene-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "gene-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "gene-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "gene-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "gene-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "gene-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "quou": [
+      {
+        "id": "quou-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "quou-story-0",
+            "kind": "story",
+            "title": "A Name Repeated",
+            "summary": "Quou spells her name slowly, then smiles when the cat blinks like it understood perfectly.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "quou-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Quou spells her name slowly, then smiles when the cat blinks like it understood perfectly.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Quou spells her name slowly, then smiles when the cat blinks like it understood perfectly."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "quou-story-1",
+            "kind": "story",
+            "title": "Misprinted Cup",
+            "summary": "She saves a receipt with her name spelled wrong because the mistake looks almost charming today.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "quou-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "She saves a receipt with her name spelled wrong because the mistake looks almost charming today.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "She saves a receipt with her name spelled wrong because the mistake looks almost charming today."
+            ],
+            "catReply": null,
+            "triggerStoryId": "quou-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "quou-story-2",
+            "kind": "story",
+            "title": "Said Right",
+            "summary": "Quou hears her name called correctly and sits a little taller before picking up her drink.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "quou-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Quou hears her name called correctly and sits a little taller before picking up her drink.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Quou hears her name called correctly and sits a little taller before picking up her drink."
+            ],
+            "catReply": null,
+            "triggerStoryId": "quou-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "quou-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "quou-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "quou-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "quou-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "quou-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "liam-eli": [
+      {
+        "id": "liam-eli-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "liam-eli-story-0",
+            "kind": "story",
+            "title": "Two Apologies",
+            "summary": "Liam apologizes for being late while Eli apologizes for assuming he would be, and both pretend this is normal.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-eli-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Liam apologizes for being late while Eli apologizes for assuming he would be, and both pretend this is normal.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Liam apologizes for being late while Eli apologizes for assuming he would be, and both pretend this is normal."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "liam-eli-story-1",
+            "kind": "story",
+            "title": "One List",
+            "summary": "They combine two separate lists into one plan and somehow both look relieved.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-eli-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "They combine two separate lists into one plan and somehow both look relieved.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "They combine two separate lists into one plan and somehow both look relieved."
+            ],
+            "catReply": null,
+            "triggerStoryId": "liam-eli-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "liam-eli-story-2",
+            "kind": "story",
+            "title": "Shared Thread",
+            "summary": "Eli ties blue thread around Liam’s pen so he stops losing it before the first reminder.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-eli-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "Eli ties blue thread around Liam’s pen so he stops losing it before the first reminder.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Eli ties blue thread around Liam’s pen so he stops losing it before the first reminder."
+            ],
+            "catReply": null,
+            "triggerStoryId": "liam-eli-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "liam-eli-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-eli-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "liam-eli-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-eli-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "liam-eli-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "matthew-shadow": [
+      {
+        "id": "matthew-shadow-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "matthew-shadow-story-0",
+            "kind": "story",
+            "title": "Across The Table",
+            "summary": "Matthew and Shadow sit with a full table between them until the first cup makes the silence less sharp.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-shadow-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Matthew and Shadow sit with a full table between them until the first cup makes the silence less sharp.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Matthew and Shadow sit with a full table between them until the first cup makes the silence less sharp."
+            ],
+            "catReply": null,
+            "triggerStoryId": "matthew-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "matthew-shadow-story-1",
+            "kind": "story",
+            "title": "Almost Laughing",
+            "summary": "Matthew tries a joke, Shadow tries not to laugh, and the cat ruins both attempts by looking smug.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-shadow-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "Matthew tries a joke, Shadow tries not to laugh, and the cat ruins both attempts by looking smug.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Matthew tries a joke, Shadow tries not to laugh, and the cat ruins both attempts by looking smug."
+            ],
+            "catReply": null,
+            "triggerStoryId": "matthew-shadow-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "matthew-shadow-story-2",
+            "kind": "story",
+            "title": "Same Side",
+            "summary": "They choose chairs on the same side of the table today and pretend it happened by accident.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-shadow-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "They choose chairs on the same side of the table today and pretend it happened by accident.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "They choose chairs on the same side of the table today and pretend it happened by accident."
+            ],
+            "catReply": null,
+            "triggerStoryId": "matthew-shadow-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "matthew-shadow-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-shadow-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "matthew-shadow-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-shadow-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "matthew-shadow-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ],
+    "alaric-eli": [
+      {
+        "id": "alaric-eli-relationship-0",
+        "threshold": 0,
+        "entries": [
+          {
+            "id": "alaric-eli-story-0",
+            "kind": "story",
+            "title": "Old Song, Blue Thread",
+            "summary": "Alaric taps an old rhythm while Eli marks time with thread, and together they find the missing beat.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-eli-story-0-bubble-0",
+                "kind": "bubble",
+                "text": "Alaric taps an old rhythm while Eli marks time with thread, and together they find the missing beat.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Alaric taps an old rhythm while Eli marks time with thread, and together they find the missing beat."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alaric-eli-story-1",
+            "kind": "story",
+            "title": "Kept Tempo",
+            "summary": "Eli keeps the rhythm steady while Alaric writes down the part he always forgot.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-eli-story-1-bubble-0",
+                "kind": "bubble",
+                "text": "Eli keeps the rhythm steady while Alaric writes down the part he always forgot.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Eli keeps the rhythm steady while Alaric writes down the part he always forgot."
+            ],
+            "catReply": null,
+            "triggerStoryId": "alaric-eli-story-0",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alaric-eli-story-2",
+            "kind": "story",
+            "title": "A New Verse",
+            "summary": "They add a new verse about warm cups, patient cats, and the bravery of staying for one more song.",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-eli-story-2-bubble-0",
+                "kind": "bubble",
+                "text": "They add a new verse about warm cups, patient cats, and the bravery of staying for one more song.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "They add a new verse about warm cups, patient cats, and the bravery of staying for one more song."
+            ],
+            "catReply": null,
+            "triggerStoryId": "alaric-eli-story-1",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alaric-eli-comment-0",
+            "kind": "comment",
+            "title": "Comment 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-eli-comment-0-bubble-0",
+                "kind": "bubble",
+                "text": "Hello there kitty.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hello there kitty."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alaric-eli-comment-1",
+            "kind": "comment",
+            "title": "Comment 2",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-eli-comment-1-bubble-0",
+                "kind": "bubble",
+                "text": "I hope today is good for you.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I hope today is good for you."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          }
+        ]
+      },
+      {
+        "id": "alaric-eli-relationship-50",
+        "threshold": 50,
+        "entries": []
+      }
+    ]
+  },
+  "moodIcons": [
+    {
+      "id": "scribble-thought",
+      "name": "Scribble Thought",
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 122'><path fill='%23fff7d9' stroke='%23141210' stroke-width='9' stroke-linejoin='round' d='M24 13h112c10 0 18 8 18 18v49c0 10-8 18-18 18H62l-39 18 13-23H24c-10 0-18-8-18-18V31c0-10 8-18 18-18Z'/><path fill='none' stroke='%23141210' stroke-width='8' stroke-linecap='round' d='M51 62c8-20 40 24 57-1M45 47c15-21 52 27 73 2M55 75c21-17 34 12 58-9M68 42c-11 23 15 33 5 48M92 37c-20 20 16 32-4 54'/></svg>"
+    }
+  ],
+  "chatMenu": {
+    "position": {
+      "x": 84,
+      "y": 50
+    },
+    "scale": 85,
+    "backgroundImageSrc": "/admin-uploads/shadow/1782156787483-menuradio.png",
+    "backgroundScale": 133,
+    "backgroundLayer": 0,
+    "items": {
+      "meow": {
+        "position": {
+          "x": 50,
+          "y": 18
+        },
+        "imageSrc": "",
+        "servedImageSrc": "",
+        "imagePosition": {
+          "x": 50,
+          "y": 50
+        },
+        "imageScale": 100,
+        "hexScale": 100,
+        "textEnabled": true,
+        "layer": 2
+      },
+      "purr": {
+        "position": {
+          "x": 23,
+          "y": 34
+        },
+        "imageSrc": "",
+        "servedImageSrc": "",
+        "imagePosition": {
+          "x": 50,
+          "y": 50
+        },
+        "imageScale": 100,
+        "hexScale": 100,
+        "textEnabled": true,
+        "layer": 2
+      },
+      "listen": {
+        "position": {
+          "x": 78,
+          "y": 33
+        },
+        "imageSrc": "",
+        "servedImageSrc": "",
+        "imagePosition": {
+          "x": 50,
+          "y": 50
+        },
+        "imageScale": 100,
+        "hexScale": 100,
+        "textEnabled": true,
+        "layer": 2
+      },
+      "leave": {
+        "position": {
+          "x": 49,
+          "y": 80
+        },
+        "imageSrc": "",
+        "servedImageSrc": "",
+        "imagePosition": {
+          "x": 50,
+          "y": 50
+        },
+        "imageScale": 100,
+        "hexScale": 100,
+        "textEnabled": true,
+        "layer": 2
+      },
+      "cute": {
+        "position": {
+          "x": 77,
+          "y": 64
+        },
+        "imageSrc": "",
+        "servedImageSrc": "",
+        "imagePosition": {
+          "x": 50,
+          "y": 50
+        },
+        "imageScale": 100,
+        "hexScale": 100,
+        "textEnabled": true,
+        "layer": 2
+      },
+      "roll": {
+        "position": {
+          "x": 22,
+          "y": 64
+        },
+        "imageSrc": "",
+        "servedImageSrc": "",
+        "imagePosition": {
+          "x": 50,
+          "y": 50
+        },
+        "imageScale": 100,
+        "hexScale": 100,
+        "textEnabled": true,
+        "layer": 2
+      },
+      "serve": {
+        "position": {
+          "x": 50,
+          "y": 49
+        },
+        "imageSrc": "/admin-uploads/shadow/1782147434865-meowss.png",
+        "servedImageSrc": "/admin-uploads/shadow/1782147445128-serve.png",
+        "imagePosition": {
+          "x": 46,
+          "y": 46
+        },
+        "imageScale": 109,
+        "hexScale": 95,
+        "textEnabled": false,
+        "layer": 3
+      }
+    }
+  },
+  "catSettings": {
+    "idle": "/admin-uploads/shadow/1782141877601-cat-0002-layer-3.png",
+    "meow": "/admin-uploads/shadow/1782141881980-cat2-0001-layer-6.png",
+    "purr": "/admin-uploads/shadow/1782141885268-cat-0000-layer-5.png",
+    "listen": "/admin-uploads/shadow/1782141888975-cat2-0000-layer-7.png",
+    "leave": "",
+    "cute": "/admin-uploads/shadow/1782141899687-cat-0001-layer-4.png",
+    "roll": "/admin-uploads/shadow/1782141903665-cat-0004-layer-1.png",
+    "serve": "/admin-uploads/shadow/1782141910807-cat-0002-layer-3.png"
+  },
+  "openingSettings": {
+    "locationName": "Sweet Purr Café",
+    "locationDetail": "Planet: Caelorin, City: Ganyra",
+    "backgroundSrc": "",
+    "lilaImageSrc": "/admin-uploads/matthew/1782151572949-lilas-01.png",
+    "graceImageSrc": "/admin-uploads/matthew/1782151654996-newgrace-01.png",
+    "lilaImages": [
+      {
+        "id": "lila-opening-1782151572987-0",
+        "label": "Lila 1",
+        "src": "/admin-uploads/matthew/1782151572949-lilas-01.png"
+      },
+      {
+        "id": "lila-opening-1782151572987-1",
+        "label": "Lila 2",
+        "src": "/admin-uploads/matthew/1782151572947-lilas-02.png"
+      },
+      {
+        "id": "lila-opening-1782151572987-2",
+        "label": "Lila 3",
+        "src": "/admin-uploads/matthew/1782151572955-lilas-03.png"
+      },
+      {
+        "id": "lila-opening-1782151572987-3",
+        "label": "Lila 4",
+        "src": "/admin-uploads/matthew/1782151572978-lilas-04.png"
+      },
+      {
+        "id": "lila-opening-1782151572987-4",
+        "label": "Lila 5",
+        "src": "/admin-uploads/matthew/1782151572961-lilas-05.png"
+      }
+    ],
+    "graceImages": [
+      {
+        "id": "grace-opening-1782151655022-0",
+        "label": "Grace 1",
+        "src": "/admin-uploads/matthew/1782151654996-newgrace-01.png"
+      },
+      {
+        "id": "grace-opening-1782151655022-1",
+        "label": "Grace 2",
+        "src": "/admin-uploads/matthew/1782151655002-newgrace-02.png"
+      },
+      {
+        "id": "grace-opening-1782151655022-2",
+        "label": "Grace 3",
+        "src": "/admin-uploads/matthew/1782151655005-newgrace-03.png"
+      },
+      {
+        "id": "grace-opening-1782151655022-3",
+        "label": "Grace 4",
+        "src": "/admin-uploads/matthew/1782151655008-newgrace-04.png"
+      }
+    ],
+    "lilaPlacement": {
+      "x": 22,
+      "y": 84,
+      "scale": 100
+    },
+    "gracePlacement": {
+      "x": 78,
+      "y": 84,
+      "scale": 100
+    },
+    "beats": [
+      {
+        "id": "opening-location",
+        "actor": "lila",
+        "speaker": "Lila",
+        "text": "Wow this place is beautiful isn't it PLAYER.",
+        "side": "left",
+        "backgroundSrc": "/admin-uploads/opening/stellar-vanguard-city.png",
+        "lilaImageId": "__none",
+        "graceImageId": "__none",
+        "lilaPlacement": {
+          "x": 22,
+          "y": 84,
+          "scale": 100
+        },
+        "gracePlacement": {
+          "x": 78,
+          "y": 84,
+          "scale": 100
+        },
+        "lilaFlipped": false,
+        "graceFlipped": false,
+        "imageId": ""
+      },
+      {
+        "id": "opening-lila-place",
+        "actor": "lila",
+        "speaker": "Lila",
+        "text": "We did it! We finally got our own place.",
+        "side": "left",
+        "backgroundSrc": "/admin-uploads/opening/green-door-cafe-front.png",
+        "lilaImageId": "lila-opening-1782151572987-1",
+        "graceImageId": "__none",
+        "lilaPlacement": {
+          "x": 51.865470852017935,
+          "y": 96,
+          "scale": 130
+        },
+        "gracePlacement": {
+          "x": 78,
+          "y": 84,
+          "scale": 100
+        },
+        "lilaFlipped": true,
+        "graceFlipped": false,
+        "imageId": ""
+      },
+      {
+        "id": "opening-grace-owner",
+        "actor": "grace",
+        "speaker": "Grace",
+        "text": "You must be the new owner.",
+        "side": "right",
+        "backgroundSrc": "/admin-uploads/opening/green-door-cafe-front.png",
+        "lilaImageId": "",
+        "graceImageId": "",
+        "lilaPlacement": {
+          "x": 23.704035874439462,
+          "y": 96,
+          "scale": 136
+        },
+        "gracePlacement": {
+          "x": 78.44843049327353,
+          "y": 96,
+          "scale": 120
+        },
+        "lilaFlipped": true,
+        "graceFlipped": true,
+        "imageId": ""
+      },
+      {
+        "id": "opening-lila-yah",
+        "actor": "lila",
+        "speaker": "Lila",
+        "text": "Er, yah.",
+        "side": "left",
+        "backgroundSrc": "/admin-uploads/opening/green-door-cafe-front.png",
+        "lilaImageId": "lila-opening-1782151572987-2",
+        "graceImageId": "",
+        "lilaPlacement": {
+          "x": 22.358744394618835,
+          "y": 96,
+          "scale": 124
+        },
+        "gracePlacement": {
+          "x": 76.74439461883408,
+          "y": 95.672131147541,
+          "scale": 129
+        },
+        "lilaFlipped": true,
+        "graceFlipped": true,
+        "imageId": ""
+      },
+      {
+        "id": "opening-grace-lease",
+        "actor": "grace",
+        "speaker": "Grace",
+        "text": "I am who you are renting this place from. This is a very popular spot. So you need to make sure you achieve a certain rating or I will not renew your lease.",
+        "side": "right",
+        "backgroundSrc": "/admin-uploads/opening/green-door-cafe-front.png",
+        "lilaImageId": "lila-opening-1782151572987-4",
+        "graceImageId": "grace-opening-1782151655022-1",
+        "lilaPlacement": {
+          "x": 22,
+          "y": 84,
+          "scale": 100
+        },
+        "gracePlacement": {
+          "x": 74.95067264573993,
+          "y": 89.7704918032787,
+          "scale": 163
+        },
+        "lilaFlipped": true,
+        "graceFlipped": false,
+        "imageId": ""
+      },
+      {
+        "id": "opening-lila-wait",
+        "actor": "lila",
+        "speaker": "Lila",
+        "text": "Wait what??",
+        "side": "left",
+        "backgroundSrc": "/admin-uploads/opening/green-door-cafe-front.png",
+        "lilaImageId": "lila-opening-1782151572987-0",
+        "graceImageId": "",
+        "lilaPlacement": {
+          "x": 22,
+          "y": 84,
+          "scale": 100
+        },
+        "gracePlacement": {
+          "x": 81.22869955156949,
+          "y": 96,
+          "scale": 143
+        },
+        "lilaFlipped": true,
+        "graceFlipped": false,
+        "imageId": ""
+      },
+      {
+        "id": "opening-grace-get-on-it",
+        "actor": "grace",
+        "speaker": "Grace",
+        "text": "Yes. So you better get on it.",
+        "side": "right",
+        "backgroundSrc": "/admin-uploads/opening/green-door-cafe-front.png",
+        "lilaImageId": "lila-opening-1782151572987-4",
+        "graceImageId": "grace-opening-1782151655022-2",
+        "lilaPlacement": {
+          "x": 22,
+          "y": 84,
+          "scale": 100
+        },
+        "gracePlacement": {
+          "x": 82.48430493273543,
+          "y": 95.8032786885246,
+          "scale": 139
+        },
+        "lilaFlipped": true,
+        "graceFlipped": true,
+        "imageId": ""
+      },
+      {
+        "id": "opening-lila-ranking",
+        "actor": "lila",
+        "speaker": "Lila",
+        "text": "You hear that PLAYER... We need to get a ranking.",
+        "side": "left",
+        "backgroundSrc": "/admin-uploads/opening/green-door-cafe-front.png",
+        "lilaImageId": "lila-opening-1782151572987-2",
+        "graceImageId": "__none",
+        "lilaPlacement": {
+          "x": 53.210762331838566,
+          "y": 96,
+          "scale": 134
+        },
+        "gracePlacement": {
+          "x": 78,
+          "y": 84,
+          "scale": 100
+        },
+        "lilaFlipped": true,
+        "graceFlipped": false,
+        "imageId": ""
+      },
+      {
+        "id": "opening-lila-customer",
+        "actor": "lila",
+        "speaker": "Lila",
+        "text": "Oh a customer! Come on, let's go in.",
+        "side": "left",
+        "backgroundSrc": "/admin-uploads/opening/green-door-cafe-front.png",
+        "lilaImageId": "lila-opening-1782151572987-3",
+        "graceImageId": "__none",
+        "lilaPlacement": {
+          "x": 54.197309417040366,
+          "y": 96,
+          "scale": 130
+        },
+        "gracePlacement": {
+          "x": 78,
+          "y": 84,
+          "scale": 100
+        },
+        "lilaFlipped": false,
+        "graceFlipped": false,
+        "imageId": ""
+      }
+    ]
+  }
+}

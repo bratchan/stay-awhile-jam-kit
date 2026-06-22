@@ -10,6 +10,8 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { getSafeArea, isDev } from './services/environment';
 
 type Scene =
+  | 'start'
+  | 'contentWarning'
   | 'setup'
   | 'opening'
   | 'menu'
@@ -49,6 +51,8 @@ type AdminDragItem =
   | 'moodIcon';
 type AdminLayoutDragItem = Exclude<AdminDragItem, 'moodIcon'>;
 type AdminPreviewMode = 'shop' | 'talking' | 'settings';
+type AdminCharacterManagerView = 'list' | 'detail';
+type AdminCharacterDetailTab = 'settings' | 'uploads' | 'portrait';
 type AdminSidePanelMode =
   | 'inspector'
   | 'characters'
@@ -97,6 +101,7 @@ interface AdminSeatSpot {
 }
 
 interface AdminLayout {
+  enabled: boolean;
   character: AdminPosition;
   table: AdminPosition;
   drink: AdminPosition;
@@ -122,6 +127,7 @@ interface AdminTalkingLayout {
   defaultImageSrc: string;
   imageSrc: string;
   enabledImageSrcs: string[];
+  hiddenImageSrcs: string[];
 }
 
 type AdminLayouts = Record<string, AdminLayout>;
@@ -176,6 +182,7 @@ interface AdminChatMenuItem {
 }
 
 interface AdminChatMenuSettings {
+  position: AdminPosition;
   scale: number;
   backgroundImageSrc: string;
   backgroundScale: number;
@@ -191,6 +198,7 @@ interface AdminOpeningBeat {
   speaker: string;
   text: string;
   side: OpeningSide;
+  backgroundSrc: string;
   lilaImageId: string;
   graceImageId: string;
   lilaPlacement: AdminOpeningPlacement;
@@ -225,6 +233,18 @@ interface AdminOpeningSettings {
   beats: AdminOpeningBeat[];
 }
 
+interface AdminPortableState {
+  version: number;
+  layouts: AdminLayouts;
+  seatSpots: AdminSeatSpotLayouts;
+  characterSettings: AdminCharacterSettings;
+  chats: AdminChats;
+  moodIcons: AdminMoodIcon[];
+  chatMenu: AdminChatMenuSettings;
+  catSettings: AdminCatSettings;
+  openingSettings: AdminOpeningSettings;
+}
+
 interface AdminAssetItem {
   id: string;
   kind: AdminAssetKind;
@@ -244,6 +264,7 @@ interface CharacterPortraitSettings {
 }
 
 interface CharacterAdminSettings {
+  enabled: boolean;
   tipStyle: TipStyle;
   tipBase: number;
   patienceMs: number;
@@ -432,6 +453,7 @@ interface SessionSnapshot {
   scene: Scene;
   isPaused: boolean;
   mood: number;
+  moodBySlot: Partial<Record<TableSlot, number>>;
   purrBeat: number;
   arrivalState: ArrivalState;
   selectedSlot: TableSlot;
@@ -460,6 +482,7 @@ interface InitialAppState {
   scene: Scene;
   isPaused: boolean;
   mood: number;
+  moodBySlot: Partial<Record<TableSlot, number>>;
   purrBeat: number;
   arrivalState: ArrivalState;
   selectedSlot: TableSlot;
@@ -486,6 +509,7 @@ interface RuntimeSessionState {
   scene: Scene;
   isPaused: boolean;
   mood: number;
+  moodBySlot: Partial<Record<TableSlot, number>>;
   purrBeat: number;
   arrivalState: ArrivalState;
   selectedSlot: TableSlot;
@@ -522,10 +546,14 @@ const SHOP_DAY_REAL_MS = 120_000;
 const SERVED_PATIENCE_SLOWDOWN = 2;
 const TABLE_SLOTS = [0, 1, 2] as const;
 const SHOP_DAY_START_HOUR = 8;
+const FIRST_DAY_START_HOUR = 15;
 const SHOP_DAY_LENGTH_HOURS = 10;
+const FIRST_DAY_START_ELAPSED_MS = Math.round(
+  ((FIRST_DAY_START_HOUR - SHOP_DAY_START_HOUR) / SHOP_DAY_LENGTH_HOURS) * SHOP_DAY_REAL_MS,
+);
 const YEAR_LENGTH_DAYS = 365;
 const GOOD_SHOP_SCORE = 70;
-const DEFAULT_CAFE_NAME = 'Narrow Box';
+const DEFAULT_CAFE_NAME = 'Sweet Purr Café';
 const DEFAULT_CAT_NAME = 'Mr. Kitty';
 const STARTER_RECIPE_ID = 'blackTea';
 const SECOND_TABLE_UPGRADE_ID = 'second-table-spot';
@@ -536,6 +564,7 @@ const BASE_ROLL_COOLDOWN_MS = 7_000;
 const BASE_CUTE_COOLDOWN_MS = 8_500;
 const LISTEN_MOOD_GAIN = 12;
 const LISTEN_PURR_COOLDOWN_MOOD_GAIN = 18;
+const MEOW_MOOD_GAIN = 6;
 const ROLL_OVER_MOOD_GAIN = 10;
 const BE_CUTE_MOOD_GAIN = 8;
 const MISS_REPUTATION_LOSS = 5;
@@ -544,6 +573,7 @@ const MAX_RELATIONSHIP_SCORE = 100;
 const MISSED_RELATIONSHIP_LOSS = 5;
 const LIAM_STORY_REPUTATION_REQUIRED = 28;
 const DEFAULT_AFTER_HOURS_COMMENT = "Oh, you're closed. I should head out.";
+const DEFAULT_ORDER_COMMENT = 'Can i get my order?';
 const ADMIN_LAYOUT_KEY = 'tea-shop-cat-admin-layouts-v1';
 const ADMIN_SEAT_SPOTS_KEY = 'tea-shop-cat-admin-seat-spots-v1';
 const ADMIN_SEAT_SPOT_DEPTH_VERSION = 2;
@@ -561,6 +591,7 @@ const ADMIN_OPENING_DB_NAME = 'tea-shop-cat-admin-opening-db-v1';
 const ADMIN_OPENING_DB_VERSION = 1;
 const ADMIN_OPENING_STORE_NAME = 'opening-settings';
 const ADMIN_OPENING_RECORD_KEY = 'settings';
+const ADMIN_PORTABLE_STATE_SRC = '/admin-uploads/admin-state.json';
 const OPENING_IMAGE_NONE = '__none';
 const MUSIC_MUTED_KEY = 'tea-shop-cat-music-muted-v1';
 const MUSIC_VOLUME_KEY = 'tea-shop-cat-music-volume-v1';
@@ -586,14 +617,19 @@ type TableSlot = (typeof TABLE_SLOTS)[number];
 
 const DEFAULT_OPENING_LILA_PLACEMENT: AdminOpeningPlacement = { x: 22, y: 84, scale: 100 };
 const DEFAULT_OPENING_GRACE_PLACEMENT: AdminOpeningPlacement = { x: 78, y: 84, scale: 100 };
+const OPENING_CITY_BACKGROUND_SRC = '/admin-uploads/opening/stellar-vanguard-city.png';
+const OPENING_CAFE_FRONT_BACKGROUND_SRC = '/admin-uploads/opening/green-door-cafe-front.png';
+const LEGACY_OPENING_LOCATION_DETAIL = 'Planet: Caelorin, City';
+const OPENING_LOCATION_DETAIL = 'Planet: Caelorin, City: Ganyra';
 
 const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
   {
     id: 'opening-location',
     actor: 'narrator',
-    speaker: 'Narrow Box',
-    text: 'Planet: Caelorin, City',
+    speaker: 'Sweet Purr Café',
+    text: OPENING_LOCATION_DETAIL,
     side: 'none',
+    backgroundSrc: OPENING_CITY_BACKGROUND_SRC,
     lilaImageId: OPENING_IMAGE_NONE,
     graceImageId: OPENING_IMAGE_NONE,
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -608,6 +644,7 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
     speaker: 'Lila',
     text: 'We did it! We finally got our own place.',
     side: 'left',
+    backgroundSrc: OPENING_CAFE_FRONT_BACKGROUND_SRC,
     lilaImageId: '',
     graceImageId: OPENING_IMAGE_NONE,
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -622,6 +659,7 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
     speaker: 'Grace',
     text: 'You must be the new owner.',
     side: 'right',
+    backgroundSrc: OPENING_CAFE_FRONT_BACKGROUND_SRC,
     lilaImageId: '',
     graceImageId: '',
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -636,6 +674,7 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
     speaker: 'Lila',
     text: 'Er, yah.',
     side: 'left',
+    backgroundSrc: OPENING_CAFE_FRONT_BACKGROUND_SRC,
     lilaImageId: '',
     graceImageId: '',
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -648,9 +687,9 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
     id: 'opening-grace-lease',
     actor: 'grace',
     speaker: 'Grace',
-    text:
-      'I am who you are renting this place from. This is a very popular spot. So you need to make sure you achieve a certain rating or I will not renew your lease.',
+    text: 'I am who you are renting this place from. This is a very popular spot. So you need to make sure you achieve a certain rating or I will not renew your lease.',
     side: 'right',
+    backgroundSrc: OPENING_CAFE_FRONT_BACKGROUND_SRC,
     lilaImageId: '',
     graceImageId: '',
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -665,6 +704,7 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
     speaker: 'Lila',
     text: 'Wait what??',
     side: 'left',
+    backgroundSrc: OPENING_CAFE_FRONT_BACKGROUND_SRC,
     lilaImageId: '',
     graceImageId: '',
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -679,6 +719,7 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
     speaker: 'Grace',
     text: 'Yes. So you better get on it.',
     side: 'right',
+    backgroundSrc: OPENING_CAFE_FRONT_BACKGROUND_SRC,
     lilaImageId: '',
     graceImageId: '',
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -693,6 +734,7 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
     speaker: 'Lila',
     text: 'You hear that Mr Kitty... We need to get a ranking.',
     side: 'left',
+    backgroundSrc: OPENING_CAFE_FRONT_BACKGROUND_SRC,
     lilaImageId: '',
     graceImageId: OPENING_IMAGE_NONE,
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -707,6 +749,7 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
     speaker: 'Lila',
     text: "Oh a customer! Come on, let's go in.",
     side: 'left',
+    backgroundSrc: OPENING_CAFE_FRONT_BACKGROUND_SRC,
     lilaImageId: '',
     graceImageId: OPENING_IMAGE_NONE,
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -718,8 +761,8 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
 ];
 
 const DEFAULT_OPENING_SETTINGS: AdminOpeningSettings = {
-  locationName: 'Narrow Box',
-  locationDetail: 'Planet: Caelorin, City',
+  locationName: 'Sweet Purr Café',
+  locationDetail: OPENING_LOCATION_DETAIL,
   backgroundSrc: '',
   lilaImageSrc: '',
   graceImageSrc: '',
@@ -741,14 +784,16 @@ const TUTORIAL_SERVE_MESSAGE = 'Ok! First we should serve him. So... go click se
 const TUTORIAL_PATIENCE_EXPIRED_MESSAGE = 'The meter ran out!! Hurry and serve him!!!';
 const TUTORIAL_VISIT_MESSAGE = 'Now sit with him so we can help him feel welcome.';
 const TUTORIAL_MOOD_MESSAGE =
-  'His mood is pretty low. You should do some other things to increase his mood.';
+  'This is their mood. Use cat actions to make them feel better and keep the conversation going. Actions have cooldowns, so watch their timers before using them again.';
+const TUTORIAL_CHAT_PROGRESS_MESSAGE = 'Clicking actions progresses their chat.';
 const TUTORIAL_MATTHEW_THANKS = 'Wow i feel alot better! Thanks PLAYER.';
 const TUTORIAL_LEAVE_MESSAGE = 'Good job! Now leave the table.';
 const TUTORIAL_CLOCK_MESSAGE =
   "We only run the shop so late since it's just the two of us. Pay attention, because we close at 6pm.";
 const TUTORIAL_OPEN_MESSAGE = "It's on you PLAYER.";
-const TUTORIAL_OPEN_POPUP_MESSAGE =
-  'The store is official open. Greet customers and serve them.';
+const TUTORIAL_OPEN_POPUP_MESSAGE = 'The store is official open. Greet customers and serve them.';
+const BIRTHDAY_STORY_TUTORIAL_MESSAGE =
+  "This is Matthew's birthday story. Keep using cat actions to listen, and the story will move forward.";
 
 const DEFAULT_MOOD_ICON_SRC =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 122'><path fill='%23fff7d9' stroke='%23141210' stroke-width='9' stroke-linejoin='round' d='M24 13h112c10 0 18 8 18 18v49c0 10-8 18-18 18H62l-39 18 13-23H24c-10 0-18-8-18-18V31c0-10 8-18 18-18Z'/><path fill='none' stroke='%23141210' stroke-width='8' stroke-linecap='round' d='M51 62c8-20 40 24 57-1M45 47c15-21 52 27 73 2M55 75c21-17 34 12 58-9M68 42c-11 23 15 33 5 48M92 37c-20 20 16 32-4 54'/></svg>";
@@ -793,6 +838,7 @@ function defaultChatMenuItem(
 }
 
 const DEFAULT_CHAT_MENU_SETTINGS: AdminChatMenuSettings = {
+  position: { x: 78, y: 50 },
   scale: 100,
   backgroundImageSrc: '',
   backgroundScale: 100,
@@ -859,6 +905,7 @@ const DEFAULT_ADMIN_SEAT_SPOTS: AdminSeatSpots = {
 };
 
 const DEFAULT_ADMIN_LAYOUT: AdminLayout = {
+  enabled: true,
   character: { x: 30, y: 58 },
   table: { x: 30, y: 76 },
   drink: { x: 30, y: 73 },
@@ -881,6 +928,7 @@ const DEFAULT_ADMIN_LAYOUT: AdminLayout = {
     defaultImageSrc: '',
     imageSrc: '',
     enabledImageSrcs: [],
+    hiddenImageSrcs: [],
   },
 };
 
@@ -1086,6 +1134,15 @@ function getDefaultTalkingImageSrc(subjectId?: AdminSubjectId): string {
   return subjectId ? (getCharacterTalkingPoses(subjectId)[0]?.src ?? '') : '';
 }
 
+function getVisibleDefaultTalkingImageSrc(
+  subjectId?: AdminSubjectId,
+  hiddenImageSrcs: readonly string[] = [],
+): string {
+  if (!subjectId) return '';
+  const hiddenSrcs = new Set(hiddenImageSrcs);
+  return getCharacterTalkingPoses(subjectId).find((pose) => !hiddenSrcs.has(pose.src))?.src ?? '';
+}
+
 function getDefaultPortraitSettings(characterId: CharacterId): CharacterPortraitSettings {
   const imageSrc = getDefaultTalkingImageSrc(characterId);
   return {
@@ -1270,14 +1327,28 @@ function normalizeAdminTalkingLayout(
     value != null && typeof value === 'object' ? (value as Partial<AdminTalkingLayout>) : {};
   const poseSrcs = subjectId ? getCharacterTalkingPoses(subjectId).map((pose) => pose.src) : [];
   const rawImageSrc = typeof parsed.imageSrc === 'string' ? parsed.imageSrc : fallback.imageSrc;
-  const imageSrc = rawImageSrc || fallback.imageSrc;
   const rawDefaultImageSrc =
     typeof parsed.defaultImageSrc === 'string'
       ? parsed.defaultImageSrc
       : typeof parsed.imageSrc === 'string'
         ? parsed.imageSrc
         : fallback.defaultImageSrc;
-  const defaultImageSrc = rawDefaultImageSrc || fallback.defaultImageSrc;
+  const rawHidden = Array.isArray(parsed.hiddenImageSrcs) ? parsed.hiddenImageSrcs : [];
+  const hiddenImageSrcs = Array.from(
+    new Set(
+      rawHidden.filter(
+        (src): src is string =>
+          typeof src === 'string' &&
+          (poseSrcs.length === 0 || poseSrcs.includes(src) || isCustomImageSrc(src)),
+      ),
+    ),
+  );
+  const imageSrc = hiddenImageSrcs.includes(rawImageSrc)
+    ? ''
+    : rawImageSrc || fallback.imageSrc;
+  const defaultImageSrc = hiddenImageSrcs.includes(rawDefaultImageSrc)
+    ? ''
+    : rawDefaultImageSrc || fallback.defaultImageSrc;
   const rawEnabled = Array.isArray(parsed.enabledImageSrcs) ? parsed.enabledImageSrcs : [];
   const enabledImageSrcs = rawEnabled.filter(
     (src): src is string =>
@@ -1285,11 +1356,13 @@ function normalizeAdminTalkingLayout(
       (poseSrcs.length === 0 || poseSrcs.includes(src) || isCustomImageSrc(src)),
   );
   const safeEnabledImageSrcs = Array.from(
-    new Set([
-      ...enabledImageSrcs,
-      ...(defaultImageSrc ? [defaultImageSrc] : []),
-      ...(imageSrc ? [imageSrc] : []),
-    ]),
+    new Set(
+      [
+        ...enabledImageSrcs,
+        ...(defaultImageSrc ? [defaultImageSrc] : []),
+        ...(imageSrc ? [imageSrc] : []),
+      ].filter((src) => !hiddenImageSrcs.includes(src)),
+    ),
   );
 
   return {
@@ -1308,6 +1381,7 @@ function normalizeAdminTalkingLayout(
     defaultImageSrc,
     imageSrc,
     enabledImageSrcs: safeEnabledImageSrcs,
+    hiddenImageSrcs,
   };
 }
 
@@ -1315,6 +1389,7 @@ function normalizeAdminLayout(value: unknown, subjectId?: AdminSubjectId): Admin
   const fallback = getDefaultAdminLayout(subjectId);
   const parsed = value != null && typeof value === 'object' ? (value as Partial<AdminLayout>) : {};
   return {
+    enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : fallback.enabled,
     character: normalizeAdminPosition(parsed.character, fallback.character),
     table: normalizeAdminPosition(parsed.table, fallback.table),
     drink: normalizeAdminPosition(parsed.drink, fallback.drink),
@@ -1362,6 +1437,7 @@ function saveAdminLayouts(layouts: AdminLayouts) {
 function defaultCharacterAdminSettings(profile: CharacterProfile): CharacterAdminSettings {
   const characterId = isCharacterId(profile.id) ? profile.id : 'shadow';
   return {
+    enabled: true,
     tipStyle: profile.tipStyle,
     tipBase: profile.tipBase,
     patienceMs: profile.patienceMs,
@@ -1383,6 +1459,10 @@ function isCustomImageSrc(src: string): boolean {
     src.startsWith('/') ||
     /^https?:\/\//.test(src)
   );
+}
+
+function isAdminUploadImageSrc(src: string): boolean {
+  return src.startsWith('/admin-uploads/') && !src.endsWith('/admin-state.json');
 }
 
 function normalizeCharacterPortraitSettings(
@@ -1418,6 +1498,7 @@ function normalizeCharacterAdminSettings(
     value != null && typeof value === 'object' ? (value as Partial<CharacterAdminSettings>) : {};
 
   return {
+    enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : fallback.enabled,
     tipStyle: tipStyleValue(parsed.tipStyle, fallback.tipStyle),
     tipBase: clamp(Math.floor(numericValue(parsed.tipBase, fallback.tipBase)), 0, 999),
     patienceMs: clamp(
@@ -2129,9 +2210,7 @@ function normalizeAdminMoodIcon(value: unknown, fallback: AdminMoodIcon): AdminM
   return {
     id: typeof parsed.id === 'string' && parsed.id ? parsed.id : fallback.id,
     name:
-      typeof parsed.name === 'string' && parsed.name.trim()
-        ? parsed.name.trim()
-        : fallback.name,
+      typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : fallback.name,
     src: typeof parsed.src === 'string' && parsed.src ? parsed.src : fallback.src,
   };
 }
@@ -2162,7 +2241,10 @@ function loadAdminMoodIcons(): AdminMoodIcon[] {
 
 function saveAdminMoodIcons(icons: AdminMoodIcon[]) {
   try {
-    window.localStorage.setItem(ADMIN_MOOD_ICONS_KEY, JSON.stringify(normalizeAdminMoodIcons(icons)));
+    window.localStorage.setItem(
+      ADMIN_MOOD_ICONS_KEY,
+      JSON.stringify(normalizeAdminMoodIcons(icons)),
+    );
   } catch {
     // Mood icon tuning is local-only; defaults keep the editor usable.
   }
@@ -2203,6 +2285,7 @@ function normalizeAdminChatMenuSettings(value: unknown): AdminChatMenuSettings {
       : {};
 
   return {
+    position: normalizeAdminPosition(parsed.position, DEFAULT_CHAT_MENU_SETTINGS.position),
     scale: clamp(Math.floor(numericValue(parsed.scale, DEFAULT_CHAT_MENU_SETTINGS.scale)), 50, 220),
     backgroundImageSrc:
       typeof parsed.backgroundImageSrc === 'string' ? parsed.backgroundImageSrc : '',
@@ -2216,13 +2299,16 @@ function normalizeAdminChatMenuSettings(value: unknown): AdminChatMenuSettings {
       -10,
       20,
     ),
-    items: CAT_ACTION_IDS.reduce<Record<CatActionId, AdminChatMenuItem>>((items, actionId) => {
-      items[actionId] = normalizeAdminChatMenuItem(
-        rawItems[actionId],
-        DEFAULT_CHAT_MENU_SETTINGS.items[actionId],
-      );
-      return items;
-    }, {} as Record<CatActionId, AdminChatMenuItem>),
+    items: CAT_ACTION_IDS.reduce<Record<CatActionId, AdminChatMenuItem>>(
+      (items, actionId) => {
+        items[actionId] = normalizeAdminChatMenuItem(
+          rawItems[actionId],
+          DEFAULT_CHAT_MENU_SETTINGS.items[actionId],
+        );
+        return items;
+      },
+      {} as Record<CatActionId, AdminChatMenuItem>,
+    ),
   };
 }
 
@@ -2249,10 +2335,13 @@ function saveAdminChatMenuSettings(settings: AdminChatMenuSettings) {
 function normalizeAdminCatSettings(value: unknown): AdminCatSettings {
   const parsed =
     value != null && typeof value === 'object' ? (value as Partial<AdminCatSettings>) : {};
-  return CAT_POSE_KEYS.reduce<AdminCatSettings>((settings, poseKey) => {
-    settings[poseKey] = typeof parsed[poseKey] === 'string' ? parsed[poseKey] : '';
-    return settings;
-  }, { ...DEFAULT_CAT_SETTINGS });
+  return CAT_POSE_KEYS.reduce<AdminCatSettings>(
+    (settings, poseKey) => {
+      settings[poseKey] = typeof parsed[poseKey] === 'string' ? parsed[poseKey] : '';
+      return settings;
+    },
+    { ...DEFAULT_CAT_SETTINGS },
+  );
 }
 
 function loadAdminCatSettings(): AdminCatSettings {
@@ -2266,7 +2355,10 @@ function loadAdminCatSettings(): AdminCatSettings {
 
 function saveAdminCatSettings(settings: AdminCatSettings) {
   try {
-    window.localStorage.setItem(ADMIN_CAT_SETTINGS_KEY, JSON.stringify(normalizeAdminCatSettings(settings)));
+    window.localStorage.setItem(
+      ADMIN_CAT_SETTINGS_KEY,
+      JSON.stringify(normalizeAdminCatSettings(settings)),
+    );
   } catch {
     // Cat art can be too large for localStorage; IndexedDB keeps the larger copy.
   }
@@ -2343,12 +2435,59 @@ async function saveAdminLargeRecord(key: string, value: unknown): Promise<boolea
   });
 }
 
+function normalizeAdminPortableState(value: unknown): AdminPortableState {
+  const parsed =
+    value != null && typeof value === 'object' ? (value as Partial<AdminPortableState>) : {};
+  return {
+    version: 1,
+    layouts: normalizeAdminLayouts(parsed.layouts),
+    seatSpots: normalizeAdminSeatSpotLayouts(parsed.seatSpots),
+    characterSettings: normalizeAdminCharacterSettings(parsed.characterSettings),
+    chats: normalizeAdminChats(parsed.chats),
+    moodIcons: normalizeAdminMoodIcons(parsed.moodIcons),
+    chatMenu: normalizeAdminChatMenuSettings(parsed.chatMenu),
+    catSettings: normalizeAdminCatSettings(parsed.catSettings),
+    openingSettings: normalizeOpeningSettings(parsed.openingSettings),
+  };
+}
+
+async function loadAdminPortableState(): Promise<AdminPortableState | null> {
+  try {
+    const response = await fetch(`${ADMIN_PORTABLE_STATE_SRC}?v=${Date.now()}`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    return normalizeAdminPortableState(await response.json());
+  } catch {
+    return null;
+  }
+}
+
+async function saveAdminPortableState(state: AdminPortableState): Promise<boolean> {
+  if (!import.meta.env.DEV) return false;
+
+  try {
+    const response = await fetch('/__admin/save-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(normalizeAdminPortableState(state)),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 function openingActorValue(value: unknown, fallback: OpeningActor): OpeningActor {
   return value === 'lila' || value === 'grace' || value === 'narrator' ? value : fallback;
 }
 
 function openingSideValue(value: unknown, fallback: OpeningSide): OpeningSide {
   return value === 'left' || value === 'right' || value === 'none' ? value : fallback;
+}
+
+function openingLocationDetailValue(value: string): string {
+  return value.trim() === LEGACY_OPENING_LOCATION_DETAIL ? OPENING_LOCATION_DETAIL : value;
 }
 
 function openingSpeakerName(actor: OpeningActor, settings?: AdminOpeningSettings): string {
@@ -2371,8 +2510,13 @@ function normalizeOpeningBeat(value: unknown, fallback: AdminOpeningBeat): Admin
       typeof parsed.speaker === 'string' && parsed.speaker.trim()
         ? parsed.speaker.trim()
         : fallback.speaker,
-    text: typeof parsed.text === 'string' ? parsed.text : fallback.text,
+    text:
+      typeof parsed.text === 'string'
+        ? openingLocationDetailValue(parsed.text)
+        : openingLocationDetailValue(fallback.text),
     side: openingSideValue(parsed.side, fallback.side),
+    backgroundSrc:
+      typeof parsed.backgroundSrc === 'string' ? parsed.backgroundSrc : fallback.backgroundSrc,
     lilaImageId:
       typeof parsed.lilaImageId === 'string'
         ? parsed.lilaImageId
@@ -2458,9 +2602,10 @@ function normalizeOpeningSettings(value: unknown): AdminOpeningSettings {
   const fallbackBeat = DEFAULT_OPENING_BEATS[0] ?? {
     id: 'opening-location',
     actor: 'narrator' as const,
-    speaker: 'Narrow Box',
-    text: 'Planet: Caelorin, City',
+    speaker: DEFAULT_CAFE_NAME,
+    text: OPENING_LOCATION_DETAIL,
     side: 'none' as const,
+    backgroundSrc: '',
     lilaImageId: OPENING_IMAGE_NONE,
     graceImageId: OPENING_IMAGE_NONE,
     lilaPlacement: DEFAULT_OPENING_LILA_PLACEMENT,
@@ -2480,7 +2625,7 @@ function normalizeOpeningSettings(value: unknown): AdminOpeningSettings {
         : DEFAULT_OPENING_SETTINGS.locationName,
     locationDetail:
       typeof parsed.locationDetail === 'string' && parsed.locationDetail.trim()
-        ? parsed.locationDetail.trim()
+        ? openingLocationDetailValue(parsed.locationDetail.trim())
         : DEFAULT_OPENING_SETTINGS.locationDetail,
     backgroundSrc: typeof parsed.backgroundSrc === 'string' ? parsed.backgroundSrc : '',
     lilaImageSrc:
@@ -2516,7 +2661,10 @@ function loadOpeningSettings(): AdminOpeningSettings {
 
 function saveOpeningSettings(settings: AdminOpeningSettings): boolean {
   try {
-    window.localStorage.setItem(ADMIN_OPENING_KEY, JSON.stringify(normalizeOpeningSettings(settings)));
+    window.localStorage.setItem(
+      ADMIN_OPENING_KEY,
+      JSON.stringify(normalizeOpeningSettings(settings)),
+    );
     return true;
   } catch {
     // Opening authoring is local-only; defaults keep the intro playable.
@@ -2557,7 +2705,9 @@ async function loadOpeningSettingsFromIndexedDb(): Promise<AdminOpeningSettings 
 
     try {
       const transaction = db.transaction(ADMIN_OPENING_STORE_NAME, 'readonly');
-      const request = transaction.objectStore(ADMIN_OPENING_STORE_NAME).get(ADMIN_OPENING_RECORD_KEY);
+      const request = transaction
+        .objectStore(ADMIN_OPENING_STORE_NAME)
+        .get(ADMIN_OPENING_RECORD_KEY);
 
       request.addEventListener('success', () => {
         finish(request.result ? normalizeOpeningSettings(request.result) : null);
@@ -2596,10 +2746,15 @@ async function saveOpeningSettingsToIndexedDb(settings: AdminOpeningSettings): P
 }
 
 let activeAdminCharacterSettings = loadAdminCharacterSettings();
+let activeAdminLayouts = loadAdminLayouts();
 let activeAdminChats: AdminChats = {} as AdminChats;
 
 function setActiveAdminCharacterSettings(settings: AdminCharacterSettings) {
   activeAdminCharacterSettings = normalizeAdminCharacterSettings(settings);
+}
+
+function setActiveAdminLayouts(layouts: AdminLayouts) {
+  activeAdminLayouts = normalizeAdminLayouts(layouts);
 }
 
 function setActiveAdminChats(chats: AdminChats) {
@@ -2629,6 +2784,35 @@ function getEditableCharacterProfile(
   settings = activeAdminCharacterSettings,
 ): CharacterProfile {
   return applyAdminSettingsToProfile(CHARACTER_PROFILES[characterId], settings);
+}
+
+function isCharacterEnabled(
+  characterId: string,
+  settings = activeAdminCharacterSettings,
+): boolean {
+  if (!isCharacterId(characterId)) return true;
+  return normalizeCharacterAdminSettings(characterId, settings[characterId]).enabled;
+}
+
+function isAdminSubjectEnabled(
+  subjectId: AdminSubjectId,
+  settings = activeAdminCharacterSettings,
+  layouts = activeAdminLayouts,
+): boolean {
+  if (isAdminPartyId(subjectId)) {
+    return normalizeAdminLayout(layouts[subjectId], subjectId).enabled;
+  }
+  return isCharacterEnabled(subjectId, settings);
+}
+
+function isCustomerEnabled(
+  customer: Customer,
+  settings = activeAdminCharacterSettings,
+  layouts = activeAdminLayouts,
+): boolean {
+  const subjectId = getCustomerAdminSubjectId(customer);
+  if (subjectId && !isAdminSubjectEnabled(subjectId, settings, layouts)) return false;
+  return customer.members.every((member) => isCharacterEnabled(member.id, settings));
 }
 
 function applyAdminSettingsToCustomer(customer: Customer): Customer {
@@ -2685,13 +2869,41 @@ function getCustomerAfterHoursComment(customer: Customer, game: GameState): stri
   return getAdminChatStoryLines(leaveEntry)[0] || leaveEntry.title || DEFAULT_AFTER_HOURS_COMMENT;
 }
 
+function getCustomerOrderComment(
+  customer: Customer,
+  game: GameState,
+  visitNumber: number,
+  chatSeed: number,
+): string {
+  const subjectId = getCustomerAdminSubjectId(customer);
+  if (!subjectId) return DEFAULT_ORDER_COMMENT;
+
+  const relationshipScore = getCustomerRelationshipScore(game, customer);
+  const groups = activeAdminChats[subjectId] ?? getDefaultAdminChatsForSubject(subjectId);
+  const orderEntries = groups
+    .filter((group) => relationshipScore >= group.threshold)
+    .sort((a, b) => b.threshold - a.threshold)
+    .flatMap((group) => group.entries.filter((entry) => entry.kind === 'order'));
+
+  if (orderEntries.length === 0) return DEFAULT_ORDER_COMMENT;
+
+  const seed = stringSeed(customer.id) + game.day * 61 + visitNumber * 23 + chatSeed;
+  const entry =
+    orderEntries[Math.floor(seededRandom(seed) * orderEntries.length)] ?? orderEntries[0];
+  if (!entry) return DEFAULT_ORDER_COMMENT;
+
+  const lines = getAdminChatStoryLines(entry);
+  return lines.join(' ') || entry.title || DEFAULT_ORDER_COMMENT;
+}
+
 function getCustomerStoreImageSrc(customer: Customer, layout: AdminLayout): string {
   const subjectId = getCustomerAdminSubjectId(customer);
   const characterId = getCustomerPrimaryCharacterId(customer);
+  const hiddenImageSrcs = layout.talking.hiddenImageSrcs;
   return (
     layout.talking.defaultImageSrc ||
-    getDefaultTalkingImageSrc(subjectId ?? undefined) ||
-    getDefaultTalkingImageSrc(characterId ?? undefined)
+    getVisibleDefaultTalkingImageSrc(subjectId ?? undefined, hiddenImageSrcs) ||
+    getVisibleDefaultTalkingImageSrc(characterId ?? undefined, hiddenImageSrcs)
   );
 }
 
@@ -3423,9 +3635,7 @@ function getServicesForCustomer(
   recipeIds: string[],
   customer: Customer,
 ): ServiceItem[] {
-  return customer.members.map((_, orderIndex) =>
-    getService(slot, recipeIds, orderIndex, customer),
-  );
+  return customer.members.map((_, orderIndex) => getService(slot, recipeIds, orderIndex, customer));
 }
 
 function getVisibleServedService(
@@ -3537,8 +3747,36 @@ function normalizeServiceQualityBySlot(
   return output;
 }
 
+function normalizeMoodBySlot(
+  value: unknown,
+  seats: Array<number | null>,
+): Partial<Record<TableSlot, number>> {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) return {};
+  const source = value as Record<string, unknown>;
+  const output: Partial<Record<TableSlot, number>> = {};
+
+  for (const slot of TABLE_SLOTS) {
+    if (seats[slot] == null) continue;
+    const raw = source[String(slot)];
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      output[slot] = clamp(Math.round(raw), 0, 100);
+    }
+  }
+
+  return output;
+}
+
 function getPartyMemberIds(customer: Customer): string[] {
   return customer.members.map((member) => member.id);
+}
+
+function getCustomerMetIds(customer: Customer): string[] {
+  return Array.from(new Set([customer.id, ...getPartyMemberIds(customer)]));
+}
+
+function hasMetAllPartyMembers(game: GameState, customer: Customer): boolean {
+  if (customer.members.length <= 1) return true;
+  return customer.members.every((member) => hasMetCustomer(game, member.id));
 }
 
 function getPresentMemberIds(seats: Array<number | null>): Set<string> {
@@ -3566,10 +3804,6 @@ function getTableCount(game: GameState): number {
 function clampTableSlot(slot: number, tableCount: number): TableSlot {
   const maxSlot = Math.max(0, Math.min(tableCount, TABLE_SLOTS.length) - 1);
   return clamp(Math.floor(slot), 0, maxSlot) as TableSlot;
-}
-
-function getVisualStoreSlot(slot: TableSlot, tableCount: number): TableSlot {
-  return tableCount === 1 && slot === 0 ? 1 : slot;
 }
 
 function seededRandom(seed: number): number {
@@ -3626,6 +3860,42 @@ function getCustomerReturnChance(game: GameState, customer: Customer): number {
   return Math.round(getCustomerReturnWeight(game, customer) * 100);
 }
 
+const FIRST_DAY_STORY_TUTORIAL_START_SLOT = 1;
+const FIRST_DAY_STORY_TUTORIAL_CUSTOMERS = ['nia', 'miles', 'shadow', 'matthew'] as const;
+const FIRST_DAY_STORY_TUTORIAL_FINAL_SLOT =
+  FIRST_DAY_STORY_TUTORIAL_START_SLOT + FIRST_DAY_STORY_TUTORIAL_CUSTOMERS.length - 1;
+
+function getFirstDayStoryTutorialCustomerId(arrivalIndex: number, game: GameState): string | null {
+  if (game.day !== 1 || !game.openingComplete || game.tutorialStep !== 'done') return null;
+  const sequenceIndex = arrivalIndex - FIRST_DAY_STORY_TUTORIAL_START_SLOT;
+  return FIRST_DAY_STORY_TUTORIAL_CUSTOMERS[sequenceIndex] ?? null;
+}
+
+function getCustomerSlotArrivalIndex(customerSlot: number): number {
+  return Math.floor(Math.max(0, customerSlot) / CUSTOMERS.length);
+}
+
+function isFirstDayStoryTutorialFinalCustomerSlot(customerSlot: number | null): boolean {
+  if (customerSlot == null) return false;
+  return (
+    getCustomerSlotArrivalIndex(customerSlot) === FIRST_DAY_STORY_TUTORIAL_FINAL_SLOT &&
+    getCustomer(customerSlot).id === 'matthew'
+  );
+}
+
+function hasFirstDayStoryTutorialFinalCustomer(seats: Array<number | null>): boolean {
+  return seats.some((customerSlot) => isFirstDayStoryTutorialFinalCustomerSlot(customerSlot));
+}
+
+function needsFirstDayStoryTutorialFinalCustomer(game: GameState): boolean {
+  return (
+    game.day === 1 &&
+    game.openingComplete &&
+    game.tutorialStep === 'done' &&
+    getCustomerVisitCount(game, 'matthew') === 0
+  );
+}
+
 function chooseCustomerIndexForArrival(
   arrivalIndex: number,
   game: GameState,
@@ -3639,7 +3909,7 @@ function chooseCustomerIndexForArrival(
     matthewIndex >= 0 &&
     !usedIndices.has(matthewIndex) &&
     !matthewIsPresent &&
-    canCustomerArrive(CUSTOMERS[matthewIndex] ?? CUSTOMERS[0], presentMemberIds);
+    canCustomerArrive(CUSTOMERS[matthewIndex] ?? CUSTOMERS[0], presentMemberIds, game);
   const firstArrivalOfDay = game.visitsToday === 0 && game.missedToday === 0;
 
   if (
@@ -3662,15 +3932,30 @@ function chooseCustomerIndexForArrival(
     return matthewIndex;
   }
 
+  const scriptedCustomerId = getFirstDayStoryTutorialCustomerId(arrivalIndex, game);
+  if (scriptedCustomerId) {
+    const scriptedIndex = CUSTOMERS.findIndex((customer) => customer.id === scriptedCustomerId);
+    const scriptedCustomer = CUSTOMERS[scriptedIndex] ?? null;
+    if (
+      scriptedIndex >= 0 &&
+      scriptedCustomer &&
+      !usedIndices.has(scriptedIndex) &&
+      canCustomerArrive(scriptedCustomer, presentMemberIds, game)
+    ) {
+      return scriptedIndex;
+    }
+  }
+
   const weights = CUSTOMERS.map((customer, index) => {
     if (usedIndices.has(index) && usedIndices.size < CUSTOMERS.length) return 0;
-    if (!canCustomerArrive(customer, presentMemberIds)) return 0;
+    if (!canCustomerArrive(customer, presentMemberIds, game)) return 0;
     return getCustomerReturnWeight(game, customer);
   });
   const totalWeight = weights.reduce((total, weight) => total + weight, 0);
   if (totalWeight <= 0) {
     return CUSTOMERS.findIndex(
-      (customer, index) => !usedIndices.has(index) && canCustomerArrive(customer, presentMemberIds),
+      (customer, index) =>
+        !usedIndices.has(index) && canCustomerArrive(customer, presentMemberIds, game),
     );
   }
 
@@ -3682,8 +3967,14 @@ function chooseCustomerIndexForArrival(
   return weights.findIndex((weight) => weight > 0);
 }
 
-function canCustomerArrive(customer: Customer, presentMemberIds: Set<string>): boolean {
+function canCustomerArrive(
+  customer: Customer,
+  presentMemberIds: Set<string>,
+  game: GameState,
+): boolean {
+  if (!isCustomerEnabled(customer)) return false;
   const candidateMemberIds = new Set(getPartyMemberIds(customer));
+  if (!hasMetAllPartyMembers(game, customer)) return false;
   if (customer.members.some((member) => presentMemberIds.has(member.id))) return false;
   if (customer.requiresPresent?.some((memberId) => !presentMemberIds.has(memberId))) return false;
   if (customer.blockedIfPresent?.some((memberId) => presentMemberIds.has(memberId))) return false;
@@ -3840,6 +4131,10 @@ function shopDayMinutes(progress: number): number {
   return SHOP_DAY_START_HOUR * 60 + (safeProgress / 100) * SHOP_DAY_LENGTH_HOURS * 60;
 }
 
+function getDayStartElapsedMs(game: Pick<GameState, 'day'>): number {
+  return game.day === 1 ? clamp(FIRST_DAY_START_ELAPSED_MS, 0, SHOP_DAY_REAL_MS) : 0;
+}
+
 function formatShopTime(progress: number): string {
   const totalMinutes = Math.round(shopDayMinutes(progress));
   const hour24 = Math.floor(totalMinutes / 60) % 24;
@@ -3967,6 +4262,7 @@ function isMatthewFirstStoryExpired(game: GameState): boolean {
 }
 
 function canCustomerShareStory(customer: Customer, game: GameState, visitNumber: number): boolean {
+  if (game.storiesToday > 0) return false;
   if (visitNumber > getStoryArcLength(customer)) return false;
   const story = getStoryForVisit(customer, visitNumber);
   if (!isStoryTriggerReady(story, game)) return false;
@@ -4066,7 +4362,8 @@ function getBaseStoryArc(customer: Customer): StoryChapter[] {
       triggerStoryId:
         story.triggerStoryId ??
         (index === 0 ? `${customer.id}-story-0` : `${customer.id}-story-${index}`),
-      triggerDelayDays: story.triggerDelayDays ?? (customer.id === 'matthew' && index === 0 ? 5 : 0),
+      triggerDelayDays:
+        story.triggerDelayDays ?? (customer.id === 'matthew' && index === 0 ? 5 : 0),
     })),
   ].slice(0, 5);
 }
@@ -4123,11 +4420,13 @@ function getStoryArc(customer: Customer, chats = activeAdminChats): StoryChapter
   const groups = subjectId ? (chats[subjectId] ?? getDefaultAdminChatsForSubject(subjectId)) : [];
   let storyIndex = 0;
   const adminStories = groups.flatMap((group) =>
-    group.entries.filter((entry) => entry.kind === 'story').map((entry) => {
-      const fallback = baseArc[storyIndex] ?? baseFallback;
-      storyIndex += 1;
-      return adminChatEntryToStoryChapter(entry, group, fallback);
-    }),
+    group.entries
+      .filter((entry) => entry.kind === 'story')
+      .map((entry) => {
+        const fallback = baseArc[storyIndex] ?? baseFallback;
+        storyIndex += 1;
+        return adminChatEntryToStoryChapter(entry, group, fallback);
+      }),
   );
 
   return (adminStories.length > 0 ? adminStories : baseArc).slice(0, 5);
@@ -4589,7 +4888,9 @@ function normalizeGame(value: unknown, fallback = DEFAULT_GAME): GameState {
     missedToday: clamp(Math.floor(numericValue(parsed.missedToday, fallback.missedToday)), 0, 9999),
     customerVisits,
     storyCollectionDays:
-      Object.keys(storyCollectionDays).length > 0 ? storyCollectionDays : fallback.storyCollectionDays,
+      Object.keys(storyCollectionDays).length > 0
+        ? storyCollectionDays
+        : fallback.storyCollectionDays,
     customerStats: customerStatsRecord(parsed.customerStats, customerVisits, stories),
     metCustomers: stringList(parsed.metCustomers),
     openingComplete,
@@ -4618,6 +4919,8 @@ function loadGame(): GameState {
 
 function sceneValue(value: unknown, fallback: Scene): Scene {
   if (
+    value === 'start' ||
+    value === 'contentWarning' ||
     value === 'setup' ||
     value === 'opening' ||
     value === 'menu' ||
@@ -4722,9 +5025,10 @@ function defaultInitialState(game: GameState): InitialAppState {
   return {
     restoredSession: false,
     game,
-    scene: !game.setupComplete ? 'setup' : game.openingComplete ? 'menu' : 'opening',
+    scene: !game.setupComplete ? 'start' : game.openingComplete ? 'menu' : 'opening',
     isPaused: false,
     mood: 40,
+    moodBySlot: {},
     purrBeat: 0,
     arrivalState: 'ready',
     selectedSlot: 0,
@@ -4735,7 +5039,7 @@ function defaultInitialState(game: GameState): InitialAppState {
     serviceQualityBySlot: {},
     careBySlot: {},
     patienceBySlot: createPatienceBySlot(seatCustomerSlots),
-    dayElapsedMs: 0,
+    dayElapsedMs: getDayStartElapsedMs(game),
     purrCooldownRemainingMs: 0,
     quietCooldownRemainingMs: 0,
     rollCooldownRemainingMs: 0,
@@ -4770,10 +5074,28 @@ function loadSession(savedGame: GameState): InitialAppState {
         slot < tableCount ? customerSlot : null,
       ),
     );
+    const savedDayElapsedMs = clamp(
+      Math.floor(numericValue(parsed.dayElapsedMs, 0)),
+      0,
+      SHOP_DAY_REAL_MS,
+    );
+    const nextCustomerSlot = clamp(
+      Math.floor(numericValue(parsed.nextCustomerSlot, game.customerSlot + tableCount)),
+      0,
+      9999,
+    );
     const hasSeats = hasOccupiedSeats(seatCustomerSlots);
     let scene = sceneValue(parsed.scene, 'menu');
     if ((scene === 'visit' || scene === 'story') && !hasSeats) scene = 'shop';
-    if (scene === 'shop' && numericValue(parsed.dayElapsedMs, 0) >= SHOP_DAY_REAL_MS) {
+    const shouldHoldShopOpenForStoryTutorial =
+      savedDayElapsedMs >= SHOP_DAY_REAL_MS &&
+      (hasFirstDayStoryTutorialFinalCustomer(seatCustomerSlots) ||
+        needsFirstDayStoryTutorialFinalCustomer(game));
+    if (
+      scene === 'shop' &&
+      savedDayElapsedMs >= SHOP_DAY_REAL_MS &&
+      !shouldHoldShopOpenForStoryTutorial
+    ) {
       scene = 'summary';
     }
 
@@ -4790,13 +5112,23 @@ function loadSession(savedGame: GameState): InitialAppState {
       seatCustomerSlots,
       legacyServedSlots,
     );
+    const restoredMood = clamp(Math.floor(numericValue(parsed.mood, 40)), 0, 100);
+    const moodBySlot = normalizeMoodBySlot(parsed.moodBySlot, seatCustomerSlots);
+    if (
+      (scene === 'visit' || scene === 'story') &&
+      seatCustomerSlots[selectedOccupiedSlot] != null &&
+      moodBySlot[selectedOccupiedSlot] == null
+    ) {
+      moodBySlot[selectedOccupiedSlot] = restoredMood;
+    }
 
     return {
       restoredSession: true,
       game,
       scene,
       isPaused: Boolean(parsed.isPaused),
-      mood: clamp(Math.floor(numericValue(parsed.mood, 40)), 0, 100),
+      mood: restoredMood,
+      moodBySlot,
       purrBeat: clamp(Math.floor(numericValue(parsed.purrBeat, 0)), 0, 9999),
       arrivalState: arrivalStateValue(parsed.arrivalState, hasSeats ? 'ready' : 'waiting'),
       selectedSlot,
@@ -4815,7 +5147,7 @@ function loadSession(savedGame: GameState): InitialAppState {
         selectedOccupiedSlot,
         parsed.patienceRemaining,
       ),
-      dayElapsedMs: clamp(Math.floor(numericValue(parsed.dayElapsedMs, 0)), 0, SHOP_DAY_REAL_MS),
+      dayElapsedMs: savedDayElapsedMs,
       purrCooldownRemainingMs: clamp(
         Math.floor(numericValue(parsed.purrCooldownRemainingMs, 0)),
         0,
@@ -4836,11 +5168,7 @@ function loadSession(savedGame: GameState): InitialAppState {
         0,
         BASE_CUTE_COOLDOWN_MS,
       ),
-      nextCustomerSlot: clamp(
-        Math.floor(numericValue(parsed.nextCustomerSlot, game.customerSlot + tableCount)),
-        0,
-        9999,
-      ),
+      nextCustomerSlot,
       nextArrivalTimerId: clamp(Math.floor(numericValue(parsed.nextArrivalTimerId, 0)), 0, 9999),
       arrivalTimers: sessionArrivalTimers(parsed.arrivalTimers),
       activeLedgerTab: ledgerTabValue(parsed.activeLedgerTab, 'recipes'),
@@ -4861,6 +5189,9 @@ function TeaShopCat() {
   const [game, setGame] = useState<GameState>(initialState.game);
   const [isPaused, setIsPaused] = useState(initialState.isPaused);
   const [mood, setMood] = useState(initialState.mood);
+  const [moodBySlot, setMoodBySlot] = useState<Partial<Record<TableSlot, number>>>(
+    initialState.moodBySlot,
+  );
   const [purrBeat, setPurrBeat] = useState(initialState.purrBeat);
   const [arrivalState, setArrivalState] = useState<ArrivalState>(initialState.arrivalState);
   const [selectedSlot, setSelectedSlot] = useState<TableSlot>(initialState.selectedSlot);
@@ -4906,9 +5237,7 @@ function TeaShopCat() {
     () => activeAdminCharacterSettings,
   );
   const [adminChats, setAdminChats] = useState<AdminChats>(() => activeAdminChats);
-  const [adminMoodIcons, setAdminMoodIcons] = useState<AdminMoodIcon[]>(() =>
-    loadAdminMoodIcons(),
-  );
+  const [adminMoodIcons, setAdminMoodIcons] = useState<AdminMoodIcon[]>(() => loadAdminMoodIcons());
   const [adminChatMenuSettings, setAdminChatMenuSettings] = useState<AdminChatMenuSettings>(() =>
     loadAdminChatMenuSettings(),
   );
@@ -4946,11 +5275,13 @@ function TeaShopCat() {
   const sessionStateRef = useRef<RuntimeSessionState | null>(null);
   const skipInitialPatienceResetRef = useRef(initialState.restoredSession);
   const autoCollectedStoryKeyRef = useRef('');
+  const forcedFirstDayStoryTutorialRef = useRef(false);
   const storyToastTimerRef = useRef<number | null>(null);
   const openingSaveTimerRef = useRef<number | null>(null);
   const openingSaveVersionRef = useRef(0);
   const adminLargeLoadedRef = useRef(false);
   const adminLargeSaveTimersRef = useRef<Record<string, number>>({});
+  const adminPortableSaveTimerRef = useRef<number | null>(null);
   const catActionPoseTimerRef = useRef<number | null>(null);
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
 
@@ -4988,12 +5319,16 @@ function TeaShopCat() {
   useEffect(() => {
     let cancelled = false;
 
-    void loadOpeningSettingsFromIndexedDb().then((indexedSettings) => {
-      if (cancelled || !indexedSettings) return;
-      const normalizedOpeningSettings = normalizeOpeningSettings(indexedSettings);
-      setAdminOpeningSettings(normalizedOpeningSettings);
-      saveOpeningSettings(normalizedOpeningSettings);
-    });
+    void Promise.all([loadOpeningSettingsFromIndexedDb(), loadAdminPortableState()]).then(
+      ([indexedSettings, portableState]) => {
+        if (cancelled) return;
+        const settings = indexedSettings ?? portableState?.openingSettings;
+        if (!settings) return;
+        const normalizedOpeningSettings = normalizeOpeningSettings(settings);
+        setAdminOpeningSettings(normalizedOpeningSettings);
+        saveOpeningSettings(normalizedOpeningSettings);
+      },
+    );
 
     return () => {
       cancelled = true;
@@ -5014,21 +5349,31 @@ function TeaShopCat() {
       loadAdminLargeRecord('mood-icons', normalizeAdminMoodIcons),
       loadAdminLargeRecord('chat-menu', normalizeAdminChatMenuSettings),
       loadAdminLargeRecord('cat-settings', normalizeAdminCatSettings),
-    ]).then(([layouts, seatSpots, settings, chats, moodIcons, chatMenu, catSettings]) => {
+      loadAdminPortableState(),
+    ]).then(([layouts, seatSpots, settings, chats, moodIcons, chatMenu, catSettings, portable]) => {
       if (cancelled) return;
-      if (layouts) setAdminLayouts(layouts);
-      if (seatSpots) setAdminSeatSpotLayouts(seatSpots);
-      if (settings) {
-        setAdminCharacterSettings(settings);
-        setActiveAdminCharacterSettings(settings);
+      const portableState = portable ?? null;
+      const nextLayouts = layouts ?? portableState?.layouts;
+      const nextSeatSpots = seatSpots ?? portableState?.seatSpots;
+      const nextSettings = settings ?? portableState?.characterSettings;
+      const nextChats = chats ?? portableState?.chats;
+      const nextMoodIcons = moodIcons ?? portableState?.moodIcons;
+      const nextChatMenu = chatMenu ?? portableState?.chatMenu;
+      const nextCatSettings = catSettings ?? portableState?.catSettings;
+
+      if (nextLayouts) setAdminLayouts(nextLayouts);
+      if (nextSeatSpots) setAdminSeatSpotLayouts(nextSeatSpots);
+      if (nextSettings) {
+        setAdminCharacterSettings(nextSettings);
+        setActiveAdminCharacterSettings(nextSettings);
       }
-      if (chats) {
-        setAdminChats(chats);
-        setActiveAdminChats(chats);
+      if (nextChats) {
+        setAdminChats(nextChats);
+        setActiveAdminChats(nextChats);
       }
-      if (moodIcons) setAdminMoodIcons(moodIcons);
-      if (chatMenu) setAdminChatMenuSettings(chatMenu);
-      if (catSettings) setAdminCatSettings(catSettings);
+      if (nextMoodIcons) setAdminMoodIcons(nextMoodIcons);
+      if (nextChatMenu) setAdminChatMenuSettings(nextChatMenu);
+      if (nextCatSettings) setAdminCatSettings(nextCatSettings);
       adminLargeLoadedRef.current = true;
     });
 
@@ -5037,6 +5382,9 @@ function TeaShopCat() {
       Object.values(adminLargeSaveTimersRef.current).forEach((timer) => {
         window.clearTimeout(timer);
       });
+      if (adminPortableSaveTimerRef.current != null) {
+        window.clearTimeout(adminPortableSaveTimerRef.current);
+      }
       if (catActionPoseTimerRef.current != null) {
         window.clearTimeout(catActionPoseTimerRef.current);
       }
@@ -5045,6 +5393,7 @@ function TeaShopCat() {
 
   useEffect(() => {
     const normalizedLayouts = normalizeAdminLayouts(adminLayouts);
+    setActiveAdminLayouts(normalizedLayouts);
     if (!adminLargeLoadedRef.current) return;
     saveAdminLayouts(normalizedLayouts);
     scheduleAdminLargeSave('layouts', normalizedLayouts);
@@ -5094,6 +5443,42 @@ function TeaShopCat() {
     scheduleAdminLargeSave('cat-settings', normalizedCatSettings);
   }, [adminCatSettings]);
 
+  useEffect(() => {
+    if (!adminLargeLoadedRef.current || !import.meta.env.DEV) return;
+    if (adminPortableSaveTimerRef.current != null) {
+      window.clearTimeout(adminPortableSaveTimerRef.current);
+    }
+
+    const portableState: AdminPortableState = {
+      version: 1,
+      layouts: ADMIN_SUBJECT_IDS.reduce<AdminLayouts>((layouts, characterId) => {
+        layouts[characterId] = normalizeAdminLayout(adminLayouts[characterId], characterId);
+        return layouts;
+      }, {}),
+      seatSpots: normalizeAdminSeatSpotLayouts(adminSeatSpotLayouts),
+      characterSettings: normalizeAdminCharacterSettings(adminCharacterSettings),
+      chats: normalizeAdminChats(adminChats),
+      moodIcons: normalizeAdminMoodIcons(adminMoodIcons),
+      chatMenu: normalizeAdminChatMenuSettings(adminChatMenuSettings),
+      catSettings: normalizeAdminCatSettings(adminCatSettings),
+      openingSettings: normalizeOpeningSettings(adminOpeningSettings),
+    };
+
+    adminPortableSaveTimerRef.current = window.setTimeout(() => {
+      adminPortableSaveTimerRef.current = null;
+      void saveAdminPortableState(portableState);
+    }, 600);
+  }, [
+    adminLayouts,
+    adminSeatSpotLayouts,
+    adminCharacterSettings,
+    adminChats,
+    adminMoodIcons,
+    adminChatMenuSettings,
+    adminCatSettings,
+    adminOpeningSettings,
+  ]);
+
   function showCatPose(poseKey: CatPoseKey) {
     setCatActionPose(poseKey);
     if (catActionPoseTimerRef.current != null) {
@@ -5107,6 +5492,16 @@ function TeaShopCat() {
       setCatActionPose('idle');
       catActionPoseTimerRef.current = null;
     }, 900);
+  }
+
+  function setMoodForSlot(slot: TableSlot, nextMood: number): number {
+    const safeMood = clamp(Math.round(nextMood), 0, 100);
+    setMood(safeMood);
+    setMoodBySlot((prev) => ({
+      ...prev,
+      [slot]: safeMood,
+    }));
+    return safeMood;
   }
 
   const selectedOccupiedSlot = chooseOccupiedSlot(seatCustomerSlots, selectedSlot);
@@ -5143,6 +5538,7 @@ function TeaShopCat() {
   const currentStoryAlreadyCollected =
     getCustomerVisitCount(game, currentCustomer.id) >= currentVisitNumber;
   const currentStoryAvailable =
+    game.storiesToday <= 0 &&
     currentConversationKind === 'story' &&
     currentVisitNumber <= currentStoryArcLength &&
     isStoryTriggerReady(currentStory, game) &&
@@ -5182,19 +5578,19 @@ function TeaShopCat() {
     ? getStoryTalkImage(currentStory, currentStoryProgress - 1)
     : '';
   const currentStoryClosingLine = getStoryClosingLine(currentCustomer);
-  const currentKittyChat = getKittyChat(
-    currentCustomer,
-    game,
-    currentVisitNumber,
-    currentChatSeed,
-  );
-  const currentKittyOptions =
-    currentConversationKind === 'kitty' ? currentKittyChat.options : null;
+  const currentKittyChat = getKittyChat(currentCustomer, game, currentVisitNumber, currentChatSeed);
+  const currentKittyOptions = currentConversationKind === 'kitty' ? currentKittyChat.options : null;
   const currentKittyReply =
     currentKittyAnswer > 0 && currentKittyOptions
       ? (currentKittyOptions[currentKittyAnswer - 1]?.reply ?? '')
       : '';
   const currentKittyChatReady = !currentStoryReady && !currentStoryChoiceReady;
+  const currentOrderComment = getCustomerOrderComment(
+    currentCustomer,
+    game,
+    currentVisitNumber,
+    currentChatSeed,
+  );
   const visibleCustomers = useMemo(
     () =>
       TABLE_SLOTS.map((slot) => {
@@ -5221,7 +5617,15 @@ function TeaShopCat() {
     () => getPatiencePercentsBySlot(patienceBySlot, seatCustomerSlots),
     [patienceBySlot, seatCustomerSlots],
   );
-  const shopDayEnded = dayElapsedMs >= SHOP_DAY_REAL_MS;
+  const rawShopDayEnded = dayElapsedMs >= SHOP_DAY_REAL_MS;
+  const firstDayStoryTutorialNeeded = needsFirstDayStoryTutorialFinalCustomer(game);
+  const firstDayStoryTutorialFinalCustomerWaiting =
+    hasFirstDayStoryTutorialFinalCustomer(seatCustomerSlots);
+  const holdShopOpenForFirstDayStoryTutorial =
+    rawShopDayEnded &&
+    ((firstDayStoryTutorialFinalCustomerWaiting && scene !== 'visit') ||
+      (firstDayStoryTutorialNeeded && scene === 'shop'));
+  const shopDayEnded = rawShopDayEnded && !holdShopOpenForFirstDayStoryTutorial;
   const clockProgress = clamp((dayElapsedMs / SHOP_DAY_REAL_MS) * 100, 0, 100);
   const shopTimeLabel = formatShopTime(clockProgress);
   const purrCooldownMs = getActionCooldown(game.upgrades, 'purr');
@@ -5236,6 +5640,8 @@ function TeaShopCat() {
     purrCooldownRemaining > 0 ? LISTEN_PURR_COOLDOWN_MOOD_GAIN : LISTEN_MOOD_GAIN;
   const fullMoodCareUnlocked = serviceServed;
   const showTopBar =
+    scene !== 'start' &&
+    scene !== 'contentWarning' &&
     scene !== 'setup' &&
     scene !== 'opening' &&
     scene !== 'menu' &&
@@ -5248,18 +5654,25 @@ function TeaShopCat() {
     tutorialStep === 'meow' && scene === 'visit' && currentCustomer.id === 'matthew';
   const tutorialMoodActive =
     tutorialStep === 'mood' && scene === 'visit' && currentCustomer.id === 'matthew';
-  const tutorialMatthewLine =
-    tutorialMatthewActive
-      ? (TUTORIAL_MATTHEW_LINES[
-          clamp(tutorialLineIndex, 0, TUTORIAL_MATTHEW_LINES.length - 1)
-        ] ?? '')
-      : '';
+  const tutorialMatthewLine = tutorialMatthewActive
+    ? (TUTORIAL_MATTHEW_LINES[clamp(tutorialLineIndex, 0, TUTORIAL_MATTHEW_LINES.length - 1)] ?? '')
+    : '';
+  const birthdayStoryTutorialActive =
+    game.day === 1 &&
+    game.tutorialStep === 'done' &&
+    scene === 'visit' &&
+    currentCustomer.id === 'matthew' &&
+    currentVisitNumber === 1 &&
+    currentStoryReady &&
+    !currentStoryChoiceReady &&
+    !currentStoryComplete;
 
   sessionStateRef.current = {
     game,
     scene,
     isPaused,
     mood,
+    moodBySlot,
     purrBeat,
     arrivalState,
     selectedSlot,
@@ -5403,6 +5816,7 @@ function TeaShopCat() {
       setSelectedSlot(nextSelectedSlot);
       setServedOrdersBySlot((prev) => normalizeServedOrdersBySlot(prev, sanitizedSeats, []));
       setServiceQualityBySlot((prev) => normalizeServiceQualityBySlot(prev, sanitizedSeats));
+      setMoodBySlot((prev) => normalizeMoodBySlot(prev, sanitizedSeats));
       setCareBySlot((prev) => {
         const nextCare = { ...prev };
         for (const slot of TABLE_SLOTS) {
@@ -5475,6 +5889,27 @@ function TeaShopCat() {
   }, [mood, tutorialMoodActive]);
 
   useEffect(() => {
+    if (!firstDayStoryTutorialNeeded) {
+      forcedFirstDayStoryTutorialRef.current = false;
+    }
+  }, [firstDayStoryTutorialNeeded]);
+
+  useEffect(() => {
+    if (isPaused) return;
+    if (!rawShopDayEnded) return;
+    if (!firstDayStoryTutorialNeeded) return;
+    if (firstDayStoryTutorialFinalCustomerWaiting) return;
+    if (scene !== 'shop') return;
+    seatFirstDayStoryTutorialMatthew();
+  }, [
+    firstDayStoryTutorialFinalCustomerWaiting,
+    firstDayStoryTutorialNeeded,
+    isPaused,
+    rawShopDayEnded,
+    scene,
+  ]);
+
+  useEffect(() => {
     if (isPaused) return;
     if (!shopDayEnded) return;
     if (scene === 'shop') {
@@ -5501,6 +5936,13 @@ function TeaShopCat() {
     if (arrivalState !== 'ready' || !hasSeatedCustomers) return undefined;
     if (scene !== 'shop' && scene !== 'visit') return undefined;
     if (scene === 'visit' && shopDayEnded) return undefined;
+    if (
+      rawShopDayEnded &&
+      (firstDayStoryTutorialNeeded || firstDayStoryTutorialFinalCustomerWaiting) &&
+      scene === 'shop'
+    ) {
+      return undefined;
+    }
 
     const interval = window.setInterval(() => {
       setPatienceBySlot((prev) => {
@@ -5540,6 +5982,9 @@ function TeaShopCat() {
     selectedOccupiedSlot,
     seatCustomerSlots,
     servedOrdersBySlot,
+    firstDayStoryTutorialNeeded,
+    firstDayStoryTutorialFinalCustomerWaiting,
+    rawShopDayEnded,
     shopDayEnded,
     tutorialOpenPopup,
   ]);
@@ -5549,6 +5994,13 @@ function TeaShopCat() {
     if (tutorialOpenPopup) return;
     if (arrivalState !== 'ready' || !hasSeatedCustomers) return;
     if (scene === 'visit' && shopDayEnded) return;
+    if (
+      rawShopDayEnded &&
+      (firstDayStoryTutorialNeeded || firstDayStoryTutorialFinalCustomerWaiting) &&
+      scene === 'shop'
+    ) {
+      return;
+    }
 
     const expiredSlot = TABLE_SLOTS.find(
       (slot) =>
@@ -5589,6 +6041,9 @@ function TeaShopCat() {
     selectedOccupiedSlot,
     seatCustomerSlots,
     servedOrdersBySlot,
+    firstDayStoryTutorialNeeded,
+    firstDayStoryTutorialFinalCustomerWaiting,
+    rawShopDayEnded,
     shopDayEnded,
     tutorialActive,
     tutorialPatienceExpired,
@@ -5618,6 +6073,7 @@ function TeaShopCat() {
       scene: state.scene,
       isPaused: state.isPaused,
       mood: state.mood,
+      moodBySlot: state.moodBySlot,
       purrBeat: state.purrBeat,
       arrivalState: state.arrivalState,
       selectedSlot: state.selectedSlot,
@@ -5681,10 +6137,11 @@ function TeaShopCat() {
       return;
     }
 
-    if ((sessionStateRef.current?.dayElapsedMs ?? dayElapsedMs) >= SHOP_DAY_REAL_MS) return;
-
     const arrivalIndex = nextCustomerSlotRef.current;
     const sourceGame = sessionStateRef.current?.game ?? game;
+    if ((sessionStateRef.current?.dayElapsedMs ?? dayElapsedMs) >= SHOP_DAY_REAL_MS) {
+      return;
+    }
     const currentSeats = removeDuplicateSeatCustomers(
       sessionStateRef.current?.seatCustomerSlots ?? seatCustomerSlots,
     );
@@ -5710,6 +6167,11 @@ function TeaShopCat() {
       nextSeats[queuedTimer.slot] = arrivingCustomerSlot;
       setSelectedSlot((currentSlot) => chooseOccupiedSlot(nextSeats, currentSlot));
       return nextSeats;
+    });
+    setMoodBySlot((prev) => {
+      const nextMoods = { ...prev };
+      delete nextMoods[queuedTimer.slot];
+      return nextMoods;
     });
     setPatienceBySlot((prev) => ({
       ...prev,
@@ -5776,6 +6238,7 @@ function TeaShopCat() {
     setServiceQualityBySlot({});
     setCareBySlot({});
     setActiveStoryBySlot({});
+    setMoodBySlot({});
     setArrivalState(hasOccupiedSeats(nextSeats) ? 'ready' : 'waiting');
 
     return { nextCustomerSlot, arrivedCustomerIds };
@@ -5808,6 +6271,11 @@ function TeaShopCat() {
       delete nextStories[slot];
       return nextStories;
     });
+    setMoodBySlot((prev) => {
+      const nextMoods = { ...prev };
+      delete nextMoods[slot];
+      return nextMoods;
+    });
     setPatienceBySlot((prev) => {
       const nextPatience = { ...prev };
       delete nextPatience[slot];
@@ -5820,7 +6288,9 @@ function TeaShopCat() {
   }
 
   function queueSeatArrival(slot: TableSlot) {
-    if (dayElapsedMs >= SHOP_DAY_REAL_MS) return;
+    if (dayElapsedMs >= SHOP_DAY_REAL_MS) {
+      return;
+    }
 
     const timerId = arrivalTimerIdRef.current + 1;
     const now = Date.now();
@@ -5837,10 +6307,65 @@ function TeaShopCat() {
     });
   }
 
+  function seatFirstDayStoryTutorialMatthew() {
+    if (forcedFirstDayStoryTutorialRef.current) return;
+    if (!needsFirstDayStoryTutorialFinalCustomer(game)) return;
+    const matthewIndex = CUSTOMERS.findIndex((customer) => customer.id === 'matthew');
+    if (matthewIndex < 0) return;
+
+    forcedFirstDayStoryTutorialRef.current = true;
+    clearArrivalTimers();
+
+    const targetSlot: TableSlot = 0;
+    const matthewSlot = createCustomerToken(
+      FIRST_DAY_STORY_TUTORIAL_FINAL_SLOT,
+      matthewIndex,
+    );
+    const matthewCustomer = getCustomer(matthewSlot);
+    const nextSeats = TABLE_SLOTS.map((slot) => (slot === targetSlot ? matthewSlot : null));
+    nextCustomerSlotRef.current = Math.max(
+      nextCustomerSlotRef.current,
+      FIRST_DAY_STORY_TUTORIAL_FINAL_SLOT + 1,
+    );
+
+    setTableCount(Math.max(tableCount, 1));
+    setSeatCustomerSlots(nextSeats);
+    setSelectedSlot(targetSlot);
+    setServedSlots([]);
+    setServedOrdersBySlot({});
+    setServiceQualityBySlot({});
+    setCareBySlot({});
+    setActiveStoryBySlot({});
+    setMoodBySlot({});
+    setPatienceBySlot({ [targetSlot]: matthewCustomer.patienceMs });
+    setMood(40);
+    setPurrBeat(0);
+    setPurrReadyAt(0);
+    setQuietReadyAt(0);
+    setRollReadyAt(0);
+    setCuteReadyAt(0);
+    setActionNow(Date.now());
+    setArrivalState('ready');
+    setGame((prev) =>
+      recordCustomerArrivals(
+        {
+          ...prev,
+          customerSlot: Math.max(prev.customerSlot, nextCustomerSlotRef.current),
+          metCustomers: Array.from(
+            new Set([...prev.metCustomers, ...getCustomerMetIds(matthewCustomer)]),
+          ),
+        },
+        [matthewCustomer.id],
+      ),
+    );
+    setScene('shop');
+  }
+
   function forceSpawnCustomer(customerId: string) {
     if (isPausedRef.current) return;
     const customerIndex = CUSTOMERS.findIndex((customer) => customer.id === customerId);
     if (customerIndex < 0) return;
+    if (!isCustomerEnabled(CUSTOMERS[customerIndex] ?? CUSTOMERS[0])) return;
 
     const existingSlot = TABLE_SLOTS.find((slot) => {
       const customerSlot = seatCustomerSlots[slot];
@@ -5859,6 +6384,13 @@ function TeaShopCat() {
     const forcedCustomerSlot = createCustomerToken(arrivalIndex, customerIndex);
     const forcedCustomer = getCustomer(forcedCustomerSlot);
     const forcedMemberIds = new Set(getPartyMemberIds(forcedCustomer));
+    const slotsToClear = TABLE_SLOTS.filter((slot) => {
+      if (slot === targetSlot) return true;
+      const customerSlot = seatCustomerSlots[slot];
+      if (customerSlot == null) return false;
+      const existingCustomer = getCustomer(customerSlot);
+      return getPartyMemberIds(existingCustomer).some((memberId) => forcedMemberIds.has(memberId));
+    });
     nextCustomerSlotRef.current += 1;
 
     arrivalTimersRef.current = arrivalTimersRef.current.filter((timer) => {
@@ -5899,6 +6431,13 @@ function TeaShopCat() {
       const nextStories = { ...prev };
       delete nextStories[targetSlot];
       return nextStories;
+    });
+    setMoodBySlot((prev) => {
+      const nextMoods = { ...prev };
+      slotsToClear.forEach((slot) => {
+        delete nextMoods[slot];
+      });
+      return nextMoods;
     });
     setPatienceBySlot((prev) => ({
       ...prev,
@@ -5961,6 +6500,7 @@ function TeaShopCat() {
     setSelectedSlot(0);
     setArrivalState('ready');
     setPatienceBySlot({});
+    setMoodBySlot({});
     setMood(40);
     setPurrBeat(0);
     setPurrReadyAt(0);
@@ -5972,15 +6512,26 @@ function TeaShopCat() {
 
   function finishSeatDeparture(slot: TableSlot) {
     const keepCurrentVisitOpen = scene === 'visit' && slot !== selectedOccupiedSlot;
+    const departingCustomerSlot = seatCustomerSlots[slot] ?? null;
+    const departingWasFirstDayStoryTutorialFinalCustomer =
+      isFirstDayStoryTutorialFinalCustomerSlot(departingCustomerSlot);
     vacateSeat(slot);
+    const canQueueAnotherCustomer = dayElapsedMs < SHOP_DAY_REAL_MS;
 
     if (keepCurrentVisitOpen) {
-      if (dayElapsedMs < SHOP_DAY_REAL_MS) queueSeatArrival(slot);
+      if (canQueueAnotherCustomer) queueSeatArrival(slot);
       return;
     }
 
-    if (dayElapsedMs >= SHOP_DAY_REAL_MS) {
-      closeShopForDay();
+    if (!canQueueAnotherCustomer) {
+      if (
+        firstDayStoryTutorialNeeded &&
+        !departingWasFirstDayStoryTutorialFinalCustomer
+      ) {
+        seatFirstDayStoryTutorialMatthew();
+      } else {
+        closeShopForDay();
+      }
     } else {
       queueSeatArrival(slot);
       setScene('shop');
@@ -6018,10 +6569,11 @@ function TeaShopCat() {
     setServiceQualityBySlot({});
     setCareBySlot({});
     setActiveStoryBySlot({});
+    setMoodBySlot({});
     setPatienceBySlot(createPatienceBySlot(tutorialSeats));
     setArrivalState('ready');
     setGame(recordCustomerArrivals(tutorialGame, [tutorialCustomer.id]));
-    setDayElapsedMs(0);
+    setDayElapsedMs(getDayStartElapsedMs(tutorialGame));
     setMood(40);
     setPurrBeat(0);
     setPurrReadyAt(0);
@@ -6096,7 +6648,7 @@ function TeaShopCat() {
     setTutorialLineIndex(0);
     setTutorialPatienceExpired(false);
     setTutorialOpenPopup(true);
-    setDayElapsedMs(0);
+    setDayElapsedMs(getDayStartElapsedMs(finishedGame));
     setMood(40);
     setPurrBeat(0);
     setPurrReadyAt(0);
@@ -6137,13 +6689,14 @@ function TeaShopCat() {
     if (customerSlot == null) return;
     const customer = getCustomer(customerSlot);
     const service = getService(customerSlot, game.recipes, 0, customer);
+    const metCustomerIds = getCustomerMetIds(customer);
     setSelectedSlot(nextSlot);
-    setGame((prev) => ({
-      ...prev,
-      metCustomers: prev.metCustomers.includes(customer.id)
-        ? prev.metCustomers
-        : [...prev.metCustomers, customer.id],
-    }));
+    setGame((prev) => {
+      const nextMetCustomers = Array.from(new Set([...prev.metCustomers, ...metCustomerIds]));
+      return nextMetCustomers.length === prev.metCustomers.length
+        ? prev
+        : { ...prev, metCustomers: nextMetCustomers };
+    });
     setActiveStoryBySlot((prev) => {
       const existingStory = prev[nextSlot];
       if (existingStory?.customerId === customer.id) return prev;
@@ -6162,8 +6715,10 @@ function TeaShopCat() {
         },
       };
     });
-    setMood(
-      startingMood(customer, service, isTableFullyServed(customer, servedOrdersBySlot, nextSlot)),
+    setMoodForSlot(
+      nextSlot,
+      moodBySlot[nextSlot] ??
+        startingMood(customer, service, isTableFullyServed(customer, servedOrdersBySlot, nextSlot)),
     );
     setPurrBeat(0);
     setActionNow(Date.now());
@@ -6183,12 +6738,7 @@ function TeaShopCat() {
     const targetCustomer = getCustomer(customerSlot);
     const targetOrderIndex = clamp(Math.floor(orderIndex), 0, targetCustomer.members.length - 1);
     if (isOrderServed(servedOrdersBySlot, nextSlot, targetOrderIndex)) return;
-    const targetService = getService(
-      customerSlot,
-      game.recipes,
-      targetOrderIndex,
-      targetCustomer,
-    );
+    const targetService = getService(customerSlot, game.recipes, targetOrderIndex, targetCustomer);
     const nextServedOrders = Array.from(
       new Set([...getServedOrderIndexes(servedOrdersBySlot, nextSlot), targetOrderIndex]),
     ).sort((a, b) => a - b);
@@ -6218,7 +6768,7 @@ function TeaShopCat() {
     }));
     if (scene === 'visit') {
       const nextMood = clamp(mood + targetService.moodBoost, 0, 100);
-      setMood(nextMood);
+      setMoodForSlot(nextSlot, nextMood);
       showCatPose('serve');
     }
     if (game.tutorialStep === 'serve' && targetCustomer.id === 'matthew' && fullyServed) {
@@ -6232,12 +6782,27 @@ function TeaShopCat() {
     return clamp(care.storyTalks + 1, 0, Math.max(0, currentStoryLineCount - 1));
   }
 
+  function meow() {
+    if (isPausedRef.current || !serviceServed) return;
+    setActionNow(Date.now());
+    setCareBySlot((prev) => {
+      const care = getVisitCare(prev, selectedOccupiedSlot);
+      const storyTalks = advanceStoryTalks(care);
+      return {
+        ...prev,
+        [selectedOccupiedSlot]: { ...care, storyTalks },
+      };
+    });
+    setMoodForSlot(selectedOccupiedSlot, mood + MEOW_MOOD_GAIN);
+    showCatPose('meow');
+  }
+
   function purr() {
     if (isPausedRef.current) return;
     const now = Date.now();
     setActionNow(now);
-    if (purrReadyAt > now && !tutorialMoodActive) return;
-    setPurrReadyAt(tutorialMoodActive ? 0 : now + purrCooldownMs);
+    if (purrReadyAt > now) return;
+    setPurrReadyAt(now + purrCooldownMs);
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -6248,7 +6813,7 @@ function TeaShopCat() {
     });
     const catBedBoost = ownedUpgradeNames.has('cat-bed') ? 5 : 0;
     const nextMood = clamp(mood + 18 + catBedBoost, 0, 100);
-    setMood(nextMood);
+    setMoodForSlot(selectedOccupiedSlot, nextMood);
     setPurrBeat((prev) => prev + 1);
     showCatPose('purr');
   }
@@ -6257,8 +6822,8 @@ function TeaShopCat() {
     if (isPausedRef.current) return;
     const now = Date.now();
     setActionNow(now);
-    if (quietReadyAt > now && !tutorialMoodActive) return;
-    setQuietReadyAt(tutorialMoodActive ? 0 : now + quietCooldownMs);
+    if (quietReadyAt > now) return;
+    setQuietReadyAt(now + quietCooldownMs);
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -6273,7 +6838,7 @@ function TeaShopCat() {
       0,
       100,
     );
-    setMood(nextMood);
+    setMoodForSlot(selectedOccupiedSlot, nextMood);
     showCatPose('listen');
   }
 
@@ -6281,8 +6846,8 @@ function TeaShopCat() {
     if (isPausedRef.current || !fullMoodCareUnlocked) return;
     const now = Date.now();
     setActionNow(now);
-    if (rollReadyAt > now && !tutorialMoodActive) return;
-    setRollReadyAt(tutorialMoodActive ? 0 : now + rollCooldownMs);
+    if (rollReadyAt > now) return;
+    setRollReadyAt(now + rollCooldownMs);
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -6291,7 +6856,7 @@ function TeaShopCat() {
         [selectedOccupiedSlot]: { ...care, rolls: care.rolls + 1, storyTalks },
       };
     });
-    setMood((prev) => clamp(prev + ROLL_OVER_MOOD_GAIN, 0, 100));
+    setMoodForSlot(selectedOccupiedSlot, mood + ROLL_OVER_MOOD_GAIN);
     setPurrBeat((prev) => prev + 1);
     showCatPose('roll');
   }
@@ -6300,8 +6865,8 @@ function TeaShopCat() {
     if (isPausedRef.current || !fullMoodCareUnlocked) return;
     const now = Date.now();
     setActionNow(now);
-    if (cuteReadyAt > now && !tutorialMoodActive) return;
-    setCuteReadyAt(tutorialMoodActive ? 0 : now + cuteCooldownMs);
+    if (cuteReadyAt > now) return;
+    setCuteReadyAt(now + cuteCooldownMs);
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -6310,7 +6875,7 @@ function TeaShopCat() {
         [selectedOccupiedSlot]: { ...care, cutes: care.cutes + 1, storyTalks },
       };
     });
-    setMood((prev) => clamp(prev + BE_CUTE_MOOD_GAIN, 0, 100));
+    setMoodForSlot(selectedOccupiedSlot, mood + BE_CUTE_MOOD_GAIN);
     setPurrBeat((prev) => prev + 1);
     showCatPose('cute');
   }
@@ -6328,7 +6893,7 @@ function TeaShopCat() {
         [selectedOccupiedSlot]: { ...care, kittyAnswer: answer },
       };
     });
-    setMood((prev) => clamp(prev + 6, 0, 100));
+    setMoodForSlot(selectedOccupiedSlot, mood + MEOW_MOOD_GAIN);
     showCatPose('meow');
   }
 
@@ -6433,11 +6998,15 @@ function TeaShopCat() {
     const reputationGain = getReputationGain(departingService, true, care, completedStory);
     const hasLiveMoodForDepartingCustomer =
       scene === 'visit' && departingSlot === selectedOccupiedSlot;
+    const storedDepartingMood = moodBySlot[departingSlot];
+    const departingStartingMood = startingMood(departingCustomer, departingService, true);
     const moodDelta = hasLiveMoodForDepartingCustomer
-      ? mood - startingMood(departingCustomer, departingService, true)
-      : getCareBondGain(care) > 0
-        ? 8
-        : 0;
+      ? mood - departingStartingMood
+      : storedDepartingMood != null
+        ? storedDepartingMood - departingStartingMood
+        : getCareBondGain(care) > 0
+          ? 8
+          : 0;
     const relationshipChange = getRelationshipChange(true, care, completedStory, moodDelta);
 
     setGame((prev) => ({
@@ -6497,11 +7066,7 @@ function TeaShopCat() {
       customerStats: updateCustomerStats(prev, departingCustomer.id, (stats) => ({
         ...stats,
         missed: stats.missed + 1,
-        bond: clamp(
-          stats.bond - relationshipLoss,
-          MIN_RELATIONSHIP_SCORE,
-          MAX_RELATIONSHIP_SCORE,
-        ),
+        bond: clamp(stats.bond - relationshipLoss, MIN_RELATIONSHIP_SCORE, MAX_RELATIONSHIP_SCORE),
       })),
       shopHappiness: clamp(prev.shopHappiness - 3, 0, 100),
     }));
@@ -6532,7 +7097,7 @@ function TeaShopCat() {
         seatPlan.arrivedCustomerIds,
       ),
     );
-    setDayElapsedMs(0);
+    setDayElapsedMs(getDayStartElapsedMs(nextDayGame));
     setArrivalState('ready');
     setPurrReadyAt(0);
     setQuietReadyAt(0);
@@ -6597,9 +7162,10 @@ function TeaShopCat() {
     setGame(DEFAULT_GAME);
     setTableCount(resetTableCount);
     setSeatCustomerSlots(resetSeats);
-    setDayElapsedMs(0);
+    setDayElapsedMs(getDayStartElapsedMs(DEFAULT_GAME));
     setCareBySlot({});
     setActiveStoryBySlot({});
+    setMoodBySlot({});
     setPatienceBySlot(createPatienceBySlot(resetSeats));
     setMood(40);
     setPurrBeat(0);
@@ -6616,7 +7182,7 @@ function TeaShopCat() {
     setTutorialLineIndex(0);
     setTutorialPatienceExpired(false);
     setTutorialOpenPopup(false);
-    setScene('setup');
+    setScene('start');
   }
 
   function openAdmin() {
@@ -6637,6 +7203,29 @@ function TeaShopCat() {
           x: clamp(position.x, 0, 100),
           y: clamp(position.y, 0, 100),
         },
+      },
+    }));
+    setAdminSaveMessage('');
+  }
+
+  function updateAdminSubjectEnabled(subjectId: AdminSubjectId, enabled: boolean) {
+    if (!isAdminPartyId(subjectId) && isCharacterId(subjectId)) {
+      const currentSettings = normalizeCharacterAdminSettings(
+        subjectId,
+        adminCharacterSettings[subjectId],
+      );
+      updateAdminCharacterSettings(subjectId, {
+        ...currentSettings,
+        enabled,
+      });
+      return;
+    }
+
+    setAdminLayouts((prev) => ({
+      ...prev,
+      [subjectId]: {
+        ...normalizeAdminLayout(prev[subjectId], subjectId),
+        enabled,
       },
     }));
     setAdminSaveMessage('');
@@ -6852,6 +7441,85 @@ function TeaShopCat() {
     setAdminSaveMessage('');
   }
 
+  function addAdminTalkingImages(characterId: AdminSubjectId, imageSrcs: string[]) {
+    const cleanImageSrcs = imageSrcs.map((imageSrc) => imageSrc.trim()).filter(Boolean);
+    if (cleanImageSrcs.length === 0) return;
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          talking: {
+            ...currentLayout.talking,
+            hiddenImageSrcs: currentLayout.talking.hiddenImageSrcs.filter(
+              (src) => !cleanImageSrcs.includes(src),
+            ),
+            enabledImageSrcs: Array.from(
+              new Set([...currentLayout.talking.enabledImageSrcs, ...cleanImageSrcs]),
+            ),
+          },
+        },
+      };
+    });
+    setAdminSaveMessage('');
+  }
+
+  function deleteAdminTalkingImage(characterId: AdminSubjectId, imageSrc: string) {
+    const cleanImageSrc = imageSrc.trim();
+    if (!cleanImageSrc) return;
+
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      const currentTalking = currentLayout.talking;
+      const hiddenImageSrcs = Array.from(
+        new Set([...currentTalking.hiddenImageSrcs, cleanImageSrc]),
+      );
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          talking: {
+            ...currentTalking,
+            hiddenImageSrcs,
+            defaultImageSrc:
+              currentTalking.defaultImageSrc === cleanImageSrc ? '' : currentTalking.defaultImageSrc,
+            imageSrc: currentTalking.imageSrc === cleanImageSrc ? '' : currentTalking.imageSrc,
+            enabledImageSrcs: currentTalking.enabledImageSrcs.filter(
+              (src) => src !== cleanImageSrc,
+            ),
+          },
+        },
+      };
+    });
+
+    if (isCharacterId(characterId)) {
+      setAdminCharacterSettings((prev) => {
+        const currentSettings = normalizeCharacterAdminSettings(characterId, prev[characterId]);
+        if (currentSettings.portrait.imageSrc !== cleanImageSrc) return prev;
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentSettings,
+            portrait: {
+              ...currentSettings.portrait,
+              imageSrc: '',
+            },
+          },
+        };
+      });
+    }
+
+    if (import.meta.env.DEV && isAdminUploadImageSrc(cleanImageSrc)) {
+      void fetch('/__admin/delete-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ src: cleanImageSrc }),
+      });
+    }
+    setAdminSaveMessage('');
+  }
+
   function updateAdminCharacterSettings(
     characterId: CharacterId,
     settings: CharacterAdminSettings,
@@ -6899,6 +7567,17 @@ function TeaShopCat() {
     const normalizedChatMenu = normalizeAdminChatMenuSettings(adminChatMenuSettings);
     const normalizedCatSettings = normalizeAdminCatSettings(adminCatSettings);
     const normalizedOpeningSettings = normalizeOpeningSettings(adminOpeningSettings);
+    const portableState: AdminPortableState = {
+      version: 1,
+      layouts: normalizedLayouts,
+      seatSpots: normalizedSeatSpotLayouts,
+      characterSettings: normalizedSettings,
+      chats: normalizedChats,
+      moodIcons: normalizedMoodIcons,
+      chatMenu: normalizedChatMenu,
+      catSettings: normalizedCatSettings,
+      openingSettings: normalizedOpeningSettings,
+    };
 
     saveAdminLayouts(normalizedLayouts);
     saveAdminSeatSpotLayouts(normalizedSeatSpotLayouts);
@@ -6921,12 +7600,17 @@ function TeaShopCat() {
       window.clearTimeout(openingSaveTimerRef.current);
       openingSaveTimerRef.current = null;
     }
-    void saveOpeningSettingsToIndexedDb(normalizedOpeningSettings).then((openingSavedToIndexedDb) => {
+    void Promise.all([
+      saveOpeningSettingsToIndexedDb(normalizedOpeningSettings),
+      saveAdminPortableState(portableState),
+    ]).then(([openingSavedToIndexedDb, portableSaved]) => {
       if (openingSaveVersionRef.current !== saveVersion) return;
       setAdminSaveMessage(
-        openingSavedToIndexedDb || openingSavedToLocalStorage
-          ? 'Saved'
-          : 'Saved except opening images',
+        portableSaved
+          ? 'Saved to repo'
+          : openingSavedToIndexedDb || openingSavedToLocalStorage
+            ? 'Saved'
+            : 'Saved except opening images',
       );
     });
     setActiveAdminCharacterSettings(normalizedSettings);
@@ -6950,8 +7634,8 @@ function TeaShopCat() {
       <div className="landscape-gate" role="dialog" aria-label="Landscape required">
         <div>
           <RotateIcon />
-          <h2>Landscape Please</h2>
-          <p>Turn your phone sideways to play Tea Shop Cat.</p>
+          <h2>Oh no!</h2>
+          <p>You can't play like this. Turn your phone sideways.</p>
         </div>
       </div>
       <div className="tea-shell">
@@ -6973,6 +7657,12 @@ function TeaShopCat() {
             onMenu={() => setScene('menu')}
             onPause={pauseGame}
           />
+        ) : null}
+
+        {scene === 'start' ? <StartGameScreen onStart={() => setScene('contentWarning')} /> : null}
+
+        {scene === 'contentWarning' ? (
+          <ContentWarningScreen onContinue={() => setScene('setup')} />
         ) : null}
 
         {scene === 'setup' ? <SetupScreen onComplete={completeSetup} /> : null}
@@ -7069,6 +7759,7 @@ function TeaShopCat() {
             kittyOptions={currentKittyOptions}
             kittyAnswer={currentKittyAnswer}
             kittyReply={resolveGameTextVariables(currentKittyReply, game)}
+            orderLine={resolveGameTextVariables(currentOrderComment, game)}
             listenMoodGain={listenMoodGain}
             layout={getCustomerAdminLayout(currentCustomer, adminLayouts)}
             chatMenuSettings={adminChatMenuSettings}
@@ -7077,6 +7768,7 @@ function TeaShopCat() {
               getCustomerAfterHoursComment(currentCustomer, game),
               game,
             )}
+            birthdayStoryTutorialActive={birthdayStoryTutorialActive}
             tutorialStep={tutorialStep}
             tutorialCoachSrc={adminOpeningSettings.lilaImageSrc}
             tutorialLine={tutorialMatthewLine}
@@ -7084,6 +7776,7 @@ function TeaShopCat() {
             tutorialLineIndex={tutorialLineIndex}
             tutorialThanksLine={resolveGameTextVariables(TUTORIAL_MATTHEW_THANKS, game)}
             onServe={serveRequest}
+            onMeow={meow}
             onPurr={purr}
             onQuiet={sitQuietly}
             onRollOver={rollOver}
@@ -7183,8 +7876,11 @@ function TeaShopCat() {
               setSelectedAdminCharacterId(characterId);
               setAdminSaveMessage('');
             }}
+            onSubjectEnabledChange={updateAdminSubjectEnabled}
             onTalkingDefaultImageChange={updateAdminDefaultTalkingImage}
             onTalkingImageChange={updateAdminTalkingImage}
+            onTalkingImageDelete={deleteAdminTalkingImage}
+            onTalkingImagesAdd={addAdminTalkingImages}
             onTalkingLayoutChange={updateAdminTalkingLayout}
             onTalkingScaleChange={updateAdminTalkingScale}
           />
@@ -7282,10 +7978,7 @@ function TopBar({
           <ShopIcon />
         </IconButton>
         <div className="settings-anchor">
-          <IconButton
-            label="Settings"
-            onClick={() => setSettingsOpen((prev) => !prev)}
-          >
+          <IconButton label="Settings" onClick={() => setSettingsOpen((prev) => !prev)}>
             <UiImageIcon alt="" src={UI_ICON_SRC.gear} />
           </IconButton>
           {settingsOpen ? (
@@ -7389,7 +8082,10 @@ function getOpeningBeatImageSrc(
   return selectedImage?.src ?? getOpeningDefaultImageSrc(settings, actor);
 }
 
-function isOpeningActorVisible(beat: AdminOpeningBeat | undefined, actor: 'lila' | 'grace'): boolean {
+function isOpeningActorVisible(
+  beat: AdminOpeningBeat | undefined,
+  actor: 'lila' | 'grace',
+): boolean {
   if (!beat) return false;
   return (actor === 'lila' ? beat.lilaImageId : beat.graceImageId) !== OPENING_IMAGE_NONE;
 }
@@ -7446,6 +8142,13 @@ function getVisibleOpeningActorImageSrc(
   return getOpeningBeatImageSrc(settings, actor, beat);
 }
 
+function getOpeningBeatBackgroundSrc(
+  settings: AdminOpeningSettings,
+  beat?: AdminOpeningBeat | null,
+): string {
+  return beat?.backgroundSrc || settings.backgroundSrc;
+}
+
 function OpeningScreen({
   settings,
   game,
@@ -7476,7 +8179,13 @@ function OpeningScreen({
 
   return (
     <main className="opening-screen">
-      <OpeningStageBackground settings={{ ...safeSettings, locationName }} />
+      <OpeningStageBackground
+        settings={{
+          ...safeSettings,
+          locationName,
+          backgroundSrc: getOpeningBeatBackgroundSrc(safeSettings, beat),
+        }}
+      />
       <div className="opening-settings-anchor settings-anchor">
         <IconButton label="Settings" onClick={() => setSettingsOpen((prev) => !prev)}>
           <UiImageIcon alt="" src={UI_ICON_SRC.gear} />
@@ -7576,8 +8285,7 @@ function OpeningStagePreview({
 
   function updatePlacement(actor: 'lila' | 'grace', patch: Partial<AdminOpeningPlacement>) {
     if (!beat) return;
-    const currentPlacement =
-      actor === 'lila' ? currentLilaPlacement : currentGracePlacement;
+    const currentPlacement = actor === 'lila' ? currentLilaPlacement : currentGracePlacement;
     const nextPlacement = normalizeOpeningPlacement(
       {
         ...currentPlacement,
@@ -7587,9 +8295,7 @@ function OpeningStagePreview({
     );
     onBeatChange?.(
       beat.id,
-      actor === 'lila'
-        ? { lilaPlacement: nextPlacement }
-        : { gracePlacement: nextPlacement },
+      actor === 'lila' ? { lilaPlacement: nextPlacement } : { gracePlacement: nextPlacement },
     );
   }
 
@@ -7599,8 +8305,7 @@ function OpeningStagePreview({
     event.currentTarget.setPointerCapture(event.pointerId);
     const pointerPosition = getPreviewPosition(event);
     if (!pointerPosition) return;
-    const currentPlacement =
-      actor === 'lila' ? currentLilaPlacement : currentGracePlacement;
+    const currentPlacement = actor === 'lila' ? currentLilaPlacement : currentGracePlacement;
     dragActorRef.current = actor;
     dragOffsetRef.current = {
       x: pointerPosition.x - currentPlacement.x,
@@ -7636,9 +8341,7 @@ function OpeningStagePreview({
     if (!beat) return;
     onBeatChange?.(
       beat.id,
-      actor === 'lila'
-        ? { lilaFlipped: !beat.lilaFlipped }
-        : { graceFlipped: !beat.graceFlipped },
+      actor === 'lila' ? { lilaFlipped: !beat.lilaFlipped } : { graceFlipped: !beat.graceFlipped },
     );
   }
 
@@ -7651,7 +8354,12 @@ function OpeningStagePreview({
         onPointerMove={moveOpeningDrag}
         onPointerUp={stopOpeningDrag}
       >
-        <OpeningStageBackground settings={safeSettings} />
+        <OpeningStageBackground
+          settings={{
+            ...safeSettings,
+            backgroundSrc: getOpeningBeatBackgroundSrc(safeSettings, beat),
+          }}
+        />
         {showPreviousOnion && previousBeat && previousLilaVisible ? (
           <div
             className="admin-opening-onion-character"
@@ -7883,11 +8591,18 @@ function OpeningCharacterSprite({
 interface TutorialCoachCardProps {
   imageSrc: string;
   message: string;
+  warning?: string;
   actionLabel?: string;
   onAction?: () => void;
 }
 
-function TutorialCoachCard({ imageSrc, message, actionLabel, onAction }: TutorialCoachCardProps) {
+function TutorialCoachCard({
+  imageSrc,
+  message,
+  warning = '',
+  actionLabel,
+  onAction,
+}: TutorialCoachCardProps) {
   return (
     <aside className="tutorial-coach-card" aria-live="polite">
       <div className="tutorial-coach-portrait" aria-hidden="true">
@@ -7902,6 +8617,7 @@ function TutorialCoachCard({ imageSrc, message, actionLabel, onAction }: Tutoria
           {actionLabel}
         </button>
       ) : null}
+      {warning ? <p className="tutorial-coach-warning">{warning}</p> : null}
     </aside>
   );
 }
@@ -7941,6 +8657,51 @@ interface SetupScreenProps {
   onComplete: (cafeName: string, catName: string) => void;
 }
 
+interface StartGameScreenProps {
+  onStart: () => void;
+}
+
+function StartGameScreen({ onStart }: StartGameScreenProps) {
+  return (
+    <main className="setup-screen intro-screen">
+      <section className="setup-card intro-card" aria-label="Game introduction">
+        <p className="eyebrow">Sweet Purr Café</p>
+        <h1>Start Game</h1>
+        <p className="setup-intro">
+          Play as the cafe cat in a quiet story game about listening to the people who visit your
+          shop. Serve their drinks, comfort them with gentle cat actions, and help lift their moods
+          as they share pieces of their lives. The more cared for your guests feel, the more your
+          cafe's reputation grows.
+        </p>
+        <button className="primary-button" type="button" onClick={onStart}>
+          Start Game
+        </button>
+      </section>
+    </main>
+  );
+}
+
+interface ContentWarningScreenProps {
+  onContinue: () => void;
+}
+
+function ContentWarningScreen({ onContinue }: ContentWarningScreenProps) {
+  return (
+    <main className="setup-screen intro-screen">
+      <section className="setup-card intro-card warning-card" aria-label="Content warning">
+        <p className="eyebrow">Before You Begin</p>
+        <h1>Warning</h1>
+        <p className="setup-intro">
+          Know that some character stories involve abuse, slavery, and stalking.
+        </p>
+        <button className="primary-button" type="button" onClick={onContinue}>
+          Continue
+        </button>
+      </section>
+    </main>
+  );
+}
+
 function SetupScreen({ onComplete }: SetupScreenProps) {
   const [cafeName, setCafeName] = useState('');
   const [catName, setCatName] = useState('');
@@ -7953,8 +8714,8 @@ function SetupScreen({ onComplete }: SetupScreenProps) {
   return (
     <main className="setup-screen">
       <form className="setup-card" aria-label="Name your cafe and cat" onSubmit={submitSetup}>
-        <p className="eyebrow">New Cafe</p>
         <h1>Welcome In</h1>
+        <p className="setup-intro">Please name your shop and name you the cat!</p>
         <label>
           <span>Cafe name</span>
           <input
@@ -8048,7 +8809,11 @@ function SettingsPopup({
         </button>
       ) : null}
       <div className="menu-reset-area">
-        <button className="quiet-button danger-reset-button" type="button" onClick={confirmResetSave}>
+        <button
+          className="quiet-button danger-reset-button"
+          type="button"
+          onClick={confirmResetSave}
+        >
           Reset Save
         </button>
         <p>Warning: this clears your current save and starts the game over.</p>
@@ -8173,8 +8938,11 @@ interface AdminScreenProps {
   onSeatSpotDrinkScaleChange: (characterId: AdminSubjectId, slot: TableSlot, scale: number) => void;
   onSeatSpotScaleChange: (characterId: AdminSubjectId, slot: TableSlot, scale: number) => void;
   onSelectCharacter: (characterId: AdminSubjectId) => void;
+  onSubjectEnabledChange: (characterId: AdminSubjectId, enabled: boolean) => void;
   onTalkingDefaultImageChange: (characterId: AdminSubjectId, imageSrc: string) => void;
   onTalkingImageChange: (characterId: AdminSubjectId, imageSrc: string) => void;
+  onTalkingImageDelete: (characterId: AdminSubjectId, imageSrc: string) => void;
+  onTalkingImagesAdd: (characterId: AdminSubjectId, imageSrcs: string[]) => void;
   onTalkingLayoutChange: (
     characterId: AdminSubjectId,
     item: 'character' | 'cat' | 'bubble' | 'drink' | 'patience',
@@ -8215,12 +8983,16 @@ function AdminScreen({
   onSeatSpotDrinkScaleChange,
   onSeatSpotScaleChange,
   onSelectCharacter,
+  onSubjectEnabledChange,
   onTalkingDefaultImageChange,
   onTalkingImageChange,
+  onTalkingImageDelete,
+  onTalkingImagesAdd,
   onTalkingLayoutChange,
   onTalkingScaleChange,
 }: AdminScreenProps) {
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const chatMenuPreviewRef = useRef<HTMLElement | null>(null);
   const chatMenuEditorRef = useRef<HTMLDivElement | null>(null);
   const dragItemRef = useRef<AdminLayoutDragItem | null>(null);
   const dragItemOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
@@ -8229,11 +9001,17 @@ function AdminScreen({
   const dragSeatOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const dragChatMenuActionRef = useRef<CatActionId | null>(null);
   const dragChatMenuOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
+  const dragChatMenuWheelRef = useRef(false);
+  const dragChatMenuWheelOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const dragChatBlockIdRef = useRef('');
   const [sidePanelMode, setSidePanelMode] = useState<AdminSidePanelMode>('inspector');
   const [sidePanelCollapsed, setSidePanelCollapsed] = useState(false);
   const [mobilePreview, setMobilePreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<AdminPreviewMode>('shop');
+  const [characterManagerView, setCharacterManagerView] =
+    useState<AdminCharacterManagerView>('list');
+  const [characterDetailTab, setCharacterDetailTab] =
+    useState<AdminCharacterDetailTab>('settings');
   const [selectedAssetId, setSelectedAssetId] = useState('');
   const [selectedChatSubjectId, setSelectedChatSubjectId] = useState<AdminSubjectId | ''>('');
   const [selectedChatGroupId, setSelectedChatGroupId] = useState('');
@@ -8246,6 +9024,7 @@ function AdminScreen({
   const [selectedSeatSlot, setSelectedSeatSlot] = useState<TableSlot>(0);
   const [onionCharacterId, setOnionCharacterId] = useState<AdminSubjectId | ''>('');
   const selectedCustomer = getAdminSubjectCustomer(selectedCharacterId, characterSettings);
+  const selectedSubjectIsParty = isAdminPartyId(selectedCharacterId);
   const selectedPrimaryCharacterId = getCustomerPrimaryCharacterId(selectedCustomer) ?? 'shadow';
   const selectedCharacter = getEditableCharacterProfile(
     selectedPrimaryCharacterId,
@@ -8258,28 +9037,43 @@ function AdminScreen({
   );
   const selectedLayout = normalizeAdminLayout(layouts[selectedCharacterId], selectedCharacterId);
   const selectedTalkingLayout = selectedLayout.talking;
+  const selectedSubjectEnabled = selectedSubjectIsParty
+    ? selectedLayout.enabled
+    : selectedSettings.enabled;
   const talkingPoses = useMemo<CharacterPose[]>(() => {
-    const basePoses = getCharacterTalkingPoses(selectedCharacterId);
+    const hiddenSrcs = new Set(selectedTalkingLayout.hiddenImageSrcs);
+    const basePoses = getCharacterTalkingPoses(selectedCharacterId).filter(
+      (pose) => !hiddenSrcs.has(pose.src),
+    );
     const poseSrcs = new Set(basePoses.map((pose) => pose.src));
     const uploadPoses = selectedTalkingLayout.enabledImageSrcs
-      .filter((src) => src && !poseSrcs.has(src))
+      .filter((src) => src && !poseSrcs.has(src) && !hiddenSrcs.has(src))
       .map((src, index) => ({
         id: `${selectedCharacterId}-upload-${index}`,
         label: `Upload ${index + 1}`,
         src,
       }));
     return [...basePoses, ...uploadPoses];
-  }, [selectedCharacterId, selectedTalkingLayout.enabledImageSrcs]);
+  }, [
+    selectedCharacterId,
+    selectedTalkingLayout.enabledImageSrcs,
+    selectedTalkingLayout.hiddenImageSrcs,
+  ]);
   const activeDefaultImage =
     selectedTalkingLayout.defaultImageSrc ||
-    getDefaultTalkingImageSrc(selectedCharacterId) ||
-    getDefaultTalkingImageSrc(selectedPrimaryCharacterId);
+    getVisibleDefaultTalkingImageSrc(selectedCharacterId, selectedTalkingLayout.hiddenImageSrcs) ||
+    getVisibleDefaultTalkingImageSrc(
+      selectedPrimaryCharacterId,
+      selectedTalkingLayout.hiddenImageSrcs,
+    );
   const activeTalkingImage =
     selectedTalkingLayout.imageSrc ||
     selectedTalkingLayout.defaultImageSrc ||
-    getDefaultTalkingImageSrc(selectedCharacterId) ||
-    getDefaultTalkingImageSrc(selectedPrimaryCharacterId);
-  const activeConversationImage = selectedTalkingLayout.imageSrc;
+    getVisibleDefaultTalkingImageSrc(selectedCharacterId, selectedTalkingLayout.hiddenImageSrcs) ||
+    getVisibleDefaultTalkingImageSrc(
+      selectedPrimaryCharacterId,
+      selectedTalkingLayout.hiddenImageSrcs,
+    );
   const selectedPortrait = selectedSettings.portrait;
   const patienceSeconds = Math.round(selectedSettings.patienceMs / 1000);
   const selectedSeatSpots = getAdminSeatSpots(seatSpotLayouts, selectedCharacterId);
@@ -8299,7 +9093,11 @@ function AdminScreen({
       : null;
   const onionTalkingImage =
     activeOnionCharacterId != null && onionLayout
-      ? onionLayout.talking.defaultImageSrc || getDefaultTalkingImageSrc(activeOnionCharacterId)
+      ? onionLayout.talking.defaultImageSrc ||
+        getVisibleDefaultTalkingImageSrc(
+          activeOnionCharacterId,
+          onionLayout.talking.hiddenImageSrcs,
+        )
       : '';
   const adminAssets = useMemo<AdminAssetItem[]>(() => {
     const storeAssets = ADMIN_SUBJECT_IDS.map<AdminAssetItem>((subjectId) => {
@@ -8313,8 +9111,11 @@ function AdminScreen({
         detail: customer.members.length > 1 ? 'Party image' : 'Default store image',
         src:
           layout.talking.defaultImageSrc ||
-          getDefaultTalkingImageSrc(subjectId) ||
-          getDefaultTalkingImageSrc(getCustomerPrimaryCharacterId(customer) ?? undefined),
+          getVisibleDefaultTalkingImageSrc(subjectId, layout.talking.hiddenImageSrcs) ||
+          getVisibleDefaultTalkingImageSrc(
+            getCustomerPrimaryCharacterId(customer) ?? undefined,
+            layout.talking.hiddenImageSrcs,
+          ),
         subjectId,
       };
     });
@@ -8349,7 +9150,7 @@ function AdminScreen({
         label: 'Shop background',
         owner: 'Store',
         detail: 'Background image',
-        src: '/cat/shop-empty.png',
+        src: '/cat/shop-empty-tall.png',
       },
     ];
 
@@ -8373,7 +9174,8 @@ function AdminScreen({
     null;
   const selectedChatEntry =
     selectedChatGroup?.entries.find((entry) => entry.id === selectedChatEntryId) ?? null;
-  const previewChatGroups = adminChats[selectedCharacterId] ?? getDefaultAdminChatsForSubject(selectedCharacterId);
+  const previewChatGroups =
+    adminChats[selectedCharacterId] ?? getDefaultAdminChatsForSubject(selectedCharacterId);
   const fallbackPreviewChatEntry =
     previewChatGroups.flatMap((group) => group.entries).find((entry) => entry.kind === 'story') ??
     previewChatGroups.flatMap((group) => group.entries)[0] ??
@@ -8399,11 +9201,14 @@ function AdminScreen({
     const chatLayout = normalizeAdminLayout(layouts[selectedChatSubjectId], selectedChatSubjectId);
     const chatCustomer = getAdminSubjectCustomer(selectedChatSubjectId, characterSettings);
     const primaryCharacterId = getCustomerPrimaryCharacterId(chatCustomer);
+    const hiddenSrcs = new Set(chatLayout.talking.hiddenImageSrcs);
     const srcOptions = [
-      ...getCharacterTalkingPoses(selectedChatSubjectId).map((pose) => ({
-        label: pose.label,
-        src: pose.src,
-      })),
+      ...getCharacterTalkingPoses(selectedChatSubjectId)
+        .filter((pose) => !hiddenSrcs.has(pose.src))
+        .map((pose) => ({
+          label: pose.label,
+          src: pose.src,
+        })),
       {
         label: 'Conversation',
         src: chatLayout.talking.imageSrc,
@@ -8412,24 +9217,79 @@ function AdminScreen({
         label: 'Default',
         src: chatLayout.talking.defaultImageSrc,
       },
-      ...chatLayout.talking.enabledImageSrcs.map((src, index) => ({
-        label: `Saved ${index + 1}`,
-        src,
-      })),
+      ...chatLayout.talking.enabledImageSrcs
+        .filter((src) => !hiddenSrcs.has(src))
+        .map((src, index) => ({
+          label: `Saved ${index + 1}`,
+          src,
+        })),
       {
         label: 'Built-in default',
         src:
-          getDefaultTalkingImageSrc(selectedChatSubjectId) ||
-          getDefaultTalkingImageSrc(primaryCharacterId ?? undefined),
+          getVisibleDefaultTalkingImageSrc(
+            selectedChatSubjectId,
+            chatLayout.talking.hiddenImageSrcs,
+          ) ||
+          getVisibleDefaultTalkingImageSrc(
+            primaryCharacterId ?? undefined,
+            chatLayout.talking.hiddenImageSrcs,
+          ),
       },
     ];
     const seen = new Set<string>();
     return srcOptions.filter((option) => {
-      if (!option.src || seen.has(option.src)) return false;
+      if (!option.src || seen.has(option.src) || hiddenSrcs.has(option.src)) return false;
       seen.add(option.src);
       return true;
     });
   }, [characterSettings, layouts, selectedChatSubjectId]);
+  const selectedCharacterImageOptions = useMemo(() => {
+    const hiddenSrcs = new Set(selectedTalkingLayout.hiddenImageSrcs);
+    const builtInPoses = getCharacterTalkingPoses(selectedCharacterId)
+      .filter((pose) => !hiddenSrcs.has(pose.src))
+      .map((pose) => ({
+        label: pose.label,
+        src: pose.src,
+        source: 'Built-in',
+        canDelete: true,
+      }));
+    const uploadedPoses = selectedTalkingLayout.enabledImageSrcs
+      .filter((src) => !hiddenSrcs.has(src))
+      .map((src, index) => ({
+        label: `Upload ${index + 1}`,
+        src,
+        source: 'Upload',
+        canDelete: true,
+      }));
+    const currentPoses = [
+      {
+        label: 'Default sitting',
+        src: selectedTalkingLayout.defaultImageSrc,
+        source: 'Selected',
+        canDelete: true,
+      },
+      {
+        label: 'Default chat',
+        src: selectedTalkingLayout.imageSrc,
+        source: 'Selected',
+        canDelete: true,
+      },
+      ...builtInPoses,
+      ...uploadedPoses,
+    ];
+    const seen = new Set<string>();
+    return currentPoses.filter((pose) => {
+      if (!pose.src || seen.has(pose.src) || hiddenSrcs.has(pose.src)) return false;
+      seen.add(pose.src);
+      return true;
+    });
+  }, [
+    selectedCharacterId,
+    selectedTalkingLayout.defaultImageSrc,
+    selectedTalkingLayout.enabledImageSrcs,
+    selectedTalkingLayout.hiddenImageSrcs,
+    selectedTalkingLayout.imageSrc,
+  ]);
   const storyTriggerOptions = ADMIN_SUBJECT_IDS.flatMap((subjectId) => {
     const customer = getAdminSubjectCustomer(subjectId, characterSettings);
     const groups = adminChats[subjectId] ?? getDefaultAdminChatsForSubject(subjectId);
@@ -8442,6 +9302,19 @@ function AdminScreen({
         })),
     );
   });
+  function getChatKindCounts(subjectId: AdminSubjectId): Record<AdminChatKind, number> {
+    const groups = adminChats[subjectId] ?? getDefaultAdminChatsForSubject(subjectId);
+    return groups
+      .flatMap((group) => group.entries)
+      .reduce<Record<AdminChatKind, number>>(
+        (counts, entry) => ({
+          ...counts,
+          [entry.kind]: counts[entry.kind] + 1,
+        }),
+        { story: 0, comment: 0, leave: 0, order: 0 },
+      );
+  }
+  const selectedChatCounts = getChatKindCounts(selectedCharacterId);
   const sidePanelAriaLabel =
     sidePanelMode === 'characters'
       ? 'Character gallery'
@@ -8453,9 +9326,9 @@ function AdminScreen({
             ? 'Chat menu editor'
             : sidePanelMode === 'cat'
               ? 'Cat editor'
-          : sidePanelMode === 'opening'
-            ? 'Opening editor'
-          : 'Inspector';
+              : sidePanelMode === 'opening'
+                ? 'Opening editor'
+                : 'Inspector';
   const sidePanelEyebrow =
     sidePanelMode === 'characters'
       ? 'Roster'
@@ -8467,9 +9340,9 @@ function AdminScreen({
             ? 'Chat Menu'
             : sidePanelMode === 'cat'
               ? 'Cat'
-          : sidePanelMode === 'opening'
-            ? 'Opening'
-          : 'Properties';
+              : sidePanelMode === 'opening'
+                ? 'Opening'
+                : 'Properties';
   const sidePanelTitle =
     sidePanelMode === 'characters'
       ? 'Characters'
@@ -8481,13 +9354,19 @@ function AdminScreen({
             ? 'Action Wheel'
             : sidePanelMode === 'cat'
               ? 'Cat Images'
-          : sidePanelMode === 'opening'
-            ? 'Opening'
-          : 'Inspector';
+              : sidePanelMode === 'opening'
+                ? 'Opening'
+                : 'Inspector';
 
   useEffect(() => {
     if (onionCharacterId === selectedCharacterId) setOnionCharacterId('');
   }, [onionCharacterId, selectedCharacterId]);
+
+  useEffect(() => {
+    if (selectedSubjectIsParty && characterDetailTab === 'portrait') {
+      setCharacterDetailTab('settings');
+    }
+  }, [characterDetailTab, selectedSubjectIsParty]);
 
   useEffect(() => {
     if (sidePanelMode !== 'assets') return;
@@ -8639,6 +9518,27 @@ function AdminScreen({
     });
   }
 
+  async function saveUploadedImageToRepo(file: File, imageSrc: string): Promise<string> {
+    if (!import.meta.env.DEV) return imageSrc;
+
+    try {
+      const response = await fetch('/__admin/save-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataUrl: imageSrc,
+          filename: file.name,
+          folder: selectedCharacterId,
+        }),
+      });
+      if (!response.ok) return imageSrc;
+      const parsed = (await response.json()) as { src?: unknown };
+      return typeof parsed.src === 'string' && parsed.src ? parsed.src : imageSrc;
+    } catch {
+      return imageSrc;
+    }
+  }
+
   function readUploadedImages(
     event: ChangeEvent<HTMLInputElement>,
     onImages: (imageSrcs: string[]) => void,
@@ -8650,11 +9550,11 @@ function AdminScreen({
     void Promise.all(
       files.map(
         (file) =>
-          new Promise<string>((resolve, reject) => {
+          new Promise<{ file: File; imageSrc: string }>((resolve, reject) => {
             const reader = new FileReader();
             reader.addEventListener('load', () => {
               if (typeof reader.result === 'string') {
-                resolve(reader.result);
+                resolve({ file, imageSrc: reader.result });
               } else {
                 reject(new Error('Image did not load.'));
               }
@@ -8664,8 +9564,10 @@ function AdminScreen({
           }),
       ),
     ).then(
-      (imageSrcs) => {
-        onImages(imageSrcs);
+      (uploads) => {
+        void Promise.all(
+          uploads.map((upload) => saveUploadedImageToRepo(upload.file, upload.imageSrc)),
+        ).then((imageSrcs) => onImages(imageSrcs));
         input.value = '';
       },
       () => {
@@ -8887,7 +9789,8 @@ function AdminScreen({
         setChatEditorMode('list');
         setChatToolMode('chats');
       }
-      const skipped = result.skippedSheets.length > 0 ? ` Skipped: ${result.skippedSheets.join(', ')}.` : '';
+      const skipped =
+        result.skippedSheets.length > 0 ? ` Skipped: ${result.skippedSheets.join(', ')}.` : '';
       setChatImportMessage(
         `Imported ${result.importedEntries} chats from ${result.importedSheets.length} sheets.${skipped}`,
       );
@@ -9063,11 +9966,7 @@ function AdminScreen({
     });
   }
 
-  function updateOpeningBeatImage(
-    beatId: string,
-    actor: 'lila' | 'grace',
-    imageId: string,
-  ) {
+  function updateOpeningBeatImage(beatId: string, actor: 'lila' | 'grace', imageId: string) {
     updateOpeningBeat(
       beatId,
       actor === 'lila' ? { lilaImageId: imageId } : { graceImageId: imageId },
@@ -9142,11 +10041,7 @@ function AdminScreen({
           <small>{hint}</small>
         </div>
         <div className="admin-chat-image-choice-grid">
-          <button
-            className={!value ? 'active' : ''}
-            type="button"
-            onClick={() => onSelect('')}
-          >
+          <button className={!value ? 'active' : ''} type="button" onClick={() => onSelect('')}>
             <span className="admin-chat-image-empty">{emptyLabel}</span>
           </button>
           {selectedChatImageOptions.map((option) => (
@@ -9249,9 +10144,7 @@ function AdminScreen({
     });
   }
 
-  function getChatMenuEditorPosition(
-    event: ReactPointerEvent<HTMLElement>,
-  ): AdminPosition | null {
+  function getChatMenuEditorPosition(event: ReactPointerEvent<HTMLElement>): AdminPosition | null {
     const editor = chatMenuEditorRef.current;
     if (!editor) return null;
     const rect = editor.getBoundingClientRect();
@@ -9262,8 +10155,34 @@ function AdminScreen({
     };
   }
 
+  function getChatMenuPreviewPosition(event: ReactPointerEvent<HTMLElement>): AdminPosition | null {
+    const preview = chatMenuPreviewRef.current;
+    if (!preview) return null;
+    const rect = preview.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    return {
+      x: clamp(((event.clientX - rect.left) / rect.width) * 100, 0, 100),
+      y: clamp(((event.clientY - rect.top) / rect.height) * 100, 0, 100),
+    };
+  }
+
+  function beginChatMenuWheelDrag(event: ReactPointerEvent<HTMLElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const pointerPosition = getChatMenuPreviewPosition(event);
+    if (!pointerPosition) return;
+    const currentPosition = adminChatMenuSettings.position;
+    dragChatMenuWheelRef.current = true;
+    dragChatMenuActionRef.current = null;
+    dragChatMenuWheelOffsetRef.current = {
+      x: pointerPosition.x - currentPosition.x,
+      y: pointerPosition.y - currentPosition.y,
+    };
+  }
+
   function beginChatMenuDrag(actionId: CatActionId, event: ReactPointerEvent<HTMLElement>) {
     event.preventDefault();
+    event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     const pointerPosition = getChatMenuEditorPosition(event);
     if (!pointerPosition) return;
@@ -9276,6 +10195,19 @@ function AdminScreen({
   }
 
   function moveChatMenuDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (dragChatMenuWheelRef.current) {
+      const pointerPosition = getChatMenuPreviewPosition(event);
+      if (!pointerPosition) return;
+      const offset = dragChatMenuWheelOffsetRef.current;
+      updateChatMenuPatch({
+        position: {
+          x: clamp(pointerPosition.x - offset.x, 10, 90),
+          y: clamp(pointerPosition.y - offset.y, 10, 90),
+        },
+      });
+      return;
+    }
+
     const actionId = dragChatMenuActionRef.current;
     if (!actionId) return;
     const pointerPosition = getChatMenuEditorPosition(event);
@@ -9292,6 +10224,19 @@ function AdminScreen({
   function stopChatMenuDrag() {
     dragChatMenuActionRef.current = null;
     dragChatMenuOffsetRef.current = { x: 0, y: 0 };
+    dragChatMenuWheelRef.current = false;
+    dragChatMenuWheelOffsetRef.current = { x: 0, y: 0 };
+  }
+
+  function chatMenuWheelStyle(settings: AdminChatMenuSettings): CSSProperties {
+    return {
+      '--chat-menu-scale': settings.scale / 100,
+      left: `${settings.position.x}%`,
+      top: `${settings.position.y}%`,
+      right: 'auto',
+      bottom: 'auto',
+      transform: 'translate(-50%, -50%) scale(var(--chat-menu-scale, 1))',
+    } as CSSProperties;
   }
 
   function chatMenuActionStyle(actionId: CatActionId): CSSProperties {
@@ -9342,6 +10287,19 @@ function AdminScreen({
     setMobilePreview(false);
   }
 
+  function openStoreChatEditor() {
+    setSidePanelMode('inspector');
+    setSidePanelCollapsed(false);
+    setMobilePreview(false);
+    if (previewMode === 'settings') setPreviewMode('shop');
+  }
+
+  function openCharacterManager() {
+    setCharacterManagerView('list');
+    setCharacterDetailTab('settings');
+    openSidePanel('characters');
+  }
+
   function toggleMobilePreview() {
     const nextMobilePreview = !mobilePreview;
     setMobilePreview(nextMobilePreview);
@@ -9352,61 +10310,57 @@ function AdminScreen({
   }
 
   const openingMode = sidePanelMode === 'opening';
+  const charactersMode = sidePanelMode === 'characters';
+  const fullWorkbenchMode =
+    openingMode || charactersMode || sidePanelMode === 'chatMenu' || sidePanelMode === 'cat';
+
+  function selectCharacterForDetail(characterId: AdminSubjectId) {
+    onSelectCharacter(characterId);
+    setCharacterManagerView('detail');
+    setCharacterDetailTab('settings');
+  }
 
   return (
     <main
       className={`admin-screen admin-side-${sidePanelMode} ${
         sidePanelCollapsed ? 'admin-panel-collapsed' : ''
-      } ${mobilePreview ? 'admin-mobile-preview' : ''} ${openingMode ? 'admin-opening-mode' : ''}`}
+      } ${mobilePreview ? 'admin-mobile-preview' : ''} ${
+        openingMode ? 'admin-opening-mode' : ''
+      } ${charactersMode ? 'admin-character-browser-mode' : ''} ${
+        fullWorkbenchMode ? 'admin-full-workbench-mode' : ''
+      }`}
     >
       <header className="admin-editor-topbar">
         <div className="admin-topbar-brand">
           <button className="admin-menu-button" type="button" aria-label="Admin menu">
             <MenuIcon />
           </button>
-          <h1>{selectedCustomer.name}</h1>
+          <h1>
+            {charactersMode
+              ? 'Characters'
+              : sidePanelMode === 'chatMenu'
+                ? 'Chat Menu'
+                : sidePanelMode === 'cat'
+                  ? 'Cat'
+                  : sidePanelMode === 'opening'
+                    ? 'Opening'
+                    : selectedCustomer.name}
+          </h1>
         </div>
         <div className="admin-topbar-tabs" aria-label="Admin preview mode" role="tablist">
           <button
-            aria-selected={previewMode === 'shop'}
-            className={previewMode === 'shop' ? 'active' : ''}
-            onClick={() => {
-              setPreviewMode('shop');
-              setSidePanelMode('inspector');
-            }}
+            aria-selected={sidePanelMode === 'inspector'}
+            className={sidePanelMode === 'inspector' ? 'active' : ''}
+            onClick={openStoreChatEditor}
             role="tab"
             type="button"
           >
-            Store
-          </button>
-          <button
-            aria-selected={previewMode === 'talking'}
-            className={previewMode === 'talking' ? 'active' : ''}
-            onClick={() => {
-              setPreviewMode('talking');
-              setSidePanelMode('inspector');
-            }}
-            role="tab"
-            type="button"
-          >
-            Conversation
-          </button>
-          <button
-            aria-selected={previewMode === 'settings'}
-            className={previewMode === 'settings' ? 'active' : ''}
-            onClick={() => {
-              setPreviewMode('settings');
-              setSidePanelMode('inspector');
-            }}
-            role="tab"
-            type="button"
-          >
-            Character
+            Store / Chat
           </button>
         </div>
         <div className="admin-toolbar-actions admin-topbar-actions">
           {saveMessage ? <span className="admin-save-message">{saveMessage}</span> : null}
-          {previewMode === 'talking' ? (
+          {sidePanelMode === 'inspector' && previewMode === 'talking' ? (
             <button
               className="paper-button"
               type="button"
@@ -9424,13 +10378,15 @@ function AdminScreen({
           </button>
           {!openingMode ? (
             <>
-              <button
-                className="paper-button"
-                type="button"
-                onClick={() => setSidePanelCollapsed((collapsed) => !collapsed)}
-              >
-                {sidePanelCollapsed ? 'Show Inspector' : 'Hide Inspector'}
-              </button>
+              {!fullWorkbenchMode ? (
+                <button
+                  className="paper-button"
+                  type="button"
+                  onClick={() => setSidePanelCollapsed((collapsed) => !collapsed)}
+                >
+                  {sidePanelCollapsed ? 'Show Inspector' : 'Hide Inspector'}
+                </button>
+              ) : null}
               <button
                 className="paper-button"
                 type="button"
@@ -9453,7 +10409,7 @@ function AdminScreen({
         <button
           className={sidePanelMode === 'characters' ? 'active' : ''}
           type="button"
-          onClick={() => openSidePanel('characters')}
+          onClick={openCharacterManager}
         >
           <span>Characters</span>
         </button>
@@ -9502,37 +10458,507 @@ function AdminScreen({
       </nav>
 
       <section className="admin-workbench" aria-label="Admin character layout editor">
-        <div className="admin-view-tabs" aria-label="Admin preview mode" role="tablist">
-          <button
-            aria-selected={previewMode === 'shop'}
-            className={previewMode === 'shop' ? 'active' : ''}
-            onClick={() => setPreviewMode('shop')}
-            role="tab"
-            type="button"
-          >
-            Store View
-          </button>
-          <button
-            aria-selected={previewMode === 'talking'}
-            className={previewMode === 'talking' ? 'active' : ''}
-            onClick={() => setPreviewMode('talking')}
-            role="tab"
-            type="button"
-          >
-            Talking View
-          </button>
-          <button
-            aria-selected={previewMode === 'settings'}
-            className={previewMode === 'settings' ? 'active' : ''}
-            onClick={() => setPreviewMode('settings')}
-            role="tab"
-            type="button"
-          >
-            Character Settings
-          </button>
-        </div>
+        {sidePanelMode === 'inspector' && !charactersMode ? (
+          <div className="admin-view-tabs" aria-label="Admin preview mode" role="tablist">
+            <button
+              aria-selected={previewMode === 'shop'}
+              className={previewMode === 'shop' ? 'active' : ''}
+              onClick={() => setPreviewMode('shop')}
+              role="tab"
+              type="button"
+            >
+              Store
+            </button>
+            <button
+              aria-selected={previewMode === 'talking'}
+              className={previewMode === 'talking' ? 'active' : ''}
+              onClick={() => setPreviewMode('talking')}
+              role="tab"
+              type="button"
+            >
+              Conversation
+            </button>
+          </div>
+        ) : null}
 
-        {sidePanelMode === 'opening' ? (
+        {charactersMode ? (
+          <div className="admin-character-board" aria-label="Character manager">
+            {characterManagerView === 'list' ? (
+              <>
+                <header className="admin-board-header">
+                  <div>
+                    <p className="eyebrow">Characters</p>
+                    <h2>Character Manager</h2>
+                  </div>
+                  <span>
+                    {ADMIN_CHARACTER_IDS.length} people, {ADMIN_PARTY_IDS.length} parties
+                  </span>
+                </header>
+                <div className="admin-character-grid">
+                  {ADMIN_SUBJECT_IDS.map((characterId) => {
+                    const customer = getAdminSubjectCustomer(characterId, characterSettings);
+                    const primaryCharacterId =
+                      getCustomerPrimaryCharacterId(customer) ?? 'shadow';
+                    const settings = normalizeCharacterAdminSettings(
+                      primaryCharacterId,
+                      characterSettings[primaryCharacterId],
+                    );
+                    const subjectLayout = normalizeAdminLayout(layouts[characterId], characterId);
+                    const counts = getChatKindCounts(characterId);
+                    const enabled = isCustomerEnabled(customer, characterSettings, layouts);
+                    const subjectImageSrc =
+                      subjectLayout.talking.defaultImageSrc ||
+                      subjectLayout.talking.imageSrc ||
+                      getVisibleDefaultTalkingImageSrc(
+                        characterId,
+                        subjectLayout.talking.hiddenImageSrcs,
+                      ) ||
+                      getVisibleDefaultTalkingImageSrc(
+                        primaryCharacterId,
+                        subjectLayout.talking.hiddenImageSrcs,
+                      );
+                    const party = isAdminPartyId(characterId);
+
+                    return (
+                      <article
+                        className={`admin-character-card ${
+                          selectedCharacterId === characterId ? 'active' : ''
+                        } ${enabled ? '' : 'disabled'}`}
+                        key={characterId}
+                      >
+                        <button
+                          className="admin-character-card-main"
+                          type="button"
+                          onClick={() => selectCharacterForDetail(characterId)}
+                        >
+                          <span className="admin-gallery-avatar" aria-hidden="true">
+                            {party && subjectImageSrc ? (
+                              <img
+                                alt=""
+                                className="admin-portrait-image"
+                                draggable={false}
+                                src={subjectImageSrc}
+                              />
+                            ) : settings.portrait.imageSrc ? (
+                              <img
+                                alt=""
+                                className="admin-portrait-image"
+                                draggable={false}
+                                src={settings.portrait.imageSrc}
+                                style={portraitImageStyle(settings.portrait)}
+                              />
+                            ) : (
+                              <AnimalAvatar customer={customer} size="small" />
+                            )}
+                          </span>
+                          <span>
+                            <strong>{customer.name}</strong>
+                            <small>{party ? 'Party' : TIP_STYLE_LABELS[settings.tipStyle]}</small>
+                          </span>
+                        </button>
+                        <span
+                          className={`admin-status-pill ${enabled ? 'enabled' : 'disabled'}`}
+                        >
+                          {enabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                        <div className="admin-character-card-meta">
+                          <span>{counts.comment} comments</span>
+                          <span>{counts.story} stories</span>
+                          <span>{Math.round(settings.patienceMs / 1000)}s patience</span>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                <header className="admin-character-detail-header">
+                  <button
+                    className="paper-button"
+                    type="button"
+                    onClick={() => setCharacterManagerView('list')}
+                  >
+                    Back to Characters
+                  </button>
+                  <div>
+                    <p className="eyebrow">
+                      {selectedSubjectIsParty ? 'Party Settings' : 'Character Settings'}
+                    </p>
+                    <h2>{selectedCustomer.name}</h2>
+                  </div>
+                  <span
+                    className={`admin-status-pill ${selectedSubjectEnabled ? 'enabled' : 'disabled'}`}
+                  >
+                    {selectedSubjectEnabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                </header>
+                <div className="admin-character-detail">
+                  <div
+                    className="admin-character-tabs"
+                    role="tablist"
+                    aria-label={`${selectedCustomer.name} settings sections`}
+                  >
+                    {(
+                      selectedSubjectIsParty
+                        ? (['settings', 'uploads'] as AdminCharacterDetailTab[])
+                        : (['settings', 'uploads', 'portrait'] as AdminCharacterDetailTab[])
+                    ).map((tab) => (
+                        <button
+                          aria-selected={characterDetailTab === tab}
+                          className={characterDetailTab === tab ? 'active' : ''}
+                          key={tab}
+                          onClick={() => setCharacterDetailTab(tab)}
+                          role="tab"
+                          type="button"
+                        >
+                          {tab === 'settings'
+                            ? 'Settings'
+                            : tab === 'uploads'
+                              ? 'Uploads'
+                              : 'Portrait'}
+                        </button>
+                      ))}
+                  </div>
+
+                  {characterDetailTab === 'settings' ? (
+                    <section className="admin-character-detail-body">
+                      <div className="admin-character-count-grid" aria-label="Chat counts">
+                        <span>
+                          <strong>{selectedChatCounts.comment}</strong>
+                          Comments
+                        </span>
+                        <span>
+                          <strong>{selectedChatCounts.story}</strong>
+                          Stories
+                        </span>
+                        <span>
+                          <strong>{selectedChatCounts.leave}</strong>
+                          Leave
+                        </span>
+                        <span>
+                          <strong>{selectedChatCounts.order}</strong>
+                          Order
+                        </span>
+                      </div>
+                      <div className="admin-character-settings-grid">
+                        <label className="admin-toggle-row">
+                          <span>{selectedSubjectIsParty ? 'Use full party' : 'Use in game'}</span>
+                          <input
+                            checked={selectedSubjectEnabled}
+                            type="checkbox"
+                            onChange={(event) =>
+                              onSubjectEnabledChange(
+                                selectedCharacterId,
+                                event.currentTarget.checked,
+                              )
+                            }
+                          />
+                        </label>
+                        {selectedSubjectIsParty ? (
+                          <div className="admin-selected-status enabled">
+                            <span>Party entry</span>
+                            <small>Tips and patience still come from the individual members.</small>
+                          </div>
+                        ) : (
+                          <>
+                            <label>
+                              <span>Tip style</span>
+                              <select
+                                value={selectedSettings.tipStyle}
+                                onChange={(event) =>
+                                  updateSettings({
+                                    tipStyle: tipStyleValue(
+                                      event.target.value,
+                                      selectedSettings.tipStyle,
+                                    ),
+                                  })
+                                }
+                              >
+                                {(['poor', 'steady', 'good', 'high'] as const).map((style) => (
+                                  <option key={style} value={style}>
+                                    {TIP_STYLE_LABELS[style]}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label>
+                              <span>Base tip</span>
+                              <input
+                                min={0}
+                                max={999}
+                                type="number"
+                                value={selectedSettings.tipBase}
+                                onChange={(event) =>
+                                  updateSettings({ tipBase: Number(event.target.value) })
+                                }
+                              />
+                            </label>
+                            <label>
+                              <span>Patience</span>
+                              <input
+                                min={5}
+                                max={120}
+                                type="number"
+                                value={patienceSeconds}
+                                onChange={(event) =>
+                                  updateSettings({
+                                    patienceMs: Math.round(Number(event.target.value) * 1000),
+                                  })
+                                }
+                              />
+                              <small>seconds</small>
+                            </label>
+                          </>
+                        )}
+                      </div>
+                      <section className="admin-character-picture-section">
+                        <div className="admin-field-row">
+                          <span>Default chat picture</span>
+                          <small>Used when this character is in conversation.</small>
+                        </div>
+                        <div className="admin-picture-grid">
+                          <button
+                            className={!selectedTalkingLayout.imageSrc ? 'active' : ''}
+                            type="button"
+                            onClick={() => onTalkingImageChange(selectedCharacterId, '')}
+                          >
+                            <span className="admin-chat-image-empty">Built-in default</span>
+                            <strong>No override</strong>
+                          </button>
+                          {selectedCharacterImageOptions.map((option) => (
+                            <button
+                              className={
+                                selectedTalkingLayout.imageSrc === option.src ? 'active' : ''
+                              }
+                              key={`chat-${option.src}`}
+                              type="button"
+                              onClick={() =>
+                                onTalkingImageChange(selectedCharacterId, option.src)
+                              }
+                            >
+                              <img alt="" draggable={false} src={option.src} />
+                              <strong>{option.label}</strong>
+                              <small>{option.source}</small>
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                      <section className="admin-character-picture-section">
+                        <div className="admin-field-row">
+                          <span>Default sitting</span>
+                          <small>Used in the store before the cat sits with them.</small>
+                        </div>
+                        <div className="admin-picture-grid">
+                          <button
+                            className={!selectedTalkingLayout.defaultImageSrc ? 'active' : ''}
+                            type="button"
+                            onClick={() =>
+                              onTalkingDefaultImageChange(selectedCharacterId, '')
+                            }
+                          >
+                            <span className="admin-chat-image-empty">Built-in default</span>
+                            <strong>No override</strong>
+                          </button>
+                          {selectedCharacterImageOptions.map((option) => (
+                            <button
+                              className={
+                                selectedTalkingLayout.defaultImageSrc === option.src ? 'active' : ''
+                              }
+                              key={`sitting-${option.src}`}
+                              type="button"
+                              onClick={() =>
+                                onTalkingDefaultImageChange(
+                                  selectedCharacterId,
+                                  option.src,
+                                )
+                              }
+                            >
+                              <img alt="" draggable={false} src={option.src} />
+                              <strong>{option.label}</strong>
+                              <small>{option.source}</small>
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                    </section>
+                  ) : null}
+
+                  {characterDetailTab === 'uploads' ? (
+                    <section className="admin-character-detail-body">
+                      <label className="admin-upload-line admin-character-upload-panel">
+                        <span>Character pictures</span>
+                        <strong>Upload Images</strong>
+                        <input
+                          accept="image/*"
+                          multiple
+                          type="file"
+                          onChange={(event) =>
+                            readUploadedImages(event, (imageSrcs) =>
+                              onTalkingImagesAdd(selectedCharacterId, imageSrcs),
+                            )
+                          }
+                        />
+                      </label>
+                      <div className="admin-picture-grid">
+                        {selectedCharacterImageOptions.map((option) => (
+                          <article className="admin-picture-card" key={`upload-${option.src}`}>
+                            <img alt="" draggable={false} src={option.src} />
+                            <strong>{option.label}</strong>
+                            <small>{option.source}</small>
+                            <div className="admin-picture-actions">
+                              <button
+                                className={
+                                  selectedTalkingLayout.imageSrc === option.src ? 'active' : ''
+                                }
+                                type="button"
+                                onClick={() =>
+                                  onTalkingImageChange(selectedCharacterId, option.src)
+                                }
+                              >
+                                Chat
+                              </button>
+                              <button
+                                className={
+                                  selectedTalkingLayout.defaultImageSrc === option.src
+                                    ? 'active'
+                                    : ''
+                                }
+                                type="button"
+                                onClick={() =>
+                                  onTalkingDefaultImageChange(
+                                    selectedCharacterId,
+                                    option.src,
+                                  )
+                                }
+                              >
+                                Sitting
+                              </button>
+                              {option.canDelete ? (
+                                <button
+                                  className="danger"
+                                  type="button"
+                                  onClick={() => onTalkingImageDelete(selectedCharacterId, option.src)}
+                                >
+                                  Delete
+                                </button>
+                              ) : null}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                      {selectedCharacterImageOptions.length === 0 ? (
+                        <p className="admin-muted-copy">No pictures uploaded for this character yet.</p>
+                      ) : null}
+                    </section>
+                  ) : null}
+
+                  {characterDetailTab === 'portrait' ? (
+                    <section className="admin-character-detail-body admin-character-portrait-body">
+                      <div className="admin-portrait-detail-preview">
+                        <div className="admin-portrait-preview-frame">
+                          {selectedPortrait.imageSrc ? (
+                            <img
+                              alt=""
+                              className="admin-portrait-image"
+                              draggable={false}
+                              src={selectedPortrait.imageSrc}
+                              style={portraitImageStyle(selectedPortrait)}
+                            />
+                          ) : (
+                            <AnimalAvatar
+                              customer={characterPreviewCustomer(selectedCharacter)}
+                              size="portrait"
+                            />
+                          )}
+                        </div>
+                        <label className="admin-upload-line">
+                          <span>Portrait image</span>
+                          <strong>Upload Portrait</strong>
+                          <input
+                            accept="image/*"
+                            type="file"
+                            onChange={(event) =>
+                              readUploadedImage(event, (imageSrc) =>
+                                updatePortrait({ imageSrc, scale: 100, x: 50, y: 50 }),
+                              )
+                            }
+                          />
+                        </label>
+                      </div>
+                      <div className="admin-picture-grid">
+                        {selectedCharacterImageOptions.map((option) => (
+                          <button
+                            className={selectedPortrait.imageSrc === option.src ? 'active' : ''}
+                            key={`portrait-${option.src}`}
+                            type="button"
+                            onClick={() => updatePortrait({ imageSrc: option.src })}
+                          >
+                            <img alt="" draggable={false} src={option.src} />
+                            <strong>{option.label}</strong>
+                            <small>{option.source}</small>
+                          </button>
+                        ))}
+                      </div>
+                      {selectedPortrait.imageSrc ? (
+                        <div className="admin-character-settings-grid">
+                          <label>
+                            <span>Portrait zoom</span>
+                            <input
+                              min={50}
+                              max={250}
+                              type="range"
+                              value={selectedPortrait.scale}
+                              onInput={(event) =>
+                                updatePortrait({ scale: Number(event.currentTarget.value) })
+                              }
+                              onChange={(event) =>
+                                updatePortrait({ scale: Number(event.target.value) })
+                              }
+                            />
+                            <small>{selectedPortrait.scale}%</small>
+                          </label>
+                          <label>
+                            <span>View X</span>
+                            <input
+                              min={0}
+                              max={100}
+                              type="range"
+                              value={selectedPortrait.x}
+                              onInput={(event) =>
+                                updatePortrait({ x: Number(event.currentTarget.value) })
+                              }
+                              onChange={(event) =>
+                                updatePortrait({ x: Number(event.target.value) })
+                              }
+                            />
+                            <small>{selectedPortrait.x}%</small>
+                          </label>
+                          <label>
+                            <span>View Y</span>
+                            <input
+                              min={0}
+                              max={100}
+                              type="range"
+                              value={selectedPortrait.y}
+                              onInput={(event) =>
+                                updatePortrait({ y: Number(event.currentTarget.value) })
+                              }
+                              onChange={(event) =>
+                                updatePortrait({ y: Number(event.target.value) })
+                              }
+                            />
+                            <small>{selectedPortrait.y}%</small>
+                          </label>
+                        </div>
+                      ) : null}
+                    </section>
+                  ) : null}
+                </div>
+              </>
+            )}
+          </div>
+        ) : sidePanelMode === 'opening' ? (
           <div className="admin-opening-board" aria-label="Opening editor">
             <header className="admin-board-header">
               <div>
@@ -9574,253 +11000,250 @@ function AdminScreen({
             </div>
             {openingTab === 'settings' ? (
               <section className="admin-opening-layout">
-              <div className="admin-opening-fields">
-                <label>
-                  <span>Building name</span>
-                  <input
-                    type="text"
-                    value={openingSettings.locationName}
-                    onChange={(event) =>
-                      updateOpeningSettings({ locationName: event.currentTarget.value })
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Location line</span>
-                  <input
-                    type="text"
-                    value={openingSettings.locationDetail}
-                    onChange={(event) =>
-                      updateOpeningSettings({ locationDetail: event.currentTarget.value })
-                    }
-                  />
-                </label>
-                <label className="admin-upload-line">
-                  <span>Opening image</span>
-                  <strong>Choose Image</strong>
-                  <input
-                    accept="image/*"
-                    type="file"
-                    onChange={(event) =>
-                      readUploadedImage(event, (imageSrc) =>
-                        updateOpeningSettings({ backgroundSrc: imageSrc }),
-                      )
-                    }
-                  />
-                </label>
-                {safeOpeningSettings.backgroundSrc ? (
-                  <div className="admin-opening-image-preview">
-                    <img alt="" draggable={false} src={safeOpeningSettings.backgroundSrc} />
-                    <span>Opening image loaded</span>
-                  </div>
-                ) : null}
-                <label className="admin-upload-line">
-                  <span>Lila reactions</span>
-                  <strong>Add Lila Image</strong>
-                  <input
-                    accept="image/*"
-                    multiple
-                    type="file"
-                    onChange={(event) =>
-                      readUploadedImages(event, (imageSrcs) =>
-                        addOpeningReactionImages('lila', imageSrcs),
-                      )
-                    }
-                  />
-                </label>
-                {lilaOpeningImages.length > 0 ? (
-                  <div className="admin-opening-reaction-grid" aria-label="Lila reaction images">
-                    {lilaOpeningImages.map((image) => (
-                      <button
-                        className={
-                          safeOpeningSettings.lilaImageSrc === image.src ? 'active' : ''
-                        }
-                        key={image.id}
-                        type="button"
-                        onClick={() => updateOpeningSettings({ lilaImageSrc: image.src })}
-                      >
-                        <img alt="" draggable={false} src={image.src} />
-                        <span>{image.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                <label className="admin-upload-line">
-                  <span>Grace reactions</span>
-                  <strong>Add Grace Image</strong>
-                  <input
-                    accept="image/*"
-                    multiple
-                    type="file"
-                    onChange={(event) =>
-                      readUploadedImages(event, (imageSrcs) =>
-                        addOpeningReactionImages('grace', imageSrcs),
-                      )
-                    }
-                  />
-                </label>
-                {graceOpeningImages.length > 0 ? (
-                  <div className="admin-opening-reaction-grid" aria-label="Grace reaction images">
-                    {graceOpeningImages.map((image) => (
-                      <button
-                        className={
-                          safeOpeningSettings.graceImageSrc === image.src ? 'active' : ''
-                        }
-                        key={image.id}
-                        type="button"
-                        onClick={() => updateOpeningSettings({ graceImageSrc: image.src })}
-                      >
-                        <img alt="" draggable={false} src={image.src} />
-                        <span>{image.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </section>
+                <div className="admin-opening-fields">
+                  <label>
+                    <span>Building name</span>
+                    <input
+                      type="text"
+                      value={openingSettings.locationName}
+                      onChange={(event) =>
+                        updateOpeningSettings({ locationName: event.currentTarget.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>Location line</span>
+                    <input
+                      type="text"
+                      value={openingSettings.locationDetail}
+                      onChange={(event) =>
+                        updateOpeningSettings({ locationDetail: event.currentTarget.value })
+                      }
+                    />
+                  </label>
+                  <label className="admin-upload-line">
+                    <span>Opening image</span>
+                    <strong>Choose Image</strong>
+                    <input
+                      accept="image/*"
+                      type="file"
+                      onChange={(event) =>
+                        readUploadedImage(event, (imageSrc) =>
+                          updateOpeningSettings({ backgroundSrc: imageSrc }),
+                        )
+                      }
+                    />
+                  </label>
+                  {safeOpeningSettings.backgroundSrc ? (
+                    <div className="admin-opening-image-preview">
+                      <img alt="" draggable={false} src={safeOpeningSettings.backgroundSrc} />
+                      <span>Opening image loaded</span>
+                    </div>
+                  ) : null}
+                  <label className="admin-upload-line">
+                    <span>Lila reactions</span>
+                    <strong>Add Lila Image</strong>
+                    <input
+                      accept="image/*"
+                      multiple
+                      type="file"
+                      onChange={(event) =>
+                        readUploadedImages(event, (imageSrcs) =>
+                          addOpeningReactionImages('lila', imageSrcs),
+                        )
+                      }
+                    />
+                  </label>
+                  {lilaOpeningImages.length > 0 ? (
+                    <div className="admin-opening-reaction-grid" aria-label="Lila reaction images">
+                      {lilaOpeningImages.map((image) => (
+                        <button
+                          className={safeOpeningSettings.lilaImageSrc === image.src ? 'active' : ''}
+                          key={image.id}
+                          type="button"
+                          onClick={() => updateOpeningSettings({ lilaImageSrc: image.src })}
+                        >
+                          <img alt="" draggable={false} src={image.src} />
+                          <span>{image.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  <label className="admin-upload-line">
+                    <span>Grace reactions</span>
+                    <strong>Add Grace Image</strong>
+                    <input
+                      accept="image/*"
+                      multiple
+                      type="file"
+                      onChange={(event) =>
+                        readUploadedImages(event, (imageSrcs) =>
+                          addOpeningReactionImages('grace', imageSrcs),
+                        )
+                      }
+                    />
+                  </label>
+                  {graceOpeningImages.length > 0 ? (
+                    <div className="admin-opening-reaction-grid" aria-label="Grace reaction images">
+                      {graceOpeningImages.map((image) => (
+                        <button
+                          className={
+                            safeOpeningSettings.graceImageSrc === image.src ? 'active' : ''
+                          }
+                          key={image.id}
+                          type="button"
+                          onClick={() => updateOpeningSettings({ graceImageSrc: image.src })}
+                        >
+                          <img alt="" draggable={false} src={image.src} />
+                          <span>{image.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </section>
             ) : null}
             {openingTab === 'dialogue' ? (
               <section className="admin-opening-beats" aria-label="Opening dialogue">
-              {openingSettings.beats.map((beat, index) => (
-                <article className="admin-opening-beat" key={beat.id}>
-                  <strong>{index + 1}</strong>
-                  <label>
-                    <span>Speaker</span>
-                    <select
-                      value={beat.actor}
-                      onChange={(event) =>
-                        updateOpeningBeatActor(beat, event.currentTarget.value as OpeningActor)
-                      }
-                    >
-                      <option value="narrator">Narrator</option>
-                      <option value="lila">Lila</option>
-                      <option value="grace">Grace</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Name</span>
-                    <input
-                      type="text"
-                      value={beat.speaker}
-                      onChange={(event) =>
-                        updateOpeningBeat(beat.id, { speaker: event.currentTarget.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span>Side</span>
-                    <select
-                      value={beat.side}
-                      onChange={(event) =>
-                        updateOpeningBeat(beat.id, {
-                          side: event.currentTarget.value as OpeningSide,
-                        })
-                      }
-                    >
-                      <option value="none">None</option>
-                      <option value="left">Left</option>
-                      <option value="right">Right</option>
-                    </select>
-                  </label>
-                  {(['lila', 'grace'] as const).map((sceneActor) => {
-                    const selectedImageId =
-                      sceneActor === 'lila' ? beat.lilaImageId : beat.graceImageId;
-                    const flipped =
-                      sceneActor === 'lila' ? beat.lilaFlipped : beat.graceFlipped;
-                    const actorLabel = sceneActor === 'lila' ? 'Lila' : 'Grace';
-                    const defaultImageSrc = getOpeningDefaultImageSrc(
-                      safeOpeningSettings,
-                      sceneActor,
-                    );
+                {openingSettings.beats.map((beat, index) => (
+                  <article className="admin-opening-beat" key={beat.id}>
+                    <strong>{index + 1}</strong>
+                    <label>
+                      <span>Speaker</span>
+                      <select
+                        value={beat.actor}
+                        onChange={(event) =>
+                          updateOpeningBeatActor(beat, event.currentTarget.value as OpeningActor)
+                        }
+                      >
+                        <option value="narrator">Narrator</option>
+                        <option value="lila">Lila</option>
+                        <option value="grace">Grace</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Name</span>
+                      <input
+                        type="text"
+                        value={beat.speaker}
+                        onChange={(event) =>
+                          updateOpeningBeat(beat.id, { speaker: event.currentTarget.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Side</span>
+                      <select
+                        value={beat.side}
+                        onChange={(event) =>
+                          updateOpeningBeat(beat.id, {
+                            side: event.currentTarget.value as OpeningSide,
+                          })
+                        }
+                      >
+                        <option value="none">None</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+                    {(['lila', 'grace'] as const).map((sceneActor) => {
+                      const selectedImageId =
+                        sceneActor === 'lila' ? beat.lilaImageId : beat.graceImageId;
+                      const flipped = sceneActor === 'lila' ? beat.lilaFlipped : beat.graceFlipped;
+                      const actorLabel = sceneActor === 'lila' ? 'Lila' : 'Grace';
+                      const defaultImageSrc = getOpeningDefaultImageSrc(
+                        safeOpeningSettings,
+                        sceneActor,
+                      );
 
-                    return (
-                      <div className="admin-opening-reaction-picker" key={sceneActor}>
-                        <span>{actorLabel} image</span>
-                        <button
-                          className={`admin-opening-flip-button ${flipped ? 'active' : ''}`}
-                          type="button"
-                          onClick={() =>
-                            updateOpeningBeat(
-                              beat.id,
-                              sceneActor === 'lila'
-                                ? { lilaFlipped: !flipped }
-                                : { graceFlipped: !flipped },
-                            )
-                          }
-                        >
-                          {flipped ? 'Unflip' : 'Flip'}
-                        </button>
-                        <div
-                          className="admin-opening-reaction-options"
-                          aria-label={`${actorLabel} image for beat ${index + 1}`}
-                        >
+                      return (
+                        <div className="admin-opening-reaction-picker" key={sceneActor}>
+                          <span>{actorLabel} image</span>
                           <button
-                            className={selectedImageId === OPENING_IMAGE_NONE ? 'active' : ''}
+                            className={`admin-opening-flip-button ${flipped ? 'active' : ''}`}
                             type="button"
                             onClick={() =>
-                              updateOpeningBeatImage(beat.id, sceneActor, OPENING_IMAGE_NONE)
+                              updateOpeningBeat(
+                                beat.id,
+                                sceneActor === 'lila'
+                                  ? { lilaFlipped: !flipped }
+                                  : { graceFlipped: !flipped },
+                              )
                             }
                           >
-                            <span className="admin-opening-reaction-placeholder">None</span>
-                            <strong>None</strong>
+                            {flipped ? 'Unflip' : 'Flip'}
                           </button>
-                          <button
-                            className={selectedImageId === '' ? 'active' : ''}
-                            type="button"
-                            onClick={() => updateOpeningBeatImage(beat.id, sceneActor, '')}
+                          <div
+                            className="admin-opening-reaction-options"
+                            aria-label={`${actorLabel} image for beat ${index + 1}`}
                           >
-                            {defaultImageSrc ? (
-                              <img alt="" draggable={false} src={defaultImageSrc} />
-                            ) : (
-                              <span className="admin-opening-reaction-placeholder">
-                                {actorLabel}
-                              </span>
+                            <button
+                              className={selectedImageId === OPENING_IMAGE_NONE ? 'active' : ''}
+                              type="button"
+                              onClick={() =>
+                                updateOpeningBeatImage(beat.id, sceneActor, OPENING_IMAGE_NONE)
+                              }
+                            >
+                              <span className="admin-opening-reaction-placeholder">None</span>
+                              <strong>None</strong>
+                            </button>
+                            <button
+                              className={selectedImageId === '' ? 'active' : ''}
+                              type="button"
+                              onClick={() => updateOpeningBeatImage(beat.id, sceneActor, '')}
+                            >
+                              {defaultImageSrc ? (
+                                <img alt="" draggable={false} src={defaultImageSrc} />
+                              ) : (
+                                <span className="admin-opening-reaction-placeholder">
+                                  {actorLabel}
+                                </span>
+                              )}
+                              <strong>Default</strong>
+                            </button>
+                            {getOpeningImagesForActor(safeOpeningSettings, sceneActor).map(
+                              (image) => (
+                                <button
+                                  className={selectedImageId === image.id ? 'active' : ''}
+                                  key={image.id}
+                                  type="button"
+                                  onClick={() =>
+                                    updateOpeningBeatImage(beat.id, sceneActor, image.id)
+                                  }
+                                >
+                                  <img alt="" draggable={false} src={image.src} />
+                                  <strong>{image.label}</strong>
+                                </button>
+                              ),
                             )}
-                            <strong>Default</strong>
-                          </button>
-                          {getOpeningImagesForActor(safeOpeningSettings, sceneActor).map(
-                            (image) => (
-                              <button
-                                className={selectedImageId === image.id ? 'active' : ''}
-                                key={image.id}
-                                type="button"
-                                onClick={() =>
-                                  updateOpeningBeatImage(beat.id, sceneActor, image.id)
-                                }
-                              >
-                                <img alt="" draggable={false} src={image.src} />
-                                <strong>{image.label}</strong>
-                              </button>
-                            ),
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                  <label className="admin-opening-line-field">
-                    <span>Line</span>
-                    <textarea
-                      value={beat.text}
-                      onChange={(event) =>
-                        updateOpeningBeat(beat.id, { text: event.currentTarget.value })
-                      }
-                    />
-                  </label>
-                </article>
-              ))}
-            </section>
+                      );
+                    })}
+                    <label className="admin-opening-line-field">
+                      <span>Line</span>
+                      <textarea
+                        value={beat.text}
+                        onChange={(event) =>
+                          updateOpeningBeat(beat.id, { text: event.currentTarget.value })
+                        }
+                      />
+                    </label>
+                  </article>
+                ))}
+              </section>
             ) : null}
             {openingTab === 'preview' ? (
               <section className="admin-opening-preview-section" aria-label="Opening preview">
-              <h3>Preview</h3>
-              <div className="admin-opening-preview">
-                <OpeningStagePreview
-                  settings={openingSettings}
-                  editable
-                  onBeatChange={updateOpeningBeat}
-                />
-              </div>
-            </section>
+                <h3>Preview</h3>
+                <div className="admin-opening-preview">
+                  <OpeningStagePreview
+                    settings={openingSettings}
+                    editable
+                    onBeatChange={updateOpeningBeat}
+                  />
+                </div>
+              </section>
             ) : null}
           </div>
         ) : sidePanelMode === 'assets' ? (
@@ -10034,9 +11457,7 @@ function AdminScreen({
                               {entry.triggerStoryId ? (
                                 <small>
                                   Trigger
-                                  {entry.triggerDelayDays > 0
-                                    ? ` +${entry.triggerDelayDays}d`
-                                    : ''}
+                                  {entry.triggerDelayDays > 0 ? ` +${entry.triggerDelayDays}d` : ''}
                                 </small>
                               ) : null}
                             </button>
@@ -10282,6 +11703,58 @@ function AdminScreen({
                 <small>{adminChatMenuSettings.scale}%</small>
               </label>
               <label>
+                <span>Menu X</span>
+                <input
+                  min={10}
+                  max={90}
+                  type="range"
+                  value={adminChatMenuSettings.position.x}
+                  onInput={(event) =>
+                    updateChatMenuPatch({
+                      position: {
+                        ...adminChatMenuSettings.position,
+                        x: Number(event.currentTarget.value),
+                      },
+                    })
+                  }
+                  onChange={(event) =>
+                    updateChatMenuPatch({
+                      position: {
+                        ...adminChatMenuSettings.position,
+                        x: Number(event.currentTarget.value),
+                      },
+                    })
+                  }
+                />
+                <small>{Math.round(adminChatMenuSettings.position.x)}%</small>
+              </label>
+              <label>
+                <span>Menu Y</span>
+                <input
+                  min={10}
+                  max={90}
+                  type="range"
+                  value={adminChatMenuSettings.position.y}
+                  onInput={(event) =>
+                    updateChatMenuPatch({
+                      position: {
+                        ...adminChatMenuSettings.position,
+                        y: Number(event.currentTarget.value),
+                      },
+                    })
+                  }
+                  onChange={(event) =>
+                    updateChatMenuPatch({
+                      position: {
+                        ...adminChatMenuSettings.position,
+                        y: Number(event.currentTarget.value),
+                      },
+                    })
+                  }
+                />
+                <small>{Math.round(adminChatMenuSettings.position.y)}%</small>
+              </label>
+              <label>
                 <span>Cat scale</span>
                 <input
                   min={35}
@@ -10307,16 +11780,19 @@ function AdminScreen({
               </label>
             </header>
             <div className="admin-chat-menu-workspace">
-              <section className="admin-chat-menu-preview" aria-label="Chat action menu editor">
+              <section
+                className="admin-chat-menu-preview"
+                aria-label="Chat action menu editor"
+                ref={chatMenuPreviewRef}
+              >
                 <div
                   className="visit-action-wheel admin-chat-menu-preview-wheel"
                   ref={chatMenuEditorRef}
                   onPointerCancel={stopChatMenuDrag}
+                  onPointerDown={beginChatMenuWheelDrag}
                   onPointerMove={moveChatMenuDrag}
                   onPointerUp={stopChatMenuDrag}
-                  style={
-                    { '--chat-menu-scale': adminChatMenuSettings.scale / 100 } as CSSProperties
-                  }
+                  style={chatMenuWheelStyle(adminChatMenuSettings)}
                 >
                   {adminChatMenuSettings.backgroundImageSrc ? (
                     <span className="admin-chat-menu-bg" style={chatMenuBackgroundStyle()} />
@@ -10339,9 +11815,7 @@ function AdminScreen({
                 </div>
                 <div
                   className="admin-chat-menu-cat-reference"
-                  style={
-                    { '--cat-scale': selectedTalkingLayout.catScale / 100 } as CSSProperties
-                  }
+                  style={{ '--cat-scale': selectedTalkingLayout.catScale / 100 } as CSSProperties}
                   aria-hidden="true"
                 >
                   <CatSprite imageSrc={getCatImageSrc(adminCatSettings, 'idle')} resting />
@@ -10611,7 +12085,9 @@ function AdminScreen({
                       accept="image/*"
                       type="file"
                       onChange={(event) =>
-                        readUploadedImage(event, (imageSrc) => updateCatPoseImage(poseKey, imageSrc))
+                        readUploadedImage(event, (imageSrc) =>
+                          updateCatPoseImage(poseKey, imageSrc),
+                        )
                       }
                     />
                   </label>
@@ -10968,26 +12444,18 @@ function AdminScreen({
             {previewMode === 'talking' ? (
               <>
                 <aside
-                  className="visit-status-panel admin-reference-status-panel"
+                  className="visit-mood-bar admin-reference-mood-bar"
                   aria-label="Visit status reference"
                 >
-                  <h2>{selectedCustomer.name}</h2>
-                  <div className="visit-side-stat">
-                    <HeartIcon />
-                    <span>Mood</span>
-                    <strong>37%</strong>
-                  </div>
+                  <HeartIcon />
+                  <span>{selectedCustomer.name}'s Mood</span>
                   <Meter value={37} label={`${selectedCustomer.name} preview mood`} />
-                  <div className="visit-side-stat">
-                    <CupIcon />
-                    <span>Order</span>
-                    <strong>Waiting</strong>
-                  </div>
+                  <strong>37%</strong>
                 </aside>
                 <div
                   className="visit-action-wheel admin-reference-action-wheel"
                   aria-label="Cat action menu reference"
-                  style={{ '--chat-menu-scale': adminChatMenuSettings.scale / 100 } as CSSProperties}
+                  style={chatMenuWheelStyle(adminChatMenuSettings)}
                 >
                   {adminChatMenuSettings.backgroundImageSrc ? (
                     <span className="visit-action-menu-bg" style={chatMenuBackgroundStyle()} />
@@ -10995,7 +12463,7 @@ function AdminScreen({
                   <div className={chatMenuActionClass('meow')} style={chatMenuActionStyle('meow')}>
                     {renderChatMenuActionIcon('meow', adminChatMenuSettings.items.meow.imageSrc)}
                     <strong>Meow</strong>
-                    <small>Reply</small>
+                    <small>+6</small>
                   </div>
                   <div className={chatMenuActionClass('purr')} style={chatMenuActionStyle('purr')}>
                     {renderChatMenuActionIcon('purr', adminChatMenuSettings.items.purr.imageSrc)}
@@ -11011,9 +12479,12 @@ function AdminScreen({
                       adminChatMenuSettings.items.listen.imageSrc,
                     )}
                     <strong>Listen</strong>
-                    <small>+10</small>
+                    <small>+12</small>
                   </div>
-                  <div className={chatMenuActionClass('leave')} style={chatMenuActionStyle('leave')}>
+                  <div
+                    className={chatMenuActionClass('leave')}
+                    style={chatMenuActionStyle('leave')}
+                  >
                     {renderChatMenuActionIcon('leave', adminChatMenuSettings.items.leave.imageSrc)}
                     <strong>Leave</strong>
                     <small>Shop</small>
@@ -11028,7 +12499,10 @@ function AdminScreen({
                     <strong>Roll</strong>
                     <small>Play</small>
                   </div>
-                  <div className={chatMenuActionClass('serve')} style={chatMenuActionStyle('serve')}>
+                  <div
+                    className={chatMenuActionClass('serve')}
+                    style={chatMenuActionStyle('serve')}
+                  >
                     {renderChatMenuActionIcon('serve', adminChatMenuSettings.items.serve.imageSrc)}
                     <strong>Serve</strong>
                   </div>
@@ -11039,7 +12513,7 @@ function AdminScreen({
         )}
       </section>
 
-      {!openingMode && sidePanelCollapsed ? (
+      {!fullWorkbenchMode && sidePanelCollapsed ? (
         <button
           className="admin-panel-pull-tab"
           type="button"
@@ -11049,558 +12523,400 @@ function AdminScreen({
         </button>
       ) : null}
 
-      {!openingMode ? (
+      {!fullWorkbenchMode ? (
         <aside
           className={`admin-gallery admin-${sidePanelMode}-panel`}
           id="admin-side-panel"
           aria-label={sidePanelAriaLabel}
           hidden={sidePanelCollapsed}
         >
-        <div className="admin-panel-header">
-          <div>
-            <p className="eyebrow">{sidePanelEyebrow}</p>
-            <h2>{sidePanelTitle}</h2>
-          </div>
-          <button
-            className="paper-button admin-panel-switch"
-            type="button"
-            onClick={() =>
-              openSidePanel(sidePanelMode === 'characters' ? 'inspector' : 'characters')
-            }
-          >
-            {sidePanelMode === 'characters' ? 'Inspector' : 'Characters'}
-          </button>
-        </div>
-        {sidePanelMode === 'inspector' && previewMode === 'shop' ? (
-          <section
-            className="admin-edit-card admin-reference-card"
-            aria-label={`${selectedCustomer.name} reference points`}
-          >
-            <h3>Reference Points</h3>
-            <div className="admin-spot-tabs" aria-label="Store spots">
-              {TABLE_SLOTS.map((slot) => (
-                <button
-                  className={selectedSeatSlot === slot ? 'active' : ''}
-                  key={slot}
-                  onClick={() => setSelectedSeatSlot(slot)}
-                  type="button"
-                >
-                  Spot {slot + 1}
-                </button>
-              ))}
+          <div className="admin-panel-header">
+            <div>
+              <p className="eyebrow">{sidePanelEyebrow}</p>
+              <h2>{sidePanelTitle}</h2>
             </div>
-            <label>
-              <span>Onion</span>
-              <select
-                value={onionCharacterId}
-                onChange={(event) => {
-                  const nextId = event.currentTarget.value;
-                  setOnionCharacterId(
-                    isAdminSubjectId(nextId) && nextId !== selectedCharacterId ? nextId : '',
-                  );
-                }}
-              >
-                <option value="">Off</option>
-                {ADMIN_SUBJECT_IDS.filter((characterId) => characterId !== selectedCharacterId).map(
-                  (characterId) => (
+            <button
+              className="paper-button admin-panel-switch"
+              type="button"
+              onClick={() => openSidePanel('characters')}
+            >
+              Characters
+            </button>
+          </div>
+          {sidePanelMode === 'inspector' && previewMode === 'shop' ? (
+            <section
+              className="admin-edit-card admin-reference-card"
+              aria-label={`${selectedCustomer.name} reference points`}
+            >
+              <h3>Reference Points</h3>
+              <div className="admin-spot-tabs" aria-label="Store spots">
+                {TABLE_SLOTS.map((slot) => (
+                  <button
+                    className={selectedSeatSlot === slot ? 'active' : ''}
+                    key={slot}
+                    onClick={() => setSelectedSeatSlot(slot)}
+                    type="button"
+                  >
+                    Spot {slot + 1}
+                  </button>
+                ))}
+              </div>
+              <label>
+                <span>Onion</span>
+                <select
+                  value={onionCharacterId}
+                  onChange={(event) => {
+                    const nextId = event.currentTarget.value;
+                    setOnionCharacterId(
+                      isAdminSubjectId(nextId) && nextId !== selectedCharacterId ? nextId : '',
+                    );
+                  }}
+                >
+                  <option value="">Off</option>
+                  {ADMIN_SUBJECT_IDS.filter(
+                    (characterId) => characterId !== selectedCharacterId,
+                  ).map((characterId) => (
                     <option key={characterId} value={characterId}>
                       {getAdminSubjectCustomer(characterId, characterSettings).name}
                     </option>
-                  ),
-                )}
-              </select>
-              <small>{onionCharacter ? 'View only' : 'Off'}</small>
-            </label>
-            <button
-              className="paper-button admin-reset-spots"
-              type="button"
-              onClick={() => onResetSeatSpots(selectedCharacterId)}
-            >
-              Reset Points
-            </button>
-            <button
-              className="paper-button admin-reset-spots"
-              type="button"
-              onClick={applyDefaultSeatSpotScales}
-            >
-              Depth Scales
-            </button>
-          </section>
-        ) : null}
-        {sidePanelMode === 'assets' ? (
-          <section className="admin-edit-card admin-asset-inspector">
-            {selectedAsset ? (
-              <>
-                <span className="admin-asset-large-preview">
-                  <img alt="" draggable={false} src={selectedAsset.src} />
-                </span>
-                <h3>{selectedAsset.label}</h3>
-                <p className="admin-muted-copy">{selectedAsset.detail}</p>
-                <label className="admin-image-path-field">
-                  <span>Image path</span>
-                  <input
-                    disabled={selectedAsset.kind === 'static'}
-                    type="text"
-                    value={selectedAsset.src}
-                    onChange={(event) => replaceSelectedAsset(event.currentTarget.value)}
-                  />
-                  <small>
-                    {selectedAsset.kind === 'store'
-                      ? 'Store art'
-                      : selectedAsset.kind === 'portrait'
-                        ? 'Portrait'
-                        : 'Static file'}
-                  </small>
-                </label>
-                <label className="admin-upload-field">
-                  <span>Replace</span>
-                  <input
-                    accept="image/*"
-                    disabled={selectedAsset.kind === 'static'}
-                    type="file"
-                    onChange={(event) => readUploadedImage(event, replaceSelectedAsset)}
-                  />
-                  <small>
-                    {selectedAsset.kind === 'static' ? 'Not editable here' : 'Saved locally'}
-                  </small>
-                </label>
-              </>
-            ) : (
-              <p className="admin-muted-copy">Select an image to replace it.</p>
-            )}
-          </section>
-        ) : null}
-        {sidePanelMode === 'chats' ? (
-          <section className="admin-edit-card admin-chat-side-card">
-            {selectedChatCustomer ? (
-              <>
-                <h3>{selectedChatCustomer.name}</h3>
-                <p className="admin-muted-copy">
-                  {selectedChatGroups.length} relationship sections. Stories can require another
-                  collected story as a trigger, then wait a set number of days.
-                </p>
-                <button className="paper-button" type="button" onClick={addRelationshipGroup}>
-                  Add Relationship
-                </button>
-                {selectedChatEntry ? (
-                  <div className="admin-chat-current">
-                    <strong>{ADMIN_CHAT_KIND_LABELS[selectedChatEntry.kind]}</strong>
-                    <span>{selectedChatEntry.title}</span>
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <p className="admin-muted-copy">Pick a character in the Chats screen.</p>
-            )}
-          </section>
-        ) : null}
-        {sidePanelMode === 'characters' ? (
-          <div className="admin-gallery-list">
-            {ADMIN_SUBJECT_IDS.map((characterId) => {
-              const character = getAdminSubjectCustomer(characterId, characterSettings);
-              const gallerySettings = isCharacterId(characterId)
-                ? normalizeCharacterAdminSettings(characterId, characterSettings[characterId])
-                : null;
-              const galleryPortrait = gallerySettings?.portrait ?? null;
-              return (
-                <button
-                  className={`admin-gallery-card ${
-                    selectedCharacterId === characterId ? 'active' : ''
-                  }`}
-                  key={characterId}
-                  type="button"
-                  onClick={() => {
-                    onSelectCharacter(characterId);
-                    openSidePanel('inspector');
-                  }}
-                >
-                  <span className="admin-gallery-avatar" aria-hidden="true">
-                    {galleryPortrait?.imageSrc ? (
-                      <img
-                        alt=""
-                        className="admin-portrait-image"
-                        draggable={false}
-                        src={galleryPortrait.imageSrc}
-                        style={portraitImageStyle(galleryPortrait)}
-                      />
-                    ) : (
-                      <AnimalAvatar customer={character} size="small" />
-                    )}
+                  ))}
+                </select>
+                <small>{onionCharacter ? 'View only' : 'Off'}</small>
+              </label>
+              <button
+                className="paper-button admin-reset-spots"
+                type="button"
+                onClick={() => onResetSeatSpots(selectedCharacterId)}
+              >
+                Reset Points
+              </button>
+              <button
+                className="paper-button admin-reset-spots"
+                type="button"
+                onClick={applyDefaultSeatSpotScales}
+              >
+                Depth Scales
+              </button>
+            </section>
+          ) : null}
+          {sidePanelMode === 'assets' ? (
+            <section className="admin-edit-card admin-asset-inspector">
+              {selectedAsset ? (
+                <>
+                  <span className="admin-asset-large-preview">
+                    <img alt="" draggable={false} src={selectedAsset.src} />
                   </span>
-                  <span>
-                    <strong>{character.name}</strong>
+                  <h3>{selectedAsset.label}</h3>
+                  <p className="admin-muted-copy">{selectedAsset.detail}</p>
+                  <label className="admin-image-path-field">
+                    <span>Image path</span>
+                    <input
+                      disabled={selectedAsset.kind === 'static'}
+                      type="text"
+                      value={selectedAsset.src}
+                      onChange={(event) => replaceSelectedAsset(event.currentTarget.value)}
+                    />
                     <small>
-                      {character.members.length > 1
-                        ? 'Party image'
-                        : TIP_STYLE_LABELS[character.members[0]?.tipStyle ?? 'steady']}
+                      {selectedAsset.kind === 'store'
+                        ? 'Store art'
+                        : selectedAsset.kind === 'portrait'
+                          ? 'Portrait'
+                          : 'Static file'}
                     </small>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-        {sidePanelMode === 'inspector' ? (
-          <section className="admin-edit-card" aria-label={`${selectedCustomer.name} settings`}>
-            {previewMode === 'shop' ? (
-              <>
-                <h3>Store Options</h3>
-                <label className="admin-image-path-field">
-                  <span>Image path</span>
-                  <input
-                    placeholder="/characters/matthew-shadow/MatthewShadow_01.png"
-                    type="text"
-                    value={selectedTalkingLayout.defaultImageSrc}
-                    onChange={(event) =>
-                      onTalkingDefaultImageChange(selectedCharacterId, event.currentTarget.value)
-                    }
-                  />
-                  <small>{selectedCustomer.members.length > 1 ? 'One image' : 'Store art'}</small>
-                </label>
-                <label className="admin-upload-field">
-                  <span>Upload art</span>
-                  <input
-                    accept="image/*"
-                    multiple
-                    type="file"
-                    onChange={(event) =>
-                      readUploadedImages(event, (imageSrcs) =>
-                        imageSrcs.forEach((imageSrc) =>
-                          onTalkingDefaultImageChange(selectedCharacterId, imageSrc),
-                        ),
-                      )
-                    }
-                  />
-                  <small>Saved locally</small>
-                </label>
-                <label>
-                  <span>Store image</span>
-                  <input
-                    min={45}
-                    max={250}
-                    type="range"
-                    value={selectedLayout.characterScale}
-                    onInput={(event) =>
-                      onCharacterScaleChange(selectedCharacterId, Number(event.currentTarget.value))
-                    }
-                    onChange={(event) =>
-                      onCharacterScaleChange(selectedCharacterId, Number(event.target.value))
-                    }
-                  />
-                  <small>{selectedLayout.characterScale}%</small>
-                </label>
-                <label>
-                  <span>Store cat</span>
-                  <input
-                    min={45}
-                    max={250}
-                    type="range"
-                    value={selectedLayout.catScale}
-                    onInput={(event) =>
-                      onCatScaleChange(selectedCharacterId, Number(event.currentTarget.value))
-                    }
-                    onChange={(event) =>
-                      onCatScaleChange(selectedCharacterId, Number(event.target.value))
-                    }
-                  />
-                  <small>{selectedLayout.catScale}%</small>
-                </label>
-              </>
-            ) : null}
-
-            {previewMode === 'talking' ? (
-              <>
-                <h3>Talking Options</h3>
-                <label className="admin-image-path-field">
-                  <span>Image path</span>
-                  <input
-                    placeholder="/characters/matthew-shadow/MatthewShadow_01.png"
-                    type="text"
-                    value={selectedTalkingLayout.imageSrc}
-                    onChange={(event) =>
-                      onTalkingImageChange(selectedCharacterId, event.currentTarget.value)
-                    }
-                  />
-                  <small>{selectedCustomer.members.length > 1 ? 'One image' : 'Talking art'}</small>
-                </label>
-                <label className="admin-upload-field">
-                  <span>Upload art</span>
-                  <input
-                    accept="image/*"
-                    multiple
-                    type="file"
-                    onChange={(event) =>
-                      readUploadedImages(event, (imageSrcs) =>
-                        imageSrcs.forEach((imageSrc) =>
-                          onTalkingImageChange(selectedCharacterId, imageSrc),
-                        ),
-                      )
-                    }
-                  />
-                  <small>Saved locally</small>
-                </label>
-                {talkingPoses.length > 0 ? (
-                  <section
-                    className="admin-chat-image-picker admin-default-talking-picker"
-                    aria-label={`${selectedCustomer.name} default talking image`}
-                  >
-                    <div className="admin-field-row">
-                      <span>Default image</span>
-                      <small>Used when this character is not in conversation mode.</small>
-                    </div>
-                    <div className="admin-chat-image-choice-grid">
-                      <button
-                        className={!selectedTalkingLayout.defaultImageSrc ? 'active' : ''}
-                        type="button"
-                        onClick={() => onTalkingDefaultImageChange(selectedCharacterId, '')}
-                      >
-                        <span className="admin-chat-image-empty">Built-in default</span>
-                      </button>
-                      {talkingPoses.map((pose) => (
-                        <button
-                          className={
-                            selectedTalkingLayout.defaultImageSrc === pose.src ? 'active' : ''
-                          }
-                          key={`default-talking-${pose.id}`}
-                          type="button"
-                          onClick={() => onTalkingDefaultImageChange(selectedCharacterId, pose.src)}
-                        >
-                          <img alt="" draggable={false} src={pose.src} />
-                          <span>{pose.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-                <label>
-                  <span>Talking scale</span>
-                  <input
-                    min={45}
-                    max={250}
-                    type="range"
-                    value={selectedTalkingLayout.characterScale}
-                    onInput={(event) =>
-                      onTalkingScaleChange(
-                        selectedCharacterId,
-                        'characterScale',
-                        Number(event.currentTarget.value),
-                      )
-                    }
-                    onChange={(event) =>
-                      onTalkingScaleChange(
-                        selectedCharacterId,
-                        'characterScale',
-                        Number(event.target.value),
-                      )
-                    }
-                  />
-                  <small>{selectedTalkingLayout.characterScale}%</small>
-                </label>
-                <label>
-                  <span>Talk cat</span>
-                  <input
-                    min={35}
-                    max={250}
-                    type="range"
-                    value={selectedTalkingLayout.catScale}
-                    onInput={(event) =>
-                      onTalkingScaleChange(
-                        selectedCharacterId,
-                        'catScale',
-                        Number(event.currentTarget.value),
-                      )
-                    }
-                    onChange={(event) =>
-                      onTalkingScaleChange(
-                        selectedCharacterId,
-                        'catScale',
-                        Number(event.target.value),
-                      )
-                    }
-                  />
-                  <small>{selectedTalkingLayout.catScale}%</small>
-                </label>
-                <div className="admin-pose-editor">
-                  <span>Conversation image</span>
-                  {talkingPoses.length > 0 ? (
-                    <div className="admin-pose-grid">
-                      <div
-                        className={`admin-pose-card ${!activeConversationImage ? 'active' : ''}`}
-                      >
-                        <button
-                          aria-pressed={!activeConversationImage}
-                          type="button"
-                          onClick={() => onTalkingImageChange(selectedCharacterId, '')}
-                        >
-                          <span className="admin-chat-image-empty">No override</span>
-                          <strong>Use default</strong>
-                          <span className="admin-pose-conversation-check">
-                            {!activeConversationImage ? <CheckIcon /> : null}
-                            Conversation
-                          </span>
-                        </button>
-                      </div>
-                      {talkingPoses.map((pose) => {
-                        const active = activeConversationImage === pose.src;
-
-                        return (
-                          <div
-                            className={`admin-pose-card ${active ? 'active' : ''}`}
-                            key={pose.id}
-                          >
-                            <button
-                              aria-pressed={active}
-                              type="button"
-                              onClick={() => onTalkingImageChange(selectedCharacterId, pose.src)}
-                            >
-                              <img alt="" draggable={false} src={pose.src} />
-                              <strong>{pose.label}</strong>
-                              <span className="admin-pose-conversation-check">
-                                {active ? <CheckIcon /> : null}
-                                Conversation
-                              </span>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <small>No talking images yet.</small>
-                  )}
-                </div>
-              </>
-            ) : null}
-
-            {previewMode === 'settings' ? (
-              <>
-                <h3>Character Settings</h3>
-                <div className="admin-portrait-editor">
-                  <span>Character picture</span>
-                  <label className="admin-upload-field admin-portrait-upload-field">
-                    <span>Upload</span>
+                  </label>
+                  <label className="admin-upload-field">
+                    <span>Replace</span>
                     <input
                       accept="image/*"
+                      disabled={selectedAsset.kind === 'static'}
                       type="file"
+                      onChange={(event) => readUploadedImage(event, replaceSelectedAsset)}
+                    />
+                    <small>
+                      {selectedAsset.kind === 'static'
+                        ? 'Not editable here'
+                        : 'Saved to repo in dev'}
+                    </small>
+                  </label>
+                </>
+              ) : (
+                <p className="admin-muted-copy">Select an image to replace it.</p>
+              )}
+            </section>
+          ) : null}
+          {sidePanelMode === 'chats' ? (
+            <section className="admin-edit-card admin-chat-side-card">
+              {selectedChatCustomer ? (
+                <>
+                  <h3>{selectedChatCustomer.name}</h3>
+                  <p className="admin-muted-copy">
+                    {selectedChatGroups.length} relationship sections. Stories can require another
+                    collected story as a trigger, then wait a set number of days.
+                  </p>
+                  <button className="paper-button" type="button" onClick={addRelationshipGroup}>
+                    Add Relationship
+                  </button>
+                  {selectedChatEntry ? (
+                    <div className="admin-chat-current">
+                      <strong>{ADMIN_CHAT_KIND_LABELS[selectedChatEntry.kind]}</strong>
+                      <span>{selectedChatEntry.title}</span>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <p className="admin-muted-copy">Pick a character in the Chats screen.</p>
+              )}
+            </section>
+          ) : null}
+          {sidePanelMode === 'inspector' ? (
+            <section className="admin-edit-card" aria-label={`${selectedCustomer.name} settings`}>
+              {previewMode === 'shop' ? (
+                <>
+                  <h3>Store Options</h3>
+                  <div
+                    className={`admin-selected-status ${
+                      selectedSettings.enabled ? 'enabled' : 'disabled'
+                    }`}
+                  >
+                    <span>{selectedSettings.enabled ? 'Enabled' : 'Disabled'}</span>
+                    <small>{selectedSettings.enabled ? 'Can appear in game' : 'Will not spawn'}</small>
+                  </div>
+                  <label>
+                    <span>Store image</span>
+                    <input
+                      min={45}
+                      max={250}
+                      type="range"
+                      value={selectedLayout.characterScale}
+                      onInput={(event) =>
+                        onCharacterScaleChange(
+                          selectedCharacterId,
+                          Number(event.currentTarget.value),
+                        )
+                      }
                       onChange={(event) =>
-                        readUploadedImage(event, (imageSrc) =>
-                          updatePortrait({ imageSrc, scale: 100, x: 50, y: 50 }),
+                        onCharacterScaleChange(selectedCharacterId, Number(event.target.value))
+                      }
+                    />
+                    <small>{selectedLayout.characterScale}%</small>
+                  </label>
+                  <label>
+                    <span>Store cat</span>
+                    <input
+                      min={45}
+                      max={250}
+                      type="range"
+                      value={selectedLayout.catScale}
+                      onInput={(event) =>
+                        onCatScaleChange(selectedCharacterId, Number(event.currentTarget.value))
+                      }
+                      onChange={(event) =>
+                        onCatScaleChange(selectedCharacterId, Number(event.target.value))
+                      }
+                    />
+                    <small>{selectedLayout.catScale}%</small>
+                  </label>
+                </>
+              ) : null}
+
+              {previewMode === 'talking' ? (
+                <>
+                  <h3>Talking Options</h3>
+                  <label>
+                    <span>Talking scale</span>
+                    <input
+                      min={45}
+                      max={250}
+                      type="range"
+                      value={selectedTalkingLayout.characterScale}
+                      onInput={(event) =>
+                        onTalkingScaleChange(
+                          selectedCharacterId,
+                          'characterScale',
+                          Number(event.currentTarget.value),
+                        )
+                      }
+                      onChange={(event) =>
+                        onTalkingScaleChange(
+                          selectedCharacterId,
+                          'characterScale',
+                          Number(event.target.value),
                         )
                       }
                     />
-                    <small>Saved locally</small>
+                    <small>{selectedTalkingLayout.characterScale}%</small>
                   </label>
-                  {talkingPoses.length > 0 ? (
-                    <div className="admin-portrait-grid">
-                      {talkingPoses.map((pose) => {
-                        const active = selectedPortrait.imageSrc === pose.src;
+                  <label>
+                    <span>Talk cat</span>
+                    <input
+                      min={35}
+                      max={250}
+                      type="range"
+                      value={selectedTalkingLayout.catScale}
+                      onInput={(event) =>
+                        onTalkingScaleChange(
+                          selectedCharacterId,
+                          'catScale',
+                          Number(event.currentTarget.value),
+                        )
+                      }
+                      onChange={(event) =>
+                        onTalkingScaleChange(
+                          selectedCharacterId,
+                          'catScale',
+                          Number(event.target.value),
+                        )
+                      }
+                    />
+                    <small>{selectedTalkingLayout.catScale}%</small>
+                  </label>
+                </>
+              ) : null}
 
-                        return (
-                          <button
-                            className={active ? 'active' : ''}
-                            key={pose.id}
-                            type="button"
-                            onClick={() => updatePortrait({ imageSrc: pose.src })}
-                          >
-                            <img alt="" draggable={false} src={pose.src} />
-                            <strong>{pose.label}</strong>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <small>No character pictures yet.</small>
-                  )}
-                </div>
-                {selectedPortrait.imageSrc ? (
-                  <>
-                    <label>
-                      <span>Portrait zoom</span>
+              {previewMode === 'settings' ? (
+                <>
+                  <h3>Character Settings</h3>
+                  <label className="admin-toggle-row">
+                    <span>Use in game</span>
+                    <input
+                      checked={selectedSettings.enabled}
+                      type="checkbox"
+                      onChange={(event) =>
+                        updateSettings({ enabled: event.currentTarget.checked })
+                      }
+                    />
+                  </label>
+                  <div className="admin-portrait-editor">
+                    <span>Character picture</span>
+                    <label className="admin-upload-field admin-portrait-upload-field">
+                      <span>Upload</span>
                       <input
-                        min={50}
-                        max={250}
-                        type="range"
-                        value={selectedPortrait.scale}
-                        onInput={(event) =>
-                          updatePortrait({ scale: Number(event.currentTarget.value) })
+                        accept="image/*"
+                        type="file"
+                        onChange={(event) =>
+                          readUploadedImage(event, (imageSrc) =>
+                            updatePortrait({ imageSrc, scale: 100, x: 50, y: 50 }),
+                          )
                         }
-                        onChange={(event) => updatePortrait({ scale: Number(event.target.value) })}
                       />
-                      <small>{selectedPortrait.scale}%</small>
+                      <small>Saved to repo in dev</small>
                     </label>
-                    <label>
-                      <span>View X</span>
-                      <input
-                        min={0}
-                        max={100}
-                        type="range"
-                        value={selectedPortrait.x}
-                        onInput={(event) =>
-                          updatePortrait({ x: Number(event.currentTarget.value) })
-                        }
-                        onChange={(event) => updatePortrait({ x: Number(event.target.value) })}
-                      />
-                      <small>{selectedPortrait.x}%</small>
-                    </label>
-                    <label>
-                      <span>View Y</span>
-                      <input
-                        min={0}
-                        max={100}
-                        type="range"
-                        value={selectedPortrait.y}
-                        onInput={(event) =>
-                          updatePortrait({ y: Number(event.currentTarget.value) })
-                        }
-                        onChange={(event) => updatePortrait({ y: Number(event.target.value) })}
-                      />
-                      <small>{selectedPortrait.y}%</small>
-                    </label>
-                  </>
-                ) : null}
-                <label>
-                  <span>Tip style</span>
-                  <select
-                    value={selectedSettings.tipStyle}
-                    onChange={(event) =>
-                      updateSettings({
-                        tipStyle: tipStyleValue(event.target.value, selectedSettings.tipStyle),
-                      })
-                    }
-                  >
-                    {(['poor', 'steady', 'good', 'high'] as const).map((style) => (
-                      <option key={style} value={style}>
-                        {TIP_STYLE_LABELS[style]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span>Base tip</span>
-                  <input
-                    min={0}
-                    max={999}
-                    type="number"
-                    value={selectedSettings.tipBase}
-                    onChange={(event) => updateSettings({ tipBase: Number(event.target.value) })}
-                  />
-                </label>
-                <label>
-                  <span>Patience</span>
-                  <input
-                    min={5}
-                    max={120}
-                    type="number"
-                    value={patienceSeconds}
-                    onChange={(event) =>
-                      updateSettings({ patienceMs: Math.round(Number(event.target.value) * 1000) })
-                    }
-                  />
-                  <small>seconds</small>
-                </label>
-              </>
-            ) : null}
-          </section>
-        ) : null}
+                    {talkingPoses.length > 0 ? (
+                      <div className="admin-portrait-grid">
+                        {talkingPoses.map((pose) => {
+                          const active = selectedPortrait.imageSrc === pose.src;
+
+                          return (
+                            <button
+                              className={active ? 'active' : ''}
+                              key={pose.id}
+                              type="button"
+                              onClick={() => updatePortrait({ imageSrc: pose.src })}
+                            >
+                              <img alt="" draggable={false} src={pose.src} />
+                              <strong>{pose.label}</strong>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <small>No character pictures yet.</small>
+                    )}
+                  </div>
+                  {selectedPortrait.imageSrc ? (
+                    <>
+                      <label>
+                        <span>Portrait zoom</span>
+                        <input
+                          min={50}
+                          max={250}
+                          type="range"
+                          value={selectedPortrait.scale}
+                          onInput={(event) =>
+                            updatePortrait({ scale: Number(event.currentTarget.value) })
+                          }
+                          onChange={(event) =>
+                            updatePortrait({ scale: Number(event.target.value) })
+                          }
+                        />
+                        <small>{selectedPortrait.scale}%</small>
+                      </label>
+                      <label>
+                        <span>View X</span>
+                        <input
+                          min={0}
+                          max={100}
+                          type="range"
+                          value={selectedPortrait.x}
+                          onInput={(event) =>
+                            updatePortrait({ x: Number(event.currentTarget.value) })
+                          }
+                          onChange={(event) => updatePortrait({ x: Number(event.target.value) })}
+                        />
+                        <small>{selectedPortrait.x}%</small>
+                      </label>
+                      <label>
+                        <span>View Y</span>
+                        <input
+                          min={0}
+                          max={100}
+                          type="range"
+                          value={selectedPortrait.y}
+                          onInput={(event) =>
+                            updatePortrait({ y: Number(event.currentTarget.value) })
+                          }
+                          onChange={(event) => updatePortrait({ y: Number(event.target.value) })}
+                        />
+                        <small>{selectedPortrait.y}%</small>
+                      </label>
+                    </>
+                  ) : null}
+                  <label>
+                    <span>Tip style</span>
+                    <select
+                      value={selectedSettings.tipStyle}
+                      onChange={(event) =>
+                        updateSettings({
+                          tipStyle: tipStyleValue(event.target.value, selectedSettings.tipStyle),
+                        })
+                      }
+                    >
+                      {(['poor', 'steady', 'good', 'high'] as const).map((style) => (
+                        <option key={style} value={style}>
+                          {TIP_STYLE_LABELS[style]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Base tip</span>
+                    <input
+                      min={0}
+                      max={999}
+                      type="number"
+                      value={selectedSettings.tipBase}
+                      onChange={(event) => updateSettings({ tipBase: Number(event.target.value) })}
+                    />
+                  </label>
+                  <label>
+                    <span>Patience</span>
+                    <input
+                      min={5}
+                      max={120}
+                      type="number"
+                      value={patienceSeconds}
+                      onChange={(event) =>
+                        updateSettings({
+                          patienceMs: Math.round(Number(event.target.value) * 1000),
+                        })
+                      }
+                    />
+                    <small>seconds</small>
+                  </label>
+                </>
+              ) : null}
+            </section>
+          ) : null}
         </aside>
       ) : null}
     </main>
@@ -11682,9 +12998,7 @@ function ShopScreen({
   const tutorialMessage = tutorialPatienceActive
     ? TUTORIAL_PATIENCE_MESSAGE
     : tutorialServeActive
-      ? tutorialPatienceExpired
-        ? TUTORIAL_PATIENCE_EXPIRED_MESSAGE
-        : TUTORIAL_SERVE_MESSAGE
+      ? TUTORIAL_SERVE_MESSAGE
       : tutorialVisitActive
         ? TUTORIAL_VISIT_MESSAGE
         : tutorialClockActive
@@ -11853,7 +13167,7 @@ function ShopScreen({
                             ? 'Serve'
                             : orderServed
                               ? 'Served'
-                              : labelName}
+                              : tableService.label}
                         </span>
                       </button>
                     );
@@ -11869,7 +13183,7 @@ function ShopScreen({
                     style={livePositionStyle(patiencePosition)}
                   >
                     {tutorialPatienceActive && customer.id === 'matthew' ? (
-                      <b className="tutorial-meter-arrow">Patience</b>
+                      <b className="tutorial-meter-arrow">Patience Meter</b>
                     ) : null}
                     <span style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }} />
                   </div>
@@ -11883,7 +13197,10 @@ function ShopScreen({
                   </span>
                 ) : null}
                 {moodIconSrc ? (
-                  <span className="live-store-mood-icon" style={livePositionStyle(moodIconPosition)}>
+                  <span
+                    className="live-store-mood-icon"
+                    style={livePositionStyle(moodIconPosition)}
+                  >
                     <MoodIconBubble src={moodIconSrc} />
                   </span>
                 ) : null}
@@ -11925,9 +13242,7 @@ function ShopScreen({
                       return (
                         <button
                           className={`service-request ${
-                            tutorialServeActive && customer.id === 'matthew'
-                              ? 'tutorial-focus'
-                              : ''
+                            tutorialServeActive && customer.id === 'matthew' ? 'tutorial-focus' : ''
                           }`}
                           disabled={
                             arrivalState !== 'ready' ||
@@ -11950,7 +13265,7 @@ function ShopScreen({
                               ? 'Serve'
                               : orderServed
                                 ? 'Served'
-                                : labelName}
+                                : tableService.label}
                           </span>
                         </button>
                       );
@@ -11964,7 +13279,7 @@ function ShopScreen({
                     title={`${customer.name} patience`}
                   >
                     {tutorialPatienceActive && customer.id === 'matthew' ? (
-                      <b className="tutorial-meter-arrow">Patience</b>
+                      <b className="tutorial-meter-arrow">Patience Meter</b>
                     ) : null}
                     <span style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }} />
                   </div>
@@ -11988,8 +13303,10 @@ function ShopScreen({
 
         {tutorialShopActive ? (
           <TutorialCoachCard
+            key={tutorialMessage}
             imageSrc={tutorialCoachSrc}
             message={tutorialMessage}
+            warning={tutorialPatienceExpired ? TUTORIAL_PATIENCE_EXPIRED_MESSAGE : ''}
             actionLabel={tutorialActionLabel}
             onAction={tutorialActionLabel ? onTutorialNext : undefined}
           />
@@ -12009,11 +13326,22 @@ function ShopScreen({
         <aside className="force-spawn-panel" aria-label="Force spawn guests">
           <span>Force Spawn</span>
           <div>
-            {forceSpawnCustomers.map((customer) => (
-              <button key={customer.id} type="button" onClick={() => onForceSpawn(customer.id)}>
-                {customer.name}
-              </button>
-            ))}
+            {forceSpawnCustomers.map((customer) => {
+              const enabled = isCustomerEnabled(customer);
+              return (
+                <button
+                  className={enabled ? '' : 'disabled'}
+                  disabled={!enabled}
+                  key={customer.id}
+                  type="button"
+                  onClick={() => onForceSpawn(customer.id)}
+                  title={enabled ? `${customer.name} enabled` : `${customer.name} disabled`}
+                >
+                  <span>{customer.name}</span>
+                  <small>{enabled ? 'On' : 'Off'}</small>
+                </button>
+              );
+            })}
           </div>
         </aside>
       ) : null}
@@ -12078,11 +13406,13 @@ interface VisitScreenProps {
   kittyOptions: readonly [KittyChatOption, KittyChatOption] | null;
   kittyAnswer: 0 | 1 | 2;
   kittyReply: string;
+  orderLine: string;
   listenMoodGain: number;
   layout: AdminLayout;
   chatMenuSettings: AdminChatMenuSettings;
   catImageSrc: string;
   afterHoursComment: string;
+  birthdayStoryTutorialActive: boolean;
   tutorialStep: TutorialStep;
   tutorialCoachSrc: string;
   tutorialLine: string;
@@ -12090,6 +13420,7 @@ interface VisitScreenProps {
   tutorialLineIndex: number;
   tutorialThanksLine: string;
   onServe: (slot?: TableSlot, orderIndex?: number) => void;
+  onMeow: () => void;
   onPurr: () => void;
   onQuiet: () => void;
   onRollOver: () => void;
@@ -12131,11 +13462,13 @@ function VisitScreen({
   kittyOptions,
   kittyAnswer,
   kittyReply,
+  orderLine,
   listenMoodGain,
   layout,
   chatMenuSettings,
   catImageSrc,
   afterHoursComment,
+  birthdayStoryTutorialActive,
   tutorialStep,
   tutorialCoachSrc,
   tutorialLine,
@@ -12143,6 +13476,7 @@ function VisitScreen({
   tutorialLineIndex,
   tutorialThanksLine,
   onServe,
+  onMeow,
   onPurr,
   onQuiet,
   onRollOver,
@@ -12167,17 +13501,23 @@ function VisitScreen({
     kittyBubbleSource.length > 112
       ? `${kittyBubbleSource.slice(0, 109).trim()}...`
       : kittyBubbleSource;
+  const orderBubbleText =
+    orderLine.length > 112 ? `${orderLine.slice(0, 109).trim()}...` : orderLine;
   const storyProgressLabel = `${storyProgress}/${storyLineCount}`;
   const storyChoiceAnswered = storyChoiceAnswer > 0;
   const showAfterHoursBubble = shopDayEnded && afterHoursComment.trim().length > 0;
   const normalStoryReady = !tutorialActive && storyReady;
   const normalStoryChoiceReady = !tutorialActive && storyChoiceReady;
-  const normalKittyChatReady = !tutorialActive && kittyChatReady;
-  const canStoryMeow = normalStoryChoiceReady && Boolean(storyChoices) && !storyChoiceAnswered;
-  const canKittyMeow = normalKittyChatReady && kittyOptions != null && kittyAnswer <= 0;
-  const canMeow = tutorialMeowActive || canStoryMeow || canKittyMeow;
-  const showKittyReplyPanel = normalKittyChatReady && kittyOptions != null && kittyAnswer <= 0;
-  const hasDialoguePanel = tutorialActive || normalStoryChoiceReady || showKittyReplyPanel;
+  const normalKittyChatReady = !tutorialActive && serviceServed && kittyChatReady;
+  const storyReplyPending = normalStoryChoiceReady && Boolean(storyChoices) && !storyChoiceAnswered;
+  const kittyReplyPending = normalKittyChatReady && kittyOptions != null && kittyAnswer <= 0;
+  const replyPromptActive = storyReplyPending || kittyReplyPending;
+  const catMenuLockedForReply = replyPromptActive && !tutorialActive;
+  const catActionsUnlocked = serviceServed || tutorialActive;
+  const canMeow = catActionsUnlocked && (tutorialMeowActive || !catMenuLockedForReply);
+  const showKittyReplyPanel = kittyReplyPending;
+  const hasDialoguePanel =
+    tutorialActive || birthdayStoryTutorialActive || normalStoryChoiceReady || showKittyReplyPanel;
   const nextUnservedOrderIndex = services.findIndex(
     (_, orderIndex) => !servedOrderIndexes.includes(orderIndex),
   );
@@ -12196,20 +13536,34 @@ function VisitScreen({
     dialogueImageSrc ||
     visitLayout.talking.imageSrc ||
     visitLayout.talking.defaultImageSrc ||
-    getDefaultTalkingImageSrc(visitSubjectId ?? undefined) ||
-    getDefaultTalkingImageSrc(primaryCharacterId ?? undefined);
+    getVisibleDefaultTalkingImageSrc(
+      visitSubjectId ?? undefined,
+      visitLayout.talking.hiddenImageSrcs,
+    ) ||
+    getVisibleDefaultTalkingImageSrc(
+      primaryCharacterId ?? undefined,
+      visitLayout.talking.hiddenImageSrcs,
+    );
   const useTalkingImage = Boolean(talkingImageSrc);
   const servedDrinkKind = getVisibleServedService(services, servedOrderIndexes).id;
   const tutorialCoachMessage = tutorialMeowActive
-    ? 'Answer him with Meow. The other actions will unlock after this.'
+    ? tutorialLineIndex > 0
+      ? TUTORIAL_CHAT_PROGRESS_MESSAGE
+      : 'Answer him with Meow. The other actions will unlock after this.'
     : tutorialMoodActive
       ? TUTORIAL_MOOD_MESSAGE
       : tutorialLeaveActive
         ? TUTORIAL_LEAVE_MESSAGE
         : '';
   const showInteractionHint = !tutorialActive && !hasDialoguePanel;
+  const interactionHint = catActionsUnlocked
+    ? `Select an action to interact with ${customer.name}`
+    : `Serve ${customer.name}'s order to unlock cat actions`;
 
-  function chatMenuButtonStyle(actionId: CatActionId, imageSrc = chatMenuImage(actionId)): CSSProperties {
+  function chatMenuButtonStyle(
+    actionId: CatActionId,
+    imageSrc = chatMenuImage(actionId),
+  ): CSSProperties {
     const item = safeChatMenuSettings.items[actionId];
     return {
       backgroundImage: imageSrc ? `url("${imageSrc}")` : undefined,
@@ -12224,12 +13578,33 @@ function VisitScreen({
     };
   }
 
+  function chatMenuCalloutStyle(actionId: CatActionId): CSSProperties {
+    const item = safeChatMenuSettings.items[actionId];
+    return {
+      left: `${item.position.x}%`,
+      top: `${item.position.y}%`,
+      zIndex: item.layer + 1,
+      '--tutorial-callout-offset': `${Math.round(44 * (item.hexScale / 100))}px`,
+    } as CSSProperties;
+  }
+
   function visitChatMenuBackgroundStyle(): CSSProperties {
     return {
       backgroundImage: `url("${safeChatMenuSettings.backgroundImageSrc}")`,
       width: `${44 * (safeChatMenuSettings.backgroundScale / 100)}%`,
       zIndex: safeChatMenuSettings.backgroundLayer,
     };
+  }
+
+  function visitChatMenuWheelStyle(): CSSProperties {
+    return {
+      '--chat-menu-scale': safeChatMenuSettings.scale / 100,
+      left: `${safeChatMenuSettings.position.x}%`,
+      top: `${safeChatMenuSettings.position.y}%`,
+      right: 'auto',
+      bottom: 'auto',
+      transform: 'translate(-50%, -50%) scale(var(--chat-menu-scale, 1))',
+    } as CSSProperties;
   }
 
   function chatMenuImage(actionId: CatActionId, served = false): string {
@@ -12287,7 +13662,7 @@ function VisitScreen({
       onTutorialMeow();
       return;
     }
-    onKittyAnswer(1);
+    onMeow();
   }
 
   function serveNextOrder() {
@@ -12317,6 +13692,28 @@ function VisitScreen({
               {tutorialLeaveActive ? tutorialThanksLine : tutorialLine}
             </span>
           </div>
+        ) : showAfterHoursBubble ? (
+          <div
+            className="customer-story-bubble visit-floating-bubble"
+            style={bubbleStyle}
+            aria-live="polite"
+          >
+            <div className="story-bubble-head">
+              <strong>{customer.name}</strong>
+            </div>
+            <span className="story-bubble-line">{afterHoursComment}</span>
+          </div>
+        ) : !serviceServed ? (
+          <div
+            className="customer-story-bubble visit-floating-bubble order-request-bubble"
+            style={bubbleStyle}
+            aria-live="polite"
+          >
+            <div className="story-bubble-head">
+              <strong>{customer.name}</strong>
+            </div>
+            <span className="story-bubble-line">{orderBubbleText}</span>
+          </div>
         ) : normalKittyChatReady ? (
           <div
             className="customer-story-bubble visit-floating-bubble kitty-chat-bubble"
@@ -12327,9 +13724,6 @@ function VisitScreen({
               <strong>{customer.name}</strong>
             </div>
             <span className="story-bubble-line">{kittyBubbleText}</span>
-            {showAfterHoursBubble ? (
-              <em className="story-bubble-finish">{afterHoursComment}</em>
-            ) : null}
           </div>
         ) : normalStoryReady && storyProgress > 0 ? (
           <div
@@ -12345,21 +13739,6 @@ function VisitScreen({
             </div>
             <span className="story-bubble-line">{storyBubbleText}</span>
             {storyComplete ? <em className="story-bubble-finish">{storyClosingLine}</em> : null}
-            {showAfterHoursBubble ? (
-              <em className="story-bubble-finish">{afterHoursComment}</em>
-            ) : null}
-          </div>
-        ) : showAfterHoursBubble ? (
-          <div
-            className="customer-story-bubble visit-floating-bubble"
-            style={bubbleStyle}
-            aria-live="polite"
-          >
-            <div className="story-bubble-head">
-              <strong>{customer.name}</strong>
-              <span className="story-bubble-count">Closing</span>
-            </div>
-            <span className="story-bubble-line">{afterHoursComment}</span>
           </div>
         ) : null}
         {useTalkingImage ? (
@@ -12417,14 +13796,25 @@ function VisitScreen({
         </aside>
 
         <div
-          className="visit-action-wheel"
+          className={`visit-action-wheel ${tutorialLeaveActive ? 'tutorial-leave-mode' : ''} ${
+            catMenuLockedForReply ? 'visit-action-wheel-locked' : ''
+          }`}
           aria-label="Cat actions"
-          style={{ '--chat-menu-scale': safeChatMenuSettings.scale / 100 } as CSSProperties}
+          style={visitChatMenuWheelStyle()}
         >
           {safeChatMenuSettings.backgroundImageSrc ? (
             <span className="visit-action-menu-bg" style={visitChatMenuBackgroundStyle()} />
           ) : null}
-          {tutorialMeowActive ? <span className="tutorial-action-arrow">Click Meow</span> : null}
+          {tutorialMeowActive ? (
+            <span className="tutorial-action-arrow" style={chatMenuCalloutStyle('meow')}>
+              Click Meow Here
+            </span>
+          ) : null}
+          {tutorialLeaveActive ? (
+            <span className="tutorial-leave-arrow" style={chatMenuCalloutStyle('leave')}>
+              Click Leave Here
+            </span>
+          ) : null}
           <button
             className={`visit-hex-button visit-hex-meow ${
               chatMenuImage('meow') ? 'visit-hex-custom-bg' : ''
@@ -12436,26 +13826,50 @@ function VisitScreen({
           >
             {chatMenuImage('meow') ? null : <CatHeadIcon />}
             <strong>Meow</strong>
-            <small>{canMeow ? 'Reply' : 'Wait'}</small>
+            <small>
+              {!catActionsUnlocked
+                ? 'Serve first'
+                : catMenuLockedForReply
+                  ? 'Reply below'
+                  : tutorialMeowActive
+                    ? 'Reply'
+                    : `+${MEOW_MOOD_GAIN}`}
+            </small>
           </button>
           <button
             className={`visit-hex-button visit-hex-purr ${
               chatMenuImage('purr') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('purr')}`}
-            disabled={(tutorialActive && !tutorialMoodActive) || !purrReady}
+            disabled={
+              catMenuLockedForReply ||
+              !catActionsUnlocked ||
+              (tutorialActive && !tutorialMoodActive) ||
+              !purrReady
+            }
             onClick={onPurr}
             style={chatMenuButtonStyle('purr')}
             type="button"
           >
             {chatMenuImage('purr') ? null : <PawIcon />}
             <strong>Purr</strong>
-            <small>{purrReady ? 'Soothe' : formatCooldown(purrCooldownRemaining)}</small>
+            <small>
+              {!catActionsUnlocked
+                ? 'Serve first'
+                : purrReady
+                  ? 'Soothe'
+                  : formatCooldown(purrCooldownRemaining)}
+            </small>
           </button>
           <button
             className={`visit-hex-button visit-hex-listen ${
               chatMenuImage('listen') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('listen')}`}
-            disabled={(tutorialActive && !tutorialMoodActive) || !quietReady}
+            disabled={
+              catMenuLockedForReply ||
+              !catActionsUnlocked ||
+              (tutorialActive && !tutorialMoodActive) ||
+              !quietReady
+            }
             onClick={onQuiet}
             style={chatMenuButtonStyle('listen')}
             type="button"
@@ -12463,16 +13877,26 @@ function VisitScreen({
             {chatMenuImage('listen') ? null : <CupIcon />}
             <strong>Listen</strong>
             <small>
-              {quietReady ? `+${listenMoodGain}` : formatCooldown(quietCooldownRemaining)}
+              {!catActionsUnlocked
+                ? 'Serve first'
+                : quietReady
+                  ? `+${listenMoodGain}`
+                  : formatCooldown(quietCooldownRemaining)}
             </small>
           </button>
           <button
             className={`visit-hex-button visit-hex-leave ${
               chatMenuImage('leave') ? 'visit-hex-custom-bg' : ''
-            } ${chatMenuTextClass('leave')}`}
+            } ${tutorialLeaveActive ? 'tutorial-leave-target tutorial-focus' : ''} ${chatMenuTextClass(
+              'leave',
+            )}`}
             onClick={onBack}
             type="button"
-            disabled={tutorialActive && !tutorialLeaveActive}
+            disabled={
+              catMenuLockedForReply ||
+              !catActionsUnlocked ||
+              (tutorialActive && !tutorialLeaveActive)
+            }
             style={chatMenuButtonStyle('leave')}
             aria-label={
               shopDayEnded
@@ -12482,13 +13906,19 @@ function VisitScreen({
           >
             {chatMenuImage('leave') ? null : <ShopIcon />}
             <strong>Leave</strong>
-            <small>{shopDayEnded ? 'Close' : 'Shop'}</small>
+            <small>{!catActionsUnlocked ? 'Serve first' : shopDayEnded ? 'Close' : 'Shop'}</small>
           </button>
           <button
             className={`visit-hex-button visit-hex-cute ${
               chatMenuImage('cute') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('cute')}`}
-            disabled={(tutorialActive && !tutorialMoodActive) || !fullMoodCareUnlocked || !cuteReady}
+            disabled={
+              catMenuLockedForReply ||
+              !catActionsUnlocked ||
+              (tutorialActive && !tutorialMoodActive) ||
+              !fullMoodCareUnlocked ||
+              !cuteReady
+            }
             onClick={onBeCute}
             style={chatMenuButtonStyle('cute')}
             type="button"
@@ -12497,7 +13927,7 @@ function VisitScreen({
             <strong>Be Cute</strong>
             <small>
               {!fullMoodCareUnlocked
-                ? 'Locked'
+                ? 'Serve first'
                 : cuteReady
                   ? 'Charm'
                   : formatCooldown(cuteCooldownRemaining)}
@@ -12507,7 +13937,13 @@ function VisitScreen({
             className={`visit-hex-button visit-hex-roll ${
               chatMenuImage('roll') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('roll')}`}
-            disabled={(tutorialActive && !tutorialMoodActive) || !fullMoodCareUnlocked || !rollReady}
+            disabled={
+              catMenuLockedForReply ||
+              !catActionsUnlocked ||
+              (tutorialActive && !tutorialMoodActive) ||
+              !fullMoodCareUnlocked ||
+              !rollReady
+            }
             onClick={onRollOver}
             style={chatMenuButtonStyle('roll')}
             type="button"
@@ -12516,7 +13952,7 @@ function VisitScreen({
             <strong>Roll</strong>
             <small>
               {!fullMoodCareUnlocked
-                ? 'Locked'
+                ? 'Serve first'
                 : rollReady
                   ? 'Play'
                   : formatCooldown(rollCooldownRemaining)}
@@ -12526,7 +13962,7 @@ function VisitScreen({
             className={`visit-hex-button visit-hex-center ${
               canServeNext ? 'visit-hex-serve' : 'visit-hex-face'
             } ${serveMenuImage ? 'visit-hex-custom-bg' : ''} ${chatMenuTextClass('serve')}`}
-            disabled={tutorialActive || !canServeNext}
+            disabled={catMenuLockedForReply || tutorialActive || !canServeNext}
             onClick={serveNextOrder}
             style={chatMenuButtonStyle('serve', serveMenuImage)}
             type="button"
@@ -12546,9 +13982,7 @@ function VisitScreen({
         </div>
 
         {showInteractionHint ? (
-          <div className="visit-interaction-hint">
-            Select an action to interact with {customer.name}
-          </div>
+          <div className="visit-interaction-hint">{interactionHint}</div>
         ) : null}
 
         {hasDialoguePanel ? (
@@ -12559,7 +13993,20 @@ function VisitScreen({
           >
             {tutorialActive ? (
               <div className="tutorial-visit-panel">
-                <TutorialCoachCard imageSrc={tutorialCoachSrc} message={tutorialCoachMessage} />
+                <TutorialCoachCard
+                  key={tutorialCoachMessage}
+                  imageSrc={tutorialCoachSrc}
+                  message={tutorialCoachMessage}
+                />
+              </div>
+            ) : null}
+            {birthdayStoryTutorialActive ? (
+              <div className="tutorial-visit-panel">
+                <TutorialCoachCard
+                  key={BIRTHDAY_STORY_TUTORIAL_MESSAGE}
+                  imageSrc={tutorialCoachSrc}
+                  message={BIRTHDAY_STORY_TUTORIAL_MESSAGE}
+                />
               </div>
             ) : null}
             {normalStoryChoiceReady && storyChoices ? (
@@ -12581,7 +14028,7 @@ function VisitScreen({
                       type="button"
                     >
                       {storyChoiceAnswer === option.id ? <CheckIcon /> : null}
-                      {option.label}
+                      Meow
                     </button>
                   ))}
                 </div>
@@ -12602,7 +14049,7 @@ function VisitScreen({
                         type="button"
                       >
                         {kittyAnswer === option.id ? <CheckIcon /> : null}
-                        {option.label}
+                        Meow
                       </button>
                     ))}
                   </div>
@@ -12666,12 +14113,7 @@ interface SummaryScreenProps {
   onEndDay: () => void;
 }
 
-function SummaryScreen({
-  game,
-  shopQuality,
-  shopRank,
-  onEndDay,
-}: SummaryScreenProps) {
+function SummaryScreen({ game, shopQuality, shopRank, onEndDay }: SummaryScreenProps) {
   const rankUnderPressure = game.missedToday > 0 || game.reputationToday < 0;
 
   return (
@@ -13127,7 +14569,10 @@ function GuestLogCard({ customer, game, nameUnlocked, onSelect }: GuestLogCardPr
       <AnimalAvatar customer={customer} size="small" />
       <span className="guest-log-card-copy">
         <strong>{displayName}</strong>
-        <span className="relationship-heart-row" aria-label={`Relationship ${relationshipScore}/100`}>
+        <span
+          className="relationship-heart-row"
+          aria-label={`Relationship ${relationshipScore}/100`}
+        >
           <img alt="" draggable={false} src={getRelationshipHeartSrc(relationshipScore)} />
         </span>
       </span>
@@ -13167,6 +14612,7 @@ function StoryEntry({ customer, game, nameUnlocked }: StoryEntryProps) {
           <span>Served {stats.served}</span>
           <span className="relationship-stat" aria-label={`Relationship ${stats.bond}/100`}>
             <img alt="" draggable={false} src={getRelationshipHeartSrc(stats.bond)} />
+            <strong>{stats.bond}/100</strong>
           </span>
           <span className={stats.missed > 0 ? 'missed' : ''}>Missed {stats.missed}</span>
           <span>Return {returnChance}%</span>
