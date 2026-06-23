@@ -42,6 +42,52 @@ Full walkthrough, prerequisites, and troubleshooting: [`docs/getting-started.md`
 
 ---
 
+## Need To Do / Handoff Notes
+
+Use this section when moving work to another computer. Pull the latest repo first, then run:
+
+```bash
+npm install
+npm run dev
+```
+
+Before deploying, run:
+
+```bash
+npm run typecheck
+npm run build
+rundot update
+rundot deploy
+```
+
+Current unfinished game tasks:
+
+- Keep Matthew in chat during the birthday story. He should not switch to a leave/closing line while that story is active.
+- Hide the Force Spawn test bar outside of local dev builds.
+- Remove the little tail from the customer word bubble.
+- Show action cooldowns at the bottom of the chat hex buttons, including Meow.
+- Make table upgrade 2 activate the second table immediately after purchase.
+- Set the default “leave after served” delay to 7 seconds for every character.
+- Fade characters in when they arrive and fade them out when they leave.
+- Add a `happy` chat type for when mood reaches 100%, the current story is finished, and no other story is left.
+- Show the empty table/chair image when a spot has no customer.
+- Verify the admin spreadsheet import includes `RepNeeded`, `trigger`, `summary`, and ID columns.
+- Run a full local test of stories, comments, orders, leaves, and happy chats from the admin conversation tester.
+
+Asset note:
+
+- Runtime assets must live in `public/` or `public/cdn-assets/` so they ship in the build.
+- User-uploaded/admin images are expected under `public/admin-uploads/`.
+- If images are missing on a new computer, check that they were committed or copy the `public/admin-uploads/` folder from the old computer.
+
+Deploy note:
+
+- Initialize/deploy as a RUN.world game named `Cat Cafe`.
+- If `rundot deploy` fails because the game is not initialized, run `rundot init` and name it `Cat Cafe`.
+- If deploy fails for auth, run `rundot login`.
+
+---
+
 ## What's in the box
 
 **SDK wrappers** (`src/services/*`) are the point of the kit, fail-loud wrappers for STORAGE, TIME, ADS
