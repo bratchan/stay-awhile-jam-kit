@@ -1912,6 +1912,16 @@ h3 {
   font-weight: 900;
 }
 
+.admin-board-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: #d6c5ad;
+  font-weight: 900;
+}
+
 .admin-board-header label {
   min-width: min(320px, 42%);
   display: grid;
@@ -2034,8 +2044,8 @@ h3 {
 }
 
 .admin-opening-play-stage {
-  height: min(620px, calc(100vh - 245px));
-  min-height: 430px;
+  height: min(720px, calc(100vh - 185px));
+  min-height: 500px;
   max-height: none;
   aspect-ratio: 16 / 9;
   border-radius: 8px;
@@ -4366,7 +4376,7 @@ h3 {
 .service-request {
   position: relative;
   min-width: 104px;
-  min-height: 44px;
+  min-height: 54px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4382,8 +4392,14 @@ h3 {
   box-shadow: 0 8px 18px rgba(42, 25, 14, 0.24);
 }
 
+.service-request:has(.store-order-patience) {
+  padding-top: 11px;
+}
+
 .service-request svg,
 .service-request img {
+  position: relative;
+  z-index: 2;
   flex: 0 0 auto;
   width: 30px;
   height: 26px;
@@ -4392,6 +4408,10 @@ h3 {
 
 .service-request span {
   pointer-events: none;
+}
+
+.service-request span:empty {
+  display: none;
 }
 
 .service-request:hover {
@@ -4468,6 +4488,21 @@ h3 {
   top: auto;
   z-index: 11;
   transform: translate(-50%, -50%);
+}
+
+.store-order-patience {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: calc(100% - 18px);
+  max-width: 118px;
+  margin: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.store-order-patience.tutorial-focus {
+  z-index: 18;
 }
 
 .live-store-drink {
@@ -4585,6 +4620,29 @@ h3 {
 .admin-spot-patience-prop.active {
   outline: 3px solid rgba(233, 191, 99, 0.95);
   outline-offset: 3px;
+}
+
+.admin-order-patience-preview {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 2px);
+  z-index: 3;
+  width: 108px;
+  height: 10px;
+  overflow: hidden;
+  border: 2px solid #fff3df;
+  border-radius: 999px;
+  background: rgba(234, 216, 189, 0.84);
+  box-shadow: 0 4px 10px rgba(42, 25, 14, 0.2);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.admin-order-patience-preview span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #df7070, #e9bf63, #8fa467);
 }
 
 .animal-avatar {
@@ -5166,7 +5224,7 @@ h3 {
 .visit-hex-purr {
   left: 0;
   top: 34%;
-  background: #efb0aa;
+  background: #a9c4df;
 }
 
 .visit-hex-listen {
@@ -5178,7 +5236,7 @@ h3 {
 .visit-hex-leave {
   left: 6%;
   bottom: 8%;
-  background: #a9c4df;
+  background: #efb0aa;
 }
 
 .visit-hex-roll {

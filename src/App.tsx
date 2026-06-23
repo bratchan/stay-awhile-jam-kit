@@ -61,7 +61,7 @@ type AdminSidePanelMode =
   | 'chatMenu'
   | 'cat'
   | 'opening';
-type AdminChatKind = 'story' | 'comment' | 'leave' | 'order';
+type AdminChatKind = 'story' | 'comment' | 'leave' | 'order' | 'happy';
 type AdminChatEditorMode = 'list' | AdminChatKind;
 type AdminChatToolMode = 'chats' | 'moodIcons';
 type AdminOpeningTab = 'settings' | 'dialogue' | 'preview';
@@ -265,6 +265,7 @@ interface CharacterPortraitSettings {
 
 interface CharacterAdminSettings {
   enabled: boolean;
+  displayName: string;
   tipStyle: TipStyle;
   tipBase: number;
   patienceMs: number;
@@ -292,6 +293,7 @@ interface ActiveStorySession {
   kind: VisitConversationKind;
   visitNumber: number;
   chatSeed: number;
+  forcedEntryId?: string;
 }
 
 interface KittyChatOption {
@@ -314,6 +316,7 @@ interface StoryChapter {
   imageSrc?: string;
   lineImageSrcs?: string[];
   choices?: readonly [KittyChatOption, KittyChatOption];
+  replyAfterLineIndex?: number;
   triggerStoryId?: string;
   triggerDelayDays?: number;
   relationshipThreshold?: number;
@@ -430,6 +433,7 @@ interface VisitCare {
   cutes: number;
   storyTalks: number;
   kittyAnswer: 0 | 1 | 2;
+  happySeen: boolean;
 }
 
 interface ArrivalTimer {
@@ -467,6 +471,7 @@ interface SessionSnapshot {
   patienceBySlot: Partial<Record<TableSlot, number>>;
   dayElapsedMs: number;
   purrCooldownRemainingMs: number;
+  meowCooldownRemainingMs: number;
   quietCooldownRemainingMs: number;
   rollCooldownRemainingMs: number;
   cuteCooldownRemainingMs: number;
@@ -495,6 +500,7 @@ interface InitialAppState {
   patienceBySlot: Partial<Record<TableSlot, number>>;
   dayElapsedMs: number;
   purrCooldownRemainingMs: number;
+  meowCooldownRemainingMs: number;
   quietCooldownRemainingMs: number;
   rollCooldownRemainingMs: number;
   cuteCooldownRemainingMs: number;
@@ -522,6 +528,7 @@ interface RuntimeSessionState {
   patienceBySlot: Partial<Record<TableSlot, number>>;
   dayElapsedMs: number;
   purrReadyAt: number;
+  meowReadyAt: number;
   quietReadyAt: number;
   rollReadyAt: number;
   cuteReadyAt: number;
@@ -544,6 +551,7 @@ const PATIENCE_TICK_MS = 250;
 const SHOP_CLOCK_TICK_MS = 250;
 const SHOP_DAY_REAL_MS = 120_000;
 const SERVED_PATIENCE_SLOWDOWN = 2;
+const SERVED_LEAVE_DELAY_MS = 7_000;
 const TABLE_SLOTS = [0, 1, 2] as const;
 const SHOP_DAY_START_HOUR = 8;
 const FIRST_DAY_START_HOUR = 15;
@@ -559,6 +567,7 @@ const STARTER_RECIPE_ID = 'blackTea';
 const SECOND_TABLE_UPGRADE_ID = 'second-table-spot';
 const THIRD_TABLE_UPGRADE_ID = 'third-table-spot';
 const BASE_PURR_COOLDOWN_MS = 6_000;
+const BASE_MEOW_COOLDOWN_MS = 2_000;
 const BASE_QUIET_COOLDOWN_MS = 2_500;
 const BASE_ROLL_COOLDOWN_MS = 7_000;
 const BASE_CUTE_COOLDOWN_MS = 8_500;
@@ -597,6 +606,7 @@ const MUSIC_MUTED_KEY = 'tea-shop-cat-music-muted-v1';
 const MUSIC_VOLUME_KEY = 'tea-shop-cat-music-volume-v1';
 const DEFAULT_MUSIC_VOLUME = 42;
 const BACKGROUND_MUSIC_SRC = '/cdn-assets/music/rainy-table-by-the-window.mp3';
+const EMPTY_TABLE_IMAGE_SRC = '/admin-uploads/store/smallChair.png';
 const UI_ICON_SRC = {
   gear: '/icons/gear.png',
   logBook: '/icons/logBook.png',
@@ -944,6 +954,7 @@ const ADMIN_CHAT_KIND_LABELS: Record<AdminChatKind, string> = {
   story: 'Story',
   leave: 'Leave',
   order: 'Order',
+  happy: 'Happy',
 };
 
 const TIP_STYLE_MULTIPLIERS: Record<TipStyle, number> = {
@@ -1089,10 +1100,83 @@ const CHARACTER_PROFILES = {
     patienceMs: 22_000,
     longHair: true,
   },
+  custom_1: {
+    id: 'custom_1',
+    name: 'New Character 1',
+    gender: 'female',
+    skin: '#b9825d',
+    hair: '#3a2b24',
+    outfit: '#5f7758',
+    accent: '#e0ba70',
+    tipStyle: 'steady',
+    tipBase: 30,
+    patienceMs: 20_000,
+  },
+  custom_2: {
+    id: 'custom_2',
+    name: 'New Character 2',
+    gender: 'male',
+    skin: '#c98f6f',
+    hair: '#251c1c',
+    outfit: '#536a78',
+    accent: '#d3a34f',
+    tipStyle: 'steady',
+    tipBase: 30,
+    patienceMs: 20_000,
+  },
+  custom_3: {
+    id: 'custom_3',
+    name: 'New Character 3',
+    gender: 'female',
+    skin: '#d3a07f',
+    hair: '#7d4a2b',
+    outfit: '#7a54a3',
+    accent: '#d66b72',
+    tipStyle: 'steady',
+    tipBase: 30,
+    patienceMs: 20_000,
+  },
+  custom_4: {
+    id: 'custom_4',
+    name: 'New Character 4',
+    gender: 'male',
+    skin: '#70483b',
+    hair: '#101820',
+    outfit: '#3f6272',
+    accent: '#d9b56f',
+    tipStyle: 'steady',
+    tipBase: 30,
+    patienceMs: 20_000,
+  },
+  custom_5: {
+    id: 'custom_5',
+    name: 'New Character 5',
+    gender: 'female',
+    skin: '#c1866a',
+    hair: '#554033',
+    outfit: '#8f6d9a',
+    accent: '#cc6f57',
+    tipStyle: 'steady',
+    tipBase: 30,
+    patienceMs: 20_000,
+  },
+  custom_6: {
+    id: 'custom_6',
+    name: 'New Character 6',
+    gender: 'male',
+    skin: '#d7a476',
+    hair: '#6a3c21',
+    outfit: '#f0c58d',
+    accent: '#4d7c8f',
+    tipStyle: 'steady',
+    tipBase: 30,
+    patienceMs: 20_000,
+  },
 } as const satisfies Record<string, CharacterProfile>;
 
 type CharacterId = keyof typeof CHARACTER_PROFILES;
 const ADMIN_CHARACTER_IDS = Object.keys(CHARACTER_PROFILES) as CharacterId[];
+const CUSTOM_CHARACTER_IDS = ADMIN_CHARACTER_IDS.filter((id) => id.startsWith('custom_'));
 const ADMIN_PARTY_IDS = ['liam-eli', 'matthew-shadow', 'alaric-eli'] as const;
 type AdminPartyId = (typeof ADMIN_PARTY_IDS)[number];
 type AdminSubjectId = CharacterId | AdminPartyId;
@@ -1437,7 +1521,8 @@ function saveAdminLayouts(layouts: AdminLayouts) {
 function defaultCharacterAdminSettings(profile: CharacterProfile): CharacterAdminSettings {
   const characterId = isCharacterId(profile.id) ? profile.id : 'shadow';
   return {
-    enabled: true,
+    enabled: !CUSTOM_CHARACTER_IDS.includes(characterId),
+    displayName: profile.name,
     tipStyle: profile.tipStyle,
     tipBase: profile.tipBase,
     patienceMs: profile.patienceMs,
@@ -1499,6 +1584,10 @@ function normalizeCharacterAdminSettings(
 
   return {
     enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : fallback.enabled,
+    displayName:
+      typeof parsed.displayName === 'string' && parsed.displayName.trim()
+        ? parsed.displayName.trim()
+        : fallback.displayName,
     tipStyle: tipStyleValue(parsed.tipStyle, fallback.tipStyle),
     tipBase: clamp(Math.floor(numericValue(parsed.tipBase, fallback.tipBase)), 0, 999),
     patienceMs: clamp(
@@ -1541,7 +1630,11 @@ function saveAdminCharacterSettings(settings: AdminCharacterSettings) {
 }
 
 function adminChatKindValue(value: unknown, fallback: AdminChatKind): AdminChatKind {
-  return value === 'story' || value === 'comment' || value === 'leave' || value === 'order'
+  return value === 'story' ||
+    value === 'comment' ||
+    value === 'leave' ||
+    value === 'order' ||
+    value === 'happy'
     ? value
     : fallback;
 }
@@ -1585,6 +1678,8 @@ function defaultAdminChatEntry(
         ? "Oh, you're closed. I should head out."
         : kind === 'order'
           ? 'I know what I would like today.'
+          : kind === 'happy'
+            ? 'That helped more than you know.'
           : 'Hello there kitty.';
   return {
     id: `${subjectId}-${kind}-${Date.now()}-${index}`,
@@ -1954,7 +2049,11 @@ function createEmptyAdminChats(): AdminChats {
 }
 
 function normalizeSpreadsheetHeader(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalized = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (normalized === 'rep' || normalized === 'repneed' || normalized === 'requiredrep') {
+    return 'repneeded';
+  }
+  return normalized;
 }
 
 function normalizeSpreadsheetName(value: string): string {
@@ -1968,6 +2067,31 @@ function spreadsheetIdPart(value: string): string {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '') || 'chat'
   );
+}
+
+function spreadsheetEntryId(value: string, fallback: string, usedIds: Set<string>): string {
+  const baseId = value.trim().replace(/\s+/g, '_') || fallback;
+  let nextId = baseId;
+  let suffix = 2;
+  while (usedIds.has(nextId)) {
+    nextId = `${baseId}_${suffix}`;
+    suffix += 1;
+  }
+  usedIds.add(nextId);
+  return nextId;
+}
+
+function parseImportedTrigger(value: string): { triggerStoryId: string; triggerDelayDays: number } {
+  const trimmed = value.trim();
+  if (!trimmed) return { triggerStoryId: '', triggerDelayDays: 0 };
+
+  const delayMatch = trimmed.match(/^(.*?)(?:\s*[+,;|]\s*|\s+)(\d+)\s*d(?:ays?)?$/i);
+  if (!delayMatch) return { triggerStoryId: trimmed, triggerDelayDays: 0 };
+
+  return {
+    triggerStoryId: (delayMatch[1] ?? '').trim(),
+    triggerDelayDays: clamp(Math.floor(numericValue(delayMatch[2], 0)), 0, 365),
+  };
 }
 
 function getAdminSubjectIdForSheetName(
@@ -1991,6 +2115,7 @@ function importChatKindValue(value: string): AdminChatKind {
   if (normalized === 'story') return 'story';
   if (normalized === 'leave') return 'leave';
   if (normalized === 'order') return 'order';
+  if (normalized === 'happy') return 'happy';
   return 'comment';
 }
 
@@ -2050,10 +2175,12 @@ function parseOdsTables(contentXml: string): Array<{ name: string; rows: string[
 }
 
 function createImportedChatEntry(
-  subjectId: AdminSubjectId,
+  id: string,
   kind: AdminChatKind,
-  threshold: number,
   title: string,
+  summary: string,
+  triggerStoryId: string,
+  triggerDelayDays: number,
   textValues: string[],
   rowIndex: number,
 ): AdminChatEntry | null {
@@ -2064,11 +2191,11 @@ function createImportedChatEntry(
       value.toUpperCase() === 'PLAYERREPLY'
         ? createAdminCatReplyBlock(
             defaultAdminCatReply(),
-            `import-${subjectId}-${threshold}-${rowIndex}-reply-${index}`,
+            `${id}-reply-${index}`,
           )
         : createAdminBubbleBlock(
             value,
-            `import-${subjectId}-${threshold}-${rowIndex}-bubble-${index}`,
+            `${id}-bubble-${index}`,
           ),
     );
   const synced = syncAdminChatEntryBlocks(blocks);
@@ -2081,19 +2208,22 @@ function createImportedChatEntry(
       ? `Story ${rowIndex}`
       : kind === 'comment'
         ? firstLine || `Comment ${rowIndex}`
+        : kind === 'happy'
+          ? firstLine || `Happy ${rowIndex}`
         : `${ADMIN_CHAT_KIND_LABELS[kind]} ${rowIndex}`);
+  const safeSummary = summary.trim() || synced.bubbles.join(' ');
 
   return {
-    id: `import-${subjectId}-${threshold}-${spreadsheetIdPart(kind)}-${rowIndex}-${Date.now()}`,
+    id,
     kind,
     title: safeTitle,
-    summary: synced.bubbles.join(' '),
+    summary: safeSummary,
     startImageSrc: '',
     blocks: synced.blocks,
     bubbles: synced.bubbles,
     catReply: synced.catReply,
-    triggerStoryId: '',
-    triggerDelayDays: 0,
+    triggerStoryId: kind === 'story' ? triggerStoryId : '',
+    triggerDelayDays: kind === 'story' && triggerStoryId ? triggerDelayDays : 0,
     moodIconIds: [],
   };
 }
@@ -2115,9 +2245,16 @@ function importChatRowsForSubject(
     (header) =>
       header === 'repneeded' || header === 'relationship' || header === 'relationshipneeded',
   );
+  const idIndex = headers.findIndex((header) => header === 'id' || header === 'chatid');
   const typeIndex = headers.findIndex((header) => header === 'type');
   const titleIndex = headers.findIndex(
     (header) => header === 'storytitle' || header === 'title' || header === 'story',
+  );
+  const triggerIndex = headers.findIndex(
+    (header) => header === 'trigger' || header === 'triggerstory' || header === 'triggerstoryid',
+  );
+  const summaryIndex = headers.findIndex(
+    (header) => header === 'summary' || header === 'description' || header === 'synopsis',
   );
   const textIndexes = headers
     .map((header, index) => ({ header, index }))
@@ -2127,6 +2264,7 @@ function importChatRowsForSubject(
   if (typeIndex < 0 || textIndexes.length === 0) return [];
 
   const groupsByThreshold = new Map<number, AdminRelationshipChatGroup>();
+  const usedIds = new Set<string>();
   rows.slice(headerIndex + 1).forEach((row, rowOffset) => {
     const threshold = clamp(
       Math.floor(numericValue(thresholdIndex >= 0 ? row[thresholdIndex] : 0, 0)),
@@ -2135,11 +2273,17 @@ function importChatRowsForSubject(
     );
     const kind = importChatKindValue(row[typeIndex] ?? '');
     const title = titleIndex >= 0 ? (row[titleIndex] ?? '') : '';
+    const fallbackId = `import-${subjectId}-${threshold}-${spreadsheetIdPart(kind)}-${rowOffset + 1}`;
+    const id = spreadsheetEntryId(idIndex >= 0 ? (row[idIndex] ?? '') : '', fallbackId, usedIds);
+    const summary = summaryIndex >= 0 ? (row[summaryIndex] ?? '') : '';
+    const trigger = parseImportedTrigger(triggerIndex >= 0 ? (row[triggerIndex] ?? '') : '');
     const entry = createImportedChatEntry(
-      subjectId,
+      id,
       kind,
-      threshold,
       title,
+      summary,
+      trigger.triggerStoryId,
+      trigger.triggerDelayDays,
       textIndexes.map((index) => row[index] ?? ''),
       rowOffset + 1,
     );
@@ -2587,9 +2731,9 @@ function normalizeOpeningPlacement(
   const parsed =
     value != null && typeof value === 'object' ? (value as Partial<AdminOpeningPlacement>) : {};
   return {
-    x: clamp(numericValue(parsed.x, fallback.x), 4, 96),
-    y: clamp(numericValue(parsed.y, fallback.y), 12, 96),
-    scale: clamp(Math.floor(numericValue(parsed.scale, fallback.scale)), 40, 300),
+    x: clamp(numericValue(parsed.x, fallback.x), -60, 160),
+    y: clamp(numericValue(parsed.y, fallback.y), -20, 140),
+    scale: clamp(Math.floor(numericValue(parsed.scale, fallback.scale)), 40, 500),
   };
 }
 
@@ -2769,6 +2913,7 @@ function applyAdminSettingsToProfile(
 
   return {
     ...profile,
+    name: characterSettings.displayName || profile.name,
     tipStyle: characterSettings.tipStyle,
     tipBase: characterSettings.tipBase,
     patienceMs: characterSettings.patienceMs,
@@ -3186,6 +3331,60 @@ const CUSTOMERS = [
     ],
   }),
   makeCustomer({
+    id: 'custom_1',
+    memberIds: ['custom_1'],
+    seat: 'Custom table',
+    moodStart: 40,
+    storyTitle: 'First Visit',
+    story: 'A new regular settles into the cafe and lets the cat keep them company.',
+    followUps: [],
+  }),
+  makeCustomer({
+    id: 'custom_2',
+    memberIds: ['custom_2'],
+    seat: 'Custom table',
+    moodStart: 40,
+    storyTitle: 'First Visit',
+    story: 'A new regular settles into the cafe and lets the cat keep them company.',
+    followUps: [],
+  }),
+  makeCustomer({
+    id: 'custom_3',
+    memberIds: ['custom_3'],
+    seat: 'Custom table',
+    moodStart: 40,
+    storyTitle: 'First Visit',
+    story: 'A new regular settles into the cafe and lets the cat keep them company.',
+    followUps: [],
+  }),
+  makeCustomer({
+    id: 'custom_4',
+    memberIds: ['custom_4'],
+    seat: 'Custom table',
+    moodStart: 40,
+    storyTitle: 'First Visit',
+    story: 'A new regular settles into the cafe and lets the cat keep them company.',
+    followUps: [],
+  }),
+  makeCustomer({
+    id: 'custom_5',
+    memberIds: ['custom_5'],
+    seat: 'Custom table',
+    moodStart: 40,
+    storyTitle: 'First Visit',
+    story: 'A new regular settles into the cafe and lets the cat keep them company.',
+    followUps: [],
+  }),
+  makeCustomer({
+    id: 'custom_6',
+    memberIds: ['custom_6'],
+    seat: 'Custom table',
+    moodStart: 40,
+    storyTitle: 'First Visit',
+    story: 'A new regular settles into the cafe and lets the cat keep them company.',
+    followUps: [],
+  }),
+  makeCustomer({
     id: 'liam-eli',
     memberIds: ['liam', 'eli'],
     seat: 'Center table',
@@ -3268,6 +3467,14 @@ function getAdminSubjectCustomer(
 
   return characterPreviewCustomer(
     getEditableCharacterProfile(isCharacterId(subjectId) ? subjectId : 'shadow', settings),
+  );
+}
+
+function getPlayableCustomerForAdminSubject(subjectId: AdminSubjectId): Customer | null {
+  return (
+    CUSTOMERS.find((customer) => customer.id === subjectId) ??
+    CUSTOMERS.find((customer) => customer.members.some((member) => member.id === subjectId)) ??
+    null
   );
 }
 
@@ -3806,6 +4013,10 @@ function clampTableSlot(slot: number, tableCount: number): TableSlot {
   return clamp(Math.floor(slot), 0, maxSlot) as TableSlot;
 }
 
+function getVisualStoreSlot(slot: TableSlot, tableCount: number): TableSlot {
+  return tableCount === 1 && slot === 0 ? 1 : slot;
+}
+
 function seededRandom(seed: number): number {
   const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
   return x - Math.floor(x);
@@ -4216,6 +4427,7 @@ function getVisitCare(
     cutes: care?.cutes ?? 0,
     storyTalks: care?.storyTalks ?? 0,
     kittyAnswer,
+    happySeen: Boolean(care?.happySeen),
   };
 }
 
@@ -4384,6 +4596,15 @@ function getAdminChatStoryLineImages(entry: AdminChatEntry): string[] {
     .map((block) => block.imageSrc || entry.startImageSrc);
 }
 
+function getAdminChatReplyAfterLineIndex(entry: AdminChatEntry): number | undefined {
+  let bubbleCount = 0;
+  for (const block of entry.blocks) {
+    if (block.kind === 'catReply') return Math.max(1, bubbleCount);
+    if (block.kind === 'bubble' && block.text.trim()) bubbleCount += 1;
+  }
+  return undefined;
+}
+
 function adminChatEntryToStoryChapter(
   entry: AdminChatEntry,
   group: AdminRelationshipChatGroup,
@@ -4399,6 +4620,7 @@ function adminChatEntryToStoryChapter(
     imageSrc: entry.startImageSrc || fallback.imageSrc,
     lineImageSrcs: getAdminChatStoryLineImages(entry),
     choices: entry.catReply ?? undefined,
+    replyAfterLineIndex: entry.catReply ? getAdminChatReplyAfterLineIndex(entry) : undefined,
     triggerStoryId: entry.triggerStoryId || fallback.triggerStoryId || '',
     triggerDelayDays: clamp(
       Math.floor(numericValue(entry.triggerDelayDays, fallback.triggerDelayDays ?? 0)),
@@ -4446,6 +4668,35 @@ function getStoryForVisit(customer: Customer, visitNumber: number): StoryChapter
   const safeVisitNumber = Math.max(1, Math.floor(visitNumber));
   const index = clamp(safeVisitNumber - 1, 0, arc.length - 1);
   return arc[index] ?? fallback;
+}
+
+function findAdminChatEntryForCustomer(
+  customer: Customer,
+  entryId: string,
+  chats = activeAdminChats,
+): { entry: AdminChatEntry; group: AdminRelationshipChatGroup } | null {
+  if (!entryId) return null;
+  const subjectId = getCustomerAdminSubjectId(customer);
+  if (!subjectId) return null;
+
+  const groups = chats[subjectId] ?? getDefaultAdminChatsForSubject(subjectId);
+  for (const group of groups) {
+    const entry = group.entries.find((item) => item.id === entryId);
+    if (entry) return { entry, group };
+  }
+
+  return null;
+}
+
+function getForcedStoryChapterForCustomer(
+  customer: Customer,
+  entryId: string,
+  chats = activeAdminChats,
+): StoryChapter | null {
+  const match = findAdminChatEntryForCustomer(customer, entryId, chats);
+  if (!match || match.entry.kind !== 'story') return null;
+
+  return adminChatEntryToStoryChapter(match.entry, match.group, getStoryForVisit(customer, 1));
 }
 
 function getStoryChapterId(customer: Customer, visitNumber: number, story: StoryChapter): string {
@@ -4610,16 +4861,20 @@ function getAdminCommentChat(
   game: GameState,
   visitNumber: number,
   chatSeed: number,
+  forcedEntryId = '',
 ): KittyChat | null {
   const subjectId = getCustomerAdminSubjectId(customer);
   if (!subjectId) return null;
 
   const relationshipScore = getCustomerRelationshipScore(game, customer);
   const groups = activeAdminChats[subjectId] ?? getDefaultAdminChatsForSubject(subjectId);
-  const comments = groups
-    .filter((group) => relationshipScore >= group.threshold)
-    .sort((a, b) => b.threshold - a.threshold)
-    .flatMap((group) => group.entries.filter((entry) => entry.kind === 'comment'));
+  const forcedEntry = forcedEntryId ? findAdminChatEntryForCustomer(customer, forcedEntryId) : null;
+  const comments = forcedEntry
+    ? [forcedEntry.entry]
+    : groups
+        .filter((group) => relationshipScore >= group.threshold)
+        .sort((a, b) => b.threshold - a.threshold)
+        .flatMap((group) => group.entries.filter((entry) => entry.kind === 'comment'));
 
   if (comments.length === 0) return null;
 
@@ -4640,8 +4895,9 @@ function getKittyChat(
   game: GameState,
   visitNumber: number,
   chatSeed = 0,
+  forcedEntryId = '',
 ): KittyChat {
-  const adminComment = getAdminCommentChat(customer, game, visitNumber, chatSeed);
+  const adminComment = getAdminCommentChat(customer, game, visitNumber, chatSeed, forcedEntryId);
   if (adminComment) return adminComment;
 
   if (customer.id === 'liam') {
@@ -5041,6 +5297,7 @@ function defaultInitialState(game: GameState): InitialAppState {
     patienceBySlot: createPatienceBySlot(seatCustomerSlots),
     dayElapsedMs: getDayStartElapsedMs(game),
     purrCooldownRemainingMs: 0,
+    meowCooldownRemainingMs: 0,
     quietCooldownRemainingMs: 0,
     rollCooldownRemainingMs: 0,
     cuteCooldownRemainingMs: 0,
@@ -5153,6 +5410,11 @@ function loadSession(savedGame: GameState): InitialAppState {
         0,
         BASE_PURR_COOLDOWN_MS,
       ),
+      meowCooldownRemainingMs: clamp(
+        Math.floor(numericValue(parsed.meowCooldownRemainingMs, 0)),
+        0,
+        BASE_MEOW_COOLDOWN_MS,
+      ),
       quietCooldownRemainingMs: clamp(
         Math.floor(numericValue(parsed.quietCooldownRemainingMs, 0)),
         0,
@@ -5216,6 +5478,9 @@ function TeaShopCat() {
   const [actionNow, setActionNow] = useState(() => Date.now());
   const [purrReadyAt, setPurrReadyAt] = useState(
     () => Date.now() + initialState.purrCooldownRemainingMs,
+  );
+  const [meowReadyAt, setMeowReadyAt] = useState(
+    () => Date.now() + initialState.meowCooldownRemainingMs,
   );
   const [quietReadyAt, setQuietReadyAt] = useState(
     () => Date.now() + initialState.quietCooldownRemainingMs,
@@ -5284,6 +5549,21 @@ function TeaShopCat() {
   const adminPortableSaveTimerRef = useRef<number | null>(null);
   const catActionPoseTimerRef = useRef<number | null>(null);
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
+  const adminChatTestSnapshotRef = useRef<{
+    game: GameState;
+    nextCustomerSlot: number;
+    seatCustomerSlots: Array<number | null>;
+    selectedSlot: TableSlot;
+    arrivalState: ArrivalState;
+    servedSlots: TableSlot[];
+    servedOrdersBySlot: Partial<Record<TableSlot, number[]>>;
+    serviceQualityBySlot: Partial<Record<TableSlot, number>>;
+    careBySlot: Partial<Record<TableSlot, VisitCare>>;
+    activeStoryBySlot: Partial<Record<TableSlot, ActiveStorySession>>;
+    patienceBySlot: Partial<Record<TableSlot, number>>;
+    moodBySlot: Partial<Record<TableSlot, number>>;
+    mood: number;
+  } | null>(null);
 
   function updateMusicMuted(nextMuted: boolean) {
     setMusicMuted(nextMuted);
@@ -5322,7 +5602,7 @@ function TeaShopCat() {
     void Promise.all([loadOpeningSettingsFromIndexedDb(), loadAdminPortableState()]).then(
       ([indexedSettings, portableState]) => {
         if (cancelled) return;
-        const settings = indexedSettings ?? portableState?.openingSettings;
+        const settings = portableState?.openingSettings ?? indexedSettings;
         if (!settings) return;
         const normalizedOpeningSettings = normalizeOpeningSettings(settings);
         setAdminOpeningSettings(normalizedOpeningSettings);
@@ -5353,13 +5633,13 @@ function TeaShopCat() {
     ]).then(([layouts, seatSpots, settings, chats, moodIcons, chatMenu, catSettings, portable]) => {
       if (cancelled) return;
       const portableState = portable ?? null;
-      const nextLayouts = layouts ?? portableState?.layouts;
-      const nextSeatSpots = seatSpots ?? portableState?.seatSpots;
-      const nextSettings = settings ?? portableState?.characterSettings;
-      const nextChats = chats ?? portableState?.chats;
-      const nextMoodIcons = moodIcons ?? portableState?.moodIcons;
-      const nextChatMenu = chatMenu ?? portableState?.chatMenu;
-      const nextCatSettings = catSettings ?? portableState?.catSettings;
+      const nextLayouts = portableState?.layouts ?? layouts;
+      const nextSeatSpots = portableState?.seatSpots ?? seatSpots;
+      const nextSettings = portableState?.characterSettings ?? settings;
+      const nextChats = portableState?.chats ?? chats;
+      const nextMoodIcons = portableState?.moodIcons ?? moodIcons;
+      const nextChatMenu = portableState?.chatMenu ?? chatMenu;
+      const nextCatSettings = portableState?.catSettings ?? catSettings;
 
       if (nextLayouts) setAdminLayouts(nextLayouts);
       if (nextSeatSpots) setAdminSeatSpotLayouts(nextSeatSpots);
@@ -5443,55 +5723,12 @@ function TeaShopCat() {
     scheduleAdminLargeSave('cat-settings', normalizedCatSettings);
   }, [adminCatSettings]);
 
-  useEffect(() => {
-    if (!adminLargeLoadedRef.current || !import.meta.env.DEV) return;
-    if (adminPortableSaveTimerRef.current != null) {
-      window.clearTimeout(adminPortableSaveTimerRef.current);
-    }
-
-    const portableState: AdminPortableState = {
-      version: 1,
-      layouts: ADMIN_SUBJECT_IDS.reduce<AdminLayouts>((layouts, characterId) => {
-        layouts[characterId] = normalizeAdminLayout(adminLayouts[characterId], characterId);
-        return layouts;
-      }, {}),
-      seatSpots: normalizeAdminSeatSpotLayouts(adminSeatSpotLayouts),
-      characterSettings: normalizeAdminCharacterSettings(adminCharacterSettings),
-      chats: normalizeAdminChats(adminChats),
-      moodIcons: normalizeAdminMoodIcons(adminMoodIcons),
-      chatMenu: normalizeAdminChatMenuSettings(adminChatMenuSettings),
-      catSettings: normalizeAdminCatSettings(adminCatSettings),
-      openingSettings: normalizeOpeningSettings(adminOpeningSettings),
-    };
-
-    adminPortableSaveTimerRef.current = window.setTimeout(() => {
-      adminPortableSaveTimerRef.current = null;
-      void saveAdminPortableState(portableState);
-    }, 600);
-  }, [
-    adminLayouts,
-    adminSeatSpotLayouts,
-    adminCharacterSettings,
-    adminChats,
-    adminMoodIcons,
-    adminChatMenuSettings,
-    adminCatSettings,
-    adminOpeningSettings,
-  ]);
-
   function showCatPose(poseKey: CatPoseKey) {
     setCatActionPose(poseKey);
     if (catActionPoseTimerRef.current != null) {
       window.clearTimeout(catActionPoseTimerRef.current);
     }
-    if (poseKey === 'roll') {
-      catActionPoseTimerRef.current = null;
-      return;
-    }
-    catActionPoseTimerRef.current = window.setTimeout(() => {
-      setCatActionPose('idle');
-      catActionPoseTimerRef.current = null;
-    }, 900);
+    catActionPoseTimerRef.current = null;
   }
 
   function setMoodForSlot(slot: TableSlot, nextMood: number): number {
@@ -5528,13 +5765,29 @@ function TeaShopCat() {
     ? activeStorySession.visitNumber
     : getCustomerVisitCount(game, currentCustomer.id) + 1;
   const currentChatSeed = activeStoryMatchesCustomer ? activeStorySession.chatSeed : 0;
-  const currentStory = getStoryForVisit(currentCustomer, currentVisitNumber);
+  const currentForcedEntryId = activeStoryMatchesCustomer
+    ? (activeStorySession.forcedEntryId ?? '')
+    : '';
+  const forcedStory = getForcedStoryChapterForCustomer(currentCustomer, currentForcedEntryId);
+  const forcedConversationActive = Boolean(currentForcedEntryId);
+  const currentStory = forcedStory ?? getStoryForVisit(currentCustomer, currentVisitNumber);
   const currentStoryArcLength = getStoryArcLength(currentCustomer);
   const currentStoryChapterNumber = clamp(currentVisitNumber, 1, currentStoryArcLength);
   const currentCare = getVisitCare(careBySlot, selectedOccupiedSlot);
   const currentStoryLines = getStoryTalkLines(currentStory);
   const currentStoryLineCount = currentStoryLines.length;
   const currentKittyAnswer = clamp(currentCare.kittyAnswer, 0, 2) as 0 | 1 | 2;
+  const currentStoryReplyAfterLine = currentStory.choices
+    ? clamp(
+        Math.floor(numericValue(currentStory.replyAfterLineIndex, currentStoryLineCount)),
+        1,
+        currentStoryLineCount,
+      )
+    : currentStoryLineCount;
+  const currentStoryVisibleLineCount =
+    currentStory.choices && currentKittyAnswer <= 0
+      ? currentStoryReplyAfterLine
+      : currentStoryLineCount;
   const currentStoryAlreadyCollected =
     getCustomerVisitCount(game, currentCustomer.id) >= currentVisitNumber;
   const currentStoryAvailable =
@@ -5549,22 +5802,23 @@ function TeaShopCat() {
     activeStoryMatchesCustomer &&
     currentStoryAlreadyCollected;
   const currentStoryReady =
-    serviceServed &&
+    (serviceServed || forcedConversationActive) &&
     currentConversationKind === 'story' &&
-    (currentStoryAvailable || currentStoryInConversation);
+    (currentStoryAvailable || currentStoryInConversation || forcedConversationActive);
   const currentStoryTalks = currentStoryReady
-    ? clamp(currentCare.storyTalks, 0, Math.max(0, currentStoryLineCount - 1))
+    ? clamp(currentCare.storyTalks, 0, Math.max(0, currentStoryVisibleLineCount - 1))
     : 0;
   const currentStoryProgress = currentStoryReady
-    ? clamp(currentStoryTalks + 1, 1, currentStoryLineCount)
+    ? clamp(currentStoryTalks + 1, 1, currentStoryVisibleLineCount)
     : 0;
   const currentStoryChoices = currentStory.choices ?? null;
   const currentStoryChoiceReady =
     currentStoryReady &&
     currentStoryChoices != null &&
-    currentStoryProgress >= currentStoryLineCount;
+    currentKittyAnswer <= 0 &&
+    currentStoryProgress >= currentStoryReplyAfterLine;
   const currentStoryChoiceReply =
-    currentStoryChoiceReady && currentKittyAnswer > 0
+    currentKittyAnswer > 0
       ? (currentStoryChoices?.[currentKittyAnswer - 1]?.reply ?? '')
       : '';
   const currentStoryComplete =
@@ -5578,7 +5832,13 @@ function TeaShopCat() {
     ? getStoryTalkImage(currentStory, currentStoryProgress - 1)
     : '';
   const currentStoryClosingLine = getStoryClosingLine(currentCustomer);
-  const currentKittyChat = getKittyChat(currentCustomer, game, currentVisitNumber, currentChatSeed);
+  const currentKittyChat = getKittyChat(
+    currentCustomer,
+    game,
+    currentVisitNumber,
+    currentChatSeed,
+    currentForcedEntryId,
+  );
   const currentKittyOptions = currentConversationKind === 'kitty' ? currentKittyChat.options : null;
   const currentKittyReply =
     currentKittyAnswer > 0 && currentKittyOptions
@@ -5633,11 +5893,10 @@ function TeaShopCat() {
   const rollCooldownMs = getActionCooldown(game.upgrades, 'roll');
   const cuteCooldownMs = getActionCooldown(game.upgrades, 'cute');
   const purrCooldownRemaining = Math.max(0, purrReadyAt - actionNow);
+  const meowCooldownRemaining = Math.max(0, meowReadyAt - actionNow);
   const quietCooldownRemaining = Math.max(0, quietReadyAt - actionNow);
   const rollCooldownRemaining = Math.max(0, rollReadyAt - actionNow);
   const cuteCooldownRemaining = Math.max(0, cuteReadyAt - actionNow);
-  const listenMoodGain =
-    purrCooldownRemaining > 0 ? LISTEN_PURR_COOLDOWN_MOOD_GAIN : LISTEN_MOOD_GAIN;
   const fullMoodCareUnlocked = serviceServed;
   const showTopBar =
     scene !== 'start' &&
@@ -5685,6 +5944,7 @@ function TeaShopCat() {
     patienceBySlot,
     dayElapsedMs,
     purrReadyAt,
+    meowReadyAt,
     quietReadyAt,
     rollReadyAt,
     cuteReadyAt,
@@ -6091,6 +6351,7 @@ function TeaShopCat() {
       patienceBySlot: state.patienceBySlot,
       dayElapsedMs: state.dayElapsedMs,
       purrCooldownRemainingMs: Math.max(0, state.purrReadyAt - timerBase),
+      meowCooldownRemainingMs: Math.max(0, state.meowReadyAt - timerBase),
       quietCooldownRemainingMs: Math.max(0, state.quietReadyAt - timerBase),
       rollCooldownRemainingMs: Math.max(0, state.rollReadyAt - timerBase),
       cuteCooldownRemainingMs: Math.max(0, state.cuteReadyAt - timerBase),
@@ -6341,6 +6602,7 @@ function TeaShopCat() {
     setMood(40);
     setPurrBeat(0);
     setPurrReadyAt(0);
+    setMeowReadyAt(0);
     setQuietReadyAt(0);
     setRollReadyAt(0);
     setCuteReadyAt(0);
@@ -6454,6 +6716,142 @@ function TeaShopCat() {
     setArrivalState('ready');
   }
 
+  function testAdminChatEntry(subjectId: AdminSubjectId, entryId: string) {
+    const playableCustomer = getPlayableCustomerForAdminSubject(subjectId);
+    if (!playableCustomer) return;
+
+    const entryMatch = findAdminChatEntryForCustomer(playableCustomer, entryId, adminChats);
+    if (!entryMatch) return;
+
+    setActiveAdminChats(adminChats);
+
+    const customerIndex = CUSTOMERS.findIndex((customer) => customer.id === playableCustomer.id);
+    if (customerIndex < 0) return;
+
+    const existingSlot = TABLE_SLOTS.find((slot) => {
+      const customerSlot = seatCustomerSlots[slot];
+      return customerSlot != null && getCustomer(customerSlot).id === playableCustomer.id;
+    });
+    const targetSlot =
+      existingSlot ??
+      TABLE_SLOTS.find((slot) => slot < tableCount && seatCustomerSlots[slot] == null) ??
+      selectedOccupiedSlot;
+    const existingCustomerSlot = existingSlot != null ? seatCustomerSlots[existingSlot] : null;
+    const nextCustomerSlot =
+      existingCustomerSlot ?? createCustomerToken(nextCustomerSlotRef.current, customerIndex);
+    const testCustomer = getCustomer(nextCustomerSlot);
+    const testMemberIds = new Set(getPartyMemberIds(testCustomer));
+
+    adminChatTestSnapshotRef.current = {
+      game,
+      nextCustomerSlot: nextCustomerSlotRef.current,
+      seatCustomerSlots: [...seatCustomerSlots],
+      selectedSlot,
+      arrivalState,
+      servedSlots: [...servedSlots],
+      servedOrdersBySlot: { ...servedOrdersBySlot },
+      serviceQualityBySlot: { ...serviceQualityBySlot },
+      careBySlot: { ...careBySlot },
+      activeStoryBySlot: { ...activeStoryBySlot },
+      patienceBySlot: { ...patienceBySlot },
+      moodBySlot: { ...moodBySlot },
+      mood,
+    };
+
+    if (existingCustomerSlot == null) {
+      nextCustomerSlotRef.current += 1;
+    }
+
+    arrivalTimersRef.current = arrivalTimersRef.current.filter((timer) => {
+      if (timer.slot !== targetSlot) return true;
+      window.clearTimeout(timer.timeout);
+      return false;
+    });
+
+    setSeatCustomerSlots((prev) => {
+      const nextSeats = prev.map((customerSlot) => {
+        if (customerSlot == null) return null;
+        const existingCustomer = getCustomer(customerSlot);
+        return getPartyMemberIds(existingCustomer).some((memberId) => testMemberIds.has(memberId))
+          ? null
+          : customerSlot;
+      });
+      nextSeats[targetSlot] = nextCustomerSlot;
+      return nextSeats;
+    });
+    setSelectedSlot(targetSlot);
+    setArrivalState('ready');
+    setServedSlots((prev) => prev.filter((slot) => slot !== targetSlot));
+    setServedOrdersBySlot((prev) => {
+      const nextOrders = { ...prev };
+      delete nextOrders[targetSlot];
+      return nextOrders;
+    });
+    setServiceQualityBySlot((prev) => {
+      const nextQuality = { ...prev };
+      delete nextQuality[targetSlot];
+      return nextQuality;
+    });
+    setCareBySlot((prev) => ({
+      ...prev,
+      [targetSlot]: getVisitCare({}, targetSlot),
+    }));
+    setActiveStoryBySlot((prev) => ({
+      ...prev,
+      [targetSlot]: {
+        customerId: testCustomer.id,
+        kind: entryMatch.entry.kind === 'story' ? 'story' : 'kitty',
+        visitNumber: Math.max(1, getCustomerVisitCount(game, testCustomer.id) + 1),
+        chatSeed: Math.floor(Date.now() % 1_000_000),
+        forcedEntryId: entryMatch.entry.id,
+      },
+    }));
+    setPatienceBySlot((prev) => ({
+      ...prev,
+      [targetSlot]: testCustomer.patienceMs,
+    }));
+    setMoodForSlot(
+      targetSlot,
+      startingMood(testCustomer, getService(nextCustomerSlot, game.recipes, 0, testCustomer), false),
+    );
+    setGame((prev) => ({
+      ...prev,
+      customerSlot: Math.max(prev.customerSlot, nextCustomerSlotRef.current),
+      metCustomers: Array.from(new Set([...prev.metCustomers, ...getCustomerMetIds(testCustomer)])),
+    }));
+    setScene('visit');
+  }
+
+  function finishAdminChatTest() {
+    const snapshot = adminChatTestSnapshotRef.current;
+    adminChatTestSnapshotRef.current = null;
+
+    if (snapshot) {
+      setGame(snapshot.game);
+      nextCustomerSlotRef.current = snapshot.nextCustomerSlot;
+      setSeatCustomerSlots(snapshot.seatCustomerSlots);
+      setSelectedSlot(snapshot.selectedSlot);
+      setArrivalState(snapshot.arrivalState);
+      setServedSlots(snapshot.servedSlots);
+      setServedOrdersBySlot(snapshot.servedOrdersBySlot);
+      setServiceQualityBySlot(snapshot.serviceQualityBySlot);
+      setCareBySlot(snapshot.careBySlot);
+      setActiveStoryBySlot(snapshot.activeStoryBySlot);
+      setPatienceBySlot(snapshot.patienceBySlot);
+      setMoodBySlot(snapshot.moodBySlot);
+      setMood(snapshot.mood);
+    } else {
+      setActiveStoryBySlot((prev) => {
+        const nextStories = { ...prev };
+        delete nextStories[selectedOccupiedSlot];
+        return nextStories;
+      });
+    }
+
+    setPurrBeat(0);
+    setScene('admin');
+  }
+
   function pauseGame() {
     if (isPausedRef.current) return;
 
@@ -6475,6 +6873,7 @@ function TeaShopCat() {
     isPausedRef.current = false;
     resumeArrivalTimers(now);
     setPurrReadyAt((prev) => (prev > pausedAt ? prev + pausedMs : prev));
+    setMeowReadyAt((prev) => (prev > pausedAt ? prev + pausedMs : prev));
     setQuietReadyAt((prev) => (prev > pausedAt ? prev + pausedMs : prev));
     setRollReadyAt((prev) => (prev > pausedAt ? prev + pausedMs : prev));
     setCuteReadyAt((prev) => (prev > pausedAt ? prev + pausedMs : prev));
@@ -6504,6 +6903,7 @@ function TeaShopCat() {
     setMood(40);
     setPurrBeat(0);
     setPurrReadyAt(0);
+    setMeowReadyAt(0);
     setQuietReadyAt(0);
     setRollReadyAt(0);
     setCuteReadyAt(0);
@@ -6577,6 +6977,7 @@ function TeaShopCat() {
     setMood(40);
     setPurrBeat(0);
     setPurrReadyAt(0);
+    setMeowReadyAt(0);
     setQuietReadyAt(0);
     setRollReadyAt(0);
     setCuteReadyAt(0);
@@ -6652,6 +7053,7 @@ function TeaShopCat() {
     setMood(40);
     setPurrBeat(0);
     setPurrReadyAt(0);
+    setMeowReadyAt(0);
     setQuietReadyAt(0);
     setRollReadyAt(0);
     setCuteReadyAt(0);
@@ -6952,6 +7354,10 @@ function TeaShopCat() {
 
   function leaveVisit() {
     showCatPose('leave');
+    if (forcedConversationActive) {
+      finishAdminChatTest();
+      return;
+    }
     if (game.tutorialStep === 'leave' && currentCustomer.id === 'matthew') {
       setGame((prev) => ({ ...prev, tutorialStep: 'clock' }));
       setScene('shop');
@@ -7737,6 +8143,7 @@ function TeaShopCat() {
             mood={mood}
             purrBeat={purrBeat}
             purrCooldownRemaining={purrCooldownRemaining}
+            meowCooldownRemaining={meowCooldownRemaining}
             quietCooldownRemaining={quietCooldownRemaining}
             rollCooldownRemaining={rollCooldownRemaining}
             cuteCooldownRemaining={cuteCooldownRemaining}
@@ -7754,13 +8161,13 @@ function TeaShopCat() {
             storyChoiceAnswer={currentKittyAnswer}
             storyChoiceReply={resolveGameTextVariables(currentStoryChoiceReply, game)}
             kittyChatReady={currentKittyChatReady}
+            forceDialogueReady={forcedConversationActive}
             kittyQuestion={resolveGameTextVariables(currentKittyChat.question, game)}
             kittyImageSrc={currentKittyChat.imageSrc ?? ''}
             kittyOptions={currentKittyOptions}
             kittyAnswer={currentKittyAnswer}
             kittyReply={resolveGameTextVariables(currentKittyReply, game)}
             orderLine={resolveGameTextVariables(currentOrderComment, game)}
-            listenMoodGain={listenMoodGain}
             layout={getCustomerAdminLayout(currentCustomer, adminLayouts)}
             chatMenuSettings={adminChatMenuSettings}
             catImageSrc={getCatImageSrc(adminCatSettings, catActionPose)}
@@ -7858,6 +8265,7 @@ function TeaShopCat() {
               setAdminMoodIcons(icons);
               setAdminSaveMessage('');
             }}
+            onAdminChatEntryTest={testAdminChatEntry}
             onOpeningSettingsChange={(settings) => {
               persistAdminOpeningSettings(settings);
             }}
@@ -8278,8 +8686,8 @@ function OpeningStagePreview({
     const rect = stage.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
     return {
-      x: clamp(((event.clientX - rect.left) / rect.width) * 100, 4, 96),
-      y: clamp(((event.clientY - rect.top) / rect.height) * 100, 12, 96),
+      x: clamp(((event.clientX - rect.left) / rect.width) * 100, -60, 160),
+      y: clamp(((event.clientY - rect.top) / rect.height) * 100, -20, 140),
     };
   }
 
@@ -8319,8 +8727,8 @@ function OpeningStagePreview({
     const pointerPosition = getPreviewPosition(event);
     if (!pointerPosition) return;
     updatePlacement(actor, {
-      x: clamp(pointerPosition.x - dragOffsetRef.current.x, 4, 96),
-      y: clamp(pointerPosition.y - dragOffsetRef.current.y, 12, 96),
+      x: clamp(pointerPosition.x - dragOffsetRef.current.x, -60, 160),
+      y: clamp(pointerPosition.y - dragOffsetRef.current.y, -20, 140),
     });
   }
 
@@ -8510,7 +8918,7 @@ function OpeningStagePreview({
                 <span>{label} scale</span>
                 <input
                   min={40}
-                  max={300}
+                  max={500}
                   type="range"
                   value={placement.scale}
                   onInput={(event) =>
@@ -8913,6 +9321,7 @@ interface AdminScreenProps {
   selectedCharacterId: AdminSubjectId;
   onAdminChatsChange: (chats: AdminChats) => void;
   onAdminCatSettingsChange: (settings: AdminCatSettings) => void;
+  onAdminChatEntryTest: (subjectId: AdminSubjectId, entryId: string) => void;
   onAdminChatMenuSettingsChange: (settings: AdminChatMenuSettings) => void;
   onAdminMoodIconsChange: (icons: AdminMoodIcon[]) => void;
   onOpeningSettingsChange: (settings: AdminOpeningSettings) => void;
@@ -8968,6 +9377,7 @@ function AdminScreen({
   selectedCharacterId,
   onAdminChatsChange,
   onAdminCatSettingsChange,
+  onAdminChatEntryTest,
   onAdminChatMenuSettingsChange,
   onAdminMoodIconsChange,
   onOpeningSettingsChange,
@@ -8976,6 +9386,7 @@ function AdminScreen({
   onCharacterScaleChange,
   onCharacterSettingsChange,
   onLayoutChange,
+  onResetLayout,
   onResetSeatSpots,
   onResetTalkingLayout,
   onSave,
@@ -9018,6 +9429,8 @@ function AdminScreen({
   const [selectedChatEntryId, setSelectedChatEntryId] = useState('');
   const [chatEditorMode, setChatEditorMode] = useState<AdminChatEditorMode>('list');
   const [chatToolMode, setChatToolMode] = useState<AdminChatToolMode>('chats');
+  const [previewChatKind, setPreviewChatKind] = useState<AdminChatKind>('story');
+  const [previewChatEntryId, setPreviewChatEntryId] = useState('');
   const [openingTab, setOpeningTab] = useState<AdminOpeningTab>('settings');
   const [addingChatGroupId, setAddingChatGroupId] = useState('');
   const [chatImportMessage, setChatImportMessage] = useState('');
@@ -9176,26 +9589,44 @@ function AdminScreen({
     selectedChatGroup?.entries.find((entry) => entry.id === selectedChatEntryId) ?? null;
   const previewChatGroups =
     adminChats[selectedCharacterId] ?? getDefaultAdminChatsForSubject(selectedCharacterId);
-  const fallbackPreviewChatEntry =
-    previewChatGroups.flatMap((group) => group.entries).find((entry) => entry.kind === 'story') ??
-    previewChatGroups.flatMap((group) => group.entries)[0] ??
-    null;
+  const previewChatEntries = previewChatGroups
+    .flatMap((group) => group.entries)
+    .filter((entry) => entry.kind === previewChatKind);
   const previewChatEntry =
-    selectedChatSubjectId === selectedCharacterId && selectedChatEntry
-      ? selectedChatEntry
-      : fallbackPreviewChatEntry;
+    previewChatEntries.find((entry) => entry.id === previewChatEntryId) ??
+    previewChatEntries[0] ??
+    null;
+  const previewChatImage =
+    previewChatEntry && previewChatEntry.kind !== 'leave'
+      ? getAdminChatStoryLineImages(previewChatEntry).find(Boolean) ||
+        previewChatEntry.startImageSrc ||
+        ''
+      : '';
+  const activePreviewTalkingImage = previewChatImage || activeTalkingImage;
   const previewChatLines = previewChatEntry ? getAdminChatStoryLines(previewChatEntry) : [];
   const previewChatLineCount = Math.max(previewChatLines.length, 1);
   const previewChatTitle = previewChatEntry
     ? previewChatEntry.kind === 'story'
       ? previewChatEntry.title || `${selectedCustomer.name}'s Story`
       : `${ADMIN_CHAT_KIND_LABELS[previewChatEntry.kind]}: ${previewChatEntry.title}`
-    : `${selectedCustomer.name}'s Story`;
+    : `No ${ADMIN_CHAT_KIND_LABELS[previewChatKind].toLowerCase()} set`;
   const previewChatLine =
     previewChatLines[0] ||
     previewChatEntry?.summary ||
     previewChatEntry?.title ||
-    'Add a chat to preview it here.';
+    `Add a ${ADMIN_CHAT_KIND_LABELS[previewChatKind].toLowerCase()} to preview it here.`;
+  const previewChatFallbackEntryId = previewChatEntries[0]?.id ?? '';
+  useEffect(() => {
+    if (previewChatEntries.some((entry) => entry.id === previewChatEntryId)) return;
+    setPreviewChatEntryId(previewChatFallbackEntryId);
+  }, [
+    adminChats,
+    previewChatEntries,
+    previewChatEntryId,
+    previewChatFallbackEntryId,
+    previewChatKind,
+    selectedCharacterId,
+  ]);
   const selectedChatImageOptions = useMemo(() => {
     if (!selectedChatSubjectId) return [];
     const chatLayout = normalizeAdminLayout(layouts[selectedChatSubjectId], selectedChatSubjectId);
@@ -9298,7 +9729,7 @@ function AdminScreen({
         .filter((entry) => entry.kind === 'story')
         .map((entry) => ({
           id: entry.id,
-          label: `${customer.name}: ${entry.title}`,
+          label: `${customer.name}: ${entry.title} (${entry.id})`,
         })),
     );
   });
@@ -9894,13 +10325,35 @@ function AdminScreen({
     );
   }
 
-  function addMoodIcon(imageSrc: string) {
-    const nextIcon: AdminMoodIcon = {
-      id: `mood-icon-${Date.now()}`,
-      name: `Mood Icon ${adminMoodIcons.length + 1}`,
+  function updateSelectedChatEntryId(nextIdValue: string) {
+    if (!selectedChatSubjectId || !selectedChatGroup || !selectedChatEntry) return;
+    const nextId = nextIdValue.trim().replace(/\s+/g, '_');
+    if (!nextId) return;
+    updateChatGroups(
+      selectedChatSubjectId,
+      selectedChatGroups.map((group) =>
+        group.id === selectedChatGroup.id
+          ? {
+              ...group,
+              entries: group.entries.map((entry) =>
+                entry.id === selectedChatEntry.id ? { ...entry, id: nextId } : entry,
+              ),
+            }
+          : group,
+      ),
+    );
+    setSelectedChatEntryId(nextId);
+  }
+
+  function addMoodIcons(imageSrcs: string[]) {
+    const uploadId = Date.now();
+    const nextIcons = imageSrcs.filter(Boolean).map<AdminMoodIcon>((imageSrc, index) => ({
+      id: `mood-icon-${uploadId}-${index}`,
+      name: `Mood Icon ${adminMoodIcons.length + index + 1}`,
       src: imageSrc,
-    };
-    onAdminMoodIconsChange([...adminMoodIcons, nextIcon]);
+    }));
+    if (nextIcons.length <= 0) return;
+    onAdminMoodIconsChange([...adminMoodIcons, ...nextIcons]);
   }
 
   function updateMoodIcon(iconId: string, patch: Partial<AdminMoodIcon>) {
@@ -10244,7 +10697,7 @@ function AdminScreen({
     return {
       backgroundImage: item.imageSrc ? `url("${item.imageSrc}")` : undefined,
       backgroundPosition: `${item.imagePosition.x}% ${item.imagePosition.y}%`,
-      backgroundSize: `${item.imageScale}% auto`,
+      backgroundSize: `${item.imageScale}% ${item.imageScale}%`,
       left: `${item.position.x}%`,
       top: `${item.position.y}%`,
       right: 'auto',
@@ -10318,6 +10771,50 @@ function AdminScreen({
     onSelectCharacter(characterId);
     setCharacterManagerView('detail');
     setCharacterDetailTab('settings');
+  }
+
+  function addCustomCharacter() {
+    const nextCharacterId = CUSTOM_CHARACTER_IDS.find((characterId) => {
+      const settings = normalizeCharacterAdminSettings(
+        characterId,
+        characterSettings[characterId],
+      );
+      return !settings.enabled;
+    });
+    if (!nextCharacterId) return;
+
+    const currentSettings = normalizeCharacterAdminSettings(
+      nextCharacterId,
+      characterSettings[nextCharacterId],
+    );
+    onCharacterSettingsChange(nextCharacterId, {
+      ...currentSettings,
+      enabled: true,
+    });
+    selectCharacterForDetail(nextCharacterId);
+  }
+
+  function deleteCustomCharacter(characterId: AdminSubjectId) {
+    if (!isCharacterId(characterId) || !CUSTOM_CHARACTER_IDS.includes(characterId)) return;
+    if (!window.confirm(`Delete ${selectedCustomer.name}? This clears this custom character slot.`)) {
+      return;
+    }
+
+    onCharacterSettingsChange(characterId, defaultCharacterAdminSettings(CHARACTER_PROFILES[characterId]));
+    const nextChats = { ...adminChats };
+    delete nextChats[characterId];
+    onAdminChatsChange(nextChats);
+    onResetLayout(characterId);
+    onResetSeatSpots(characterId);
+    onResetTalkingLayout(characterId);
+    if (selectedChatSubjectId === characterId) {
+      setSelectedChatSubjectId('');
+      setSelectedChatGroupId('');
+      setSelectedChatEntryId('');
+      setChatEditorMode('list');
+    }
+    onSelectCharacter('shadow');
+    setCharacterManagerView('list');
   }
 
   return (
@@ -10490,12 +10987,44 @@ function AdminScreen({
                     <p className="eyebrow">Characters</p>
                     <h2>Character Manager</h2>
                   </div>
-                  <span>
-                    {ADMIN_CHARACTER_IDS.length} people, {ADMIN_PARTY_IDS.length} parties
-                  </span>
+                  <div className="admin-board-header-actions">
+                    <button
+                      className="primary-button"
+                      disabled={CUSTOM_CHARACTER_IDS.every(
+                        (characterId) =>
+                          normalizeCharacterAdminSettings(
+                            characterId,
+                            characterSettings[characterId],
+                          ).enabled,
+                      )}
+                      type="button"
+                      onClick={addCustomCharacter}
+                    >
+                      Add Character
+                    </button>
+                    <span>
+                      {
+                        ADMIN_CHARACTER_IDS.filter(
+                          (characterId) =>
+                            !CUSTOM_CHARACTER_IDS.includes(characterId) ||
+                            normalizeCharacterAdminSettings(
+                              characterId,
+                              characterSettings[characterId],
+                            ).enabled,
+                        ).length
+                      } people, {ADMIN_PARTY_IDS.length} parties
+                    </span>
+                  </div>
                 </header>
                 <div className="admin-character-grid">
-                  {ADMIN_SUBJECT_IDS.map((characterId) => {
+                  {ADMIN_SUBJECT_IDS.filter((characterId) => {
+                    if (isAdminPartyId(characterId)) return true;
+                    if (!CUSTOM_CHARACTER_IDS.includes(characterId)) return true;
+                    return normalizeCharacterAdminSettings(
+                      characterId,
+                      characterSettings[characterId],
+                    ).enabled;
+                  }).map((characterId) => {
                     const customer = getAdminSubjectCustomer(characterId, characterSettings);
                     const primaryCharacterId =
                       getCustomerPrimaryCharacterId(customer) ?? 'shadow';
@@ -10592,6 +11121,16 @@ function AdminScreen({
                   >
                     {selectedSubjectEnabled ? 'Enabled' : 'Disabled'}
                   </span>
+                  {isCharacterId(selectedCharacterId) &&
+                  CUSTOM_CHARACTER_IDS.includes(selectedCharacterId) ? (
+                    <button
+                      className="danger-button"
+                      type="button"
+                      onClick={() => deleteCustomCharacter(selectedCharacterId)}
+                    >
+                      Delete Character
+                    </button>
+                  ) : null}
                 </header>
                 <div className="admin-character-detail">
                   <div
@@ -10662,6 +11201,16 @@ function AdminScreen({
                           </div>
                         ) : (
                           <>
+                            <label>
+                              <span>Name</span>
+                              <input
+                                type="text"
+                                value={selectedSettings.displayName}
+                                onChange={(event) =>
+                                  updateSettings({ displayName: event.target.value })
+                                }
+                              />
+                            </label>
                             <label>
                               <span>Tip style</span>
                               <select
@@ -10746,7 +11295,7 @@ function AdminScreen({
                       </section>
                       <section className="admin-character-picture-section">
                         <div className="admin-field-row">
-                          <span>Default sitting</span>
+                          <span>Store image</span>
                           <small>Used in the store before the cat sits with them.</small>
                         </div>
                         <div className="admin-picture-grid">
@@ -10758,7 +11307,7 @@ function AdminScreen({
                             }
                           >
                             <span className="admin-chat-image-empty">Built-in default</span>
-                            <strong>No override</strong>
+                            <strong>No store override</strong>
                           </button>
                           {selectedCharacterImageOptions.map((option) => (
                             <button
@@ -10816,7 +11365,7 @@ function AdminScreen({
                                   onTalkingImageChange(selectedCharacterId, option.src)
                                 }
                               >
-                                Chat
+                                Conversation
                               </button>
                               <button
                                 className={
@@ -10832,7 +11381,7 @@ function AdminScreen({
                                   )
                                 }
                               >
-                                Sitting
+                                Store
                               </button>
                               {option.canDelete ? (
                                 <button
@@ -10960,30 +11509,6 @@ function AdminScreen({
           </div>
         ) : sidePanelMode === 'opening' ? (
           <div className="admin-opening-board" aria-label="Opening editor">
-            <header className="admin-board-header">
-              <div>
-                <p className="eyebrow">Opening</p>
-                <h2>First Run Scene</h2>
-              </div>
-              <button
-                className="paper-button"
-                type="button"
-                onClick={() =>
-                  onOpeningSettingsChange(
-                    normalizeOpeningSettings({
-                      ...DEFAULT_OPENING_SETTINGS,
-                      backgroundSrc: safeOpeningSettings.backgroundSrc,
-                      lilaImageSrc: safeOpeningSettings.lilaImageSrc,
-                      graceImageSrc: safeOpeningSettings.graceImageSrc,
-                      lilaImages: safeOpeningSettings.lilaImages,
-                      graceImages: safeOpeningSettings.graceImages,
-                    }),
-                  )
-                }
-              >
-                Reset Opening
-              </button>
-            </header>
             <div className="admin-opening-tabs" role="tablist" aria-label="Opening sections">
               {(['settings', 'dialogue', 'preview'] as AdminOpeningTab[]).map((tab) => (
                 <button
@@ -11307,7 +11832,15 @@ function AdminScreen({
                 <strong>Mood Icons</strong>
                 <small>Upload and name</small>
               </button>
-              {ADMIN_SUBJECT_IDS.map((subjectId) => {
+              {ADMIN_SUBJECT_IDS.filter((subjectId) => {
+                if (!isCharacterId(subjectId) || !CUSTOM_CHARACTER_IDS.includes(subjectId)) {
+                  return true;
+                }
+                return normalizeCharacterAdminSettings(
+                  subjectId,
+                  characterSettings[subjectId],
+                ).enabled;
+              }).map((subjectId) => {
                 const customer = getAdminSubjectCustomer(subjectId, characterSettings);
                 return (
                   <button
@@ -11336,11 +11869,12 @@ function AdminScreen({
                       <h2>Mood Icons</h2>
                     </div>
                     <label className="paper-button admin-upload-button">
-                      Upload Icon
+                      Upload Icons
                       <input
                         accept="image/*"
+                        multiple
                         type="file"
-                        onChange={(event) => readUploadedImage(event, addMoodIcon)}
+                        onChange={(event) => readUploadedImages(event, addMoodIcons)}
                       />
                     </label>
                   </header>
@@ -11479,6 +12013,17 @@ function AdminScreen({
                     </div>
                     <div>
                       <button
+                        className="paper-button"
+                        type="button"
+                        onClick={() => {
+                          if (selectedChatSubjectId) {
+                            onAdminChatEntryTest(selectedChatSubjectId, selectedChatEntry.id);
+                          }
+                        }}
+                      >
+                        Test in Shop
+                      </button>
+                      <button
                         className="danger-button"
                         type="button"
                         onClick={deleteSelectedChatEntry}
@@ -11501,6 +12046,15 @@ function AdminScreen({
                       </button>
                     </div>
                   </header>
+
+                  <label>
+                    <span>ID</span>
+                    <input
+                      type="text"
+                      value={selectedChatEntry.id}
+                      onChange={(event) => updateSelectedChatEntryId(event.target.value)}
+                    />
+                  </label>
 
                   <label>
                     <span>Title</span>
@@ -12170,21 +12724,11 @@ function AdminScreen({
                     style={seatAnchorStyle(selectedSeatSlot, 'order')}
                     type="button"
                   >
+                    <span className="admin-order-patience-preview">
+                      <span style={{ width: '68%' }} />
+                    </span>
                     <ServiceIcon kind="blackTea" />
                     <span>Spot {selectedSeatSlot + 1}</span>
-                  </button>
-                </div>
-                <div className="admin-spot-patience-markers" aria-label="Spot patience bar markers">
-                  <button
-                    aria-label={`Move spot ${selectedSeatSlot + 1} patience bar`}
-                    className="admin-draggable patience-strip admin-spot-patience-prop active"
-                    onPointerDown={(event) =>
-                      beginSeatSpotDrag(selectedSeatSlot, event, 'patience')
-                    }
-                    style={seatAnchorStyle(selectedSeatSlot, 'patience')}
-                    type="button"
-                  >
-                    <span style={{ width: '68%' }} />
                   </button>
                 </div>
                 <div className="admin-spot-mood-icon-markers" aria-label="Spot mood icon markers">
@@ -12332,8 +12876,8 @@ function AdminScreen({
                   style={talkingCharacterStyle()}
                   onPointerDown={(event) => beginDrag('character', event)}
                 >
-                  {activeTalkingImage ? (
-                    <img alt="" draggable={false} src={activeTalkingImage} />
+                  {activePreviewTalkingImage ? (
+                    <img alt="" draggable={false} src={activePreviewTalkingImage} />
                   ) : (
                     <AnimalAvatar customer={selectedCustomer} size="large" />
                   )}
@@ -12770,6 +13314,52 @@ function AdminScreen({
                     />
                     <small>{selectedTalkingLayout.catScale}%</small>
                   </label>
+                  <div className="admin-chat-preview-tester">
+                    <h3>Test Dialogue</h3>
+                    <div className="admin-spot-tabs" aria-label="Dialogue type to preview">
+                      {(['comment', 'story', 'order', 'leave'] as AdminChatKind[]).map((kind) => (
+                        <button
+                          className={previewChatKind === kind ? 'active' : ''}
+                          key={kind}
+                          type="button"
+                          onClick={() => setPreviewChatKind(kind)}
+                        >
+                          {ADMIN_CHAT_KIND_LABELS[kind]}
+                        </button>
+                      ))}
+                    </div>
+                    <label>
+                      <span>Chat</span>
+                      <select
+                        disabled={previewChatEntries.length === 0}
+                        value={previewChatEntry?.id ?? ''}
+                        onChange={(event) => setPreviewChatEntryId(event.currentTarget.value)}
+                      >
+                        {previewChatEntries.length > 0 ? (
+                          previewChatEntries.map((entry) => (
+                            <option key={entry.id} value={entry.id}>
+                              {entry.title || ADMIN_CHAT_KIND_LABELS[entry.kind]}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="">No {ADMIN_CHAT_KIND_LABELS[previewChatKind]}</option>
+                        )}
+                      </select>
+                      <small>{previewChatEntries.length} found</small>
+                    </label>
+                    <button
+                      className="paper-button"
+                      disabled={!previewChatEntry}
+                      type="button"
+                      onClick={() => {
+                        if (previewChatEntry) {
+                          onAdminChatEntryTest(selectedCharacterId, previewChatEntry.id);
+                        }
+                      }}
+                    >
+                      Test in Shop
+                    </button>
+                  </div>
                 </>
               ) : null}
 
@@ -13072,6 +13662,7 @@ function ShopScreen({
         <WallClock progress={clockProgress} />
 
         {TABLE_SLOTS.map((slot) => {
+          const visualSlot = getVisualStoreSlot(slot, tableCount);
           const customer = customers[slot];
           const isOccupied = Boolean(customer) && slot < tableCount;
           const isActive = isOccupied && slot === selectedSlot && arrivalState === 'ready';
@@ -13091,22 +13682,21 @@ function ShopScreen({
           const adminLayout = customer ? getCustomerAdminLayout(customer, adminLayouts) : null;
           const adminSubjectId = customer ? getCustomerAdminSubjectId(customer) : null;
           const seatSpot = adminSubjectId
-            ? getCharacterAdminSeatSpot(adminSeatSpotLayouts, adminSubjectId, slot)
-            : getAdminSeatSpot(DEFAULT_ADMIN_SEAT_SPOTS, slot);
+            ? getCharacterAdminSeatSpot(adminSeatSpotLayouts, adminSubjectId, visualSlot)
+            : getAdminSeatSpot(DEFAULT_ADMIN_SEAT_SPOTS, visualSlot);
           const storeImageSrc =
             customer && adminLayout ? getCustomerStoreImageSrc(customer, adminLayout) : '';
 
           if (isOccupied && customer && adminLayout) {
             const characterScale = (adminLayout.characterScale / 100) * (seatSpot.scale / 100);
             const orderPosition = seatSpot.order;
-            const patiencePosition = seatSpot.patience;
             const drinkPosition = seatSpot.drink;
             const moodIconPosition = seatSpot.moodIcon;
             const moodIconSrc = getMoodIconSrcForCustomer(customer, 'order');
 
             return (
               <div
-                className={`live-store-layout live-store-layout-${slot + 1} ${
+                className={`live-store-layout live-store-layout-${visualSlot + 1} ${
                   isActive ? 'active' : ''
                 }`}
                 key={slot}
@@ -13161,33 +13751,33 @@ function ShopScreen({
                         title={`Serve ${tableService.label} to ${labelName}`}
                         key={`${customer.id}-${orderIndex}`}
                       >
+                        {!seatServed && !orderServed ? (
+                          <span
+                            className={`patience-strip store-order-patience ${
+                              tutorialPatienceActive && customer.id === 'matthew'
+                                ? 'tutorial-focus'
+                                : ''
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {tutorialPatienceActive && customer.id === 'matthew' ? (
+                              <b className="tutorial-meter-arrow">Patience Meter</b>
+                            ) : null}
+                            <span style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }} />
+                          </span>
+                        ) : null}
                         {orderServed ? <CheckIcon /> : <ServiceIcon kind={tableService.id} />}
                         <span>
                           {tutorialServeActive && customer.id === 'matthew'
                             ? 'Serve'
                             : orderServed
                               ? 'Served'
-                              : tableService.label}
+                              : ''}
                         </span>
                       </button>
                     );
                   })}
                 </div>
-                {!seatServed ? (
-                  <div
-                    className={`patience-strip live-store-patience ${
-                      tutorialPatienceActive && customer.id === 'matthew' ? 'tutorial-focus' : ''
-                    }`}
-                    aria-label={`${customer.name} patience`}
-                    title={`${customer.name} patience`}
-                    style={livePositionStyle(patiencePosition)}
-                  >
-                    {tutorialPatienceActive && customer.id === 'matthew' ? (
-                      <b className="tutorial-meter-arrow">Patience Meter</b>
-                    ) : null}
-                    <span style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }} />
-                  </div>
-                ) : null}
                 {seatServed ? (
                   <span
                     className="live-store-drink"
@@ -13210,7 +13800,7 @@ function ShopScreen({
 
           return (
             <div
-              className={`customer-seat customer-seat-${slot + 1} ${isActive ? 'active' : ''} ${
+              className={`customer-seat customer-seat-${visualSlot + 1} ${isActive ? 'active' : ''} ${
                 isOccupied ? 'occupied' : 'empty'
               }`}
               key={slot}
@@ -13259,29 +13849,32 @@ function ShopScreen({
                           title={`Serve ${tableService.label} to ${labelName}`}
                           key={`${customer.id}-${orderIndex}`}
                         >
+                          {!seatServed && !orderServed ? (
+                            <span
+                              className={`patience-strip store-order-patience ${
+                                tutorialPatienceActive && customer.id === 'matthew'
+                                  ? 'tutorial-focus'
+                                  : ''
+                              }`}
+                              aria-hidden="true"
+                            >
+                              {tutorialPatienceActive && customer.id === 'matthew' ? (
+                                <b className="tutorial-meter-arrow">Patience Meter</b>
+                              ) : null}
+                              <span style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }} />
+                            </span>
+                          ) : null}
                           {orderServed ? <CheckIcon /> : <ServiceIcon kind={tableService.id} />}
                           <span>
                             {tutorialServeActive && customer.id === 'matthew'
                               ? 'Serve'
                               : orderServed
                                 ? 'Served'
-                                : tableService.label}
+                                : ''}
                           </span>
                         </button>
                       );
                     })}
-                  </div>
-                  <div
-                    className={`patience-strip ${seatServed ? 'served' : ''} ${
-                      tutorialPatienceActive && customer.id === 'matthew' ? 'tutorial-focus' : ''
-                    }`}
-                    aria-label={`${customer.name} patience`}
-                    title={`${customer.name} patience`}
-                  >
-                    {tutorialPatienceActive && customer.id === 'matthew' ? (
-                      <b className="tutorial-meter-arrow">Patience Meter</b>
-                    ) : null}
-                    <span style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }} />
                   </div>
                 </>
               ) : null}
@@ -13401,13 +13994,13 @@ interface VisitScreenProps {
   storyChoiceAnswer: 0 | 1 | 2;
   storyChoiceReply: string;
   kittyChatReady: boolean;
+  forceDialogueReady: boolean;
   kittyQuestion: string;
   kittyImageSrc: string;
   kittyOptions: readonly [KittyChatOption, KittyChatOption] | null;
   kittyAnswer: 0 | 1 | 2;
   kittyReply: string;
   orderLine: string;
-  listenMoodGain: number;
   layout: AdminLayout;
   chatMenuSettings: AdminChatMenuSettings;
   catImageSrc: string;
@@ -13457,13 +14050,13 @@ function VisitScreen({
   storyChoiceAnswer,
   storyChoiceReply,
   kittyChatReady,
+  forceDialogueReady,
   kittyQuestion,
   kittyImageSrc,
   kittyOptions,
   kittyAnswer,
   kittyReply,
   orderLine,
-  listenMoodGain,
   layout,
   chatMenuSettings,
   catImageSrc,
@@ -13508,7 +14101,7 @@ function VisitScreen({
   const showAfterHoursBubble = shopDayEnded && afterHoursComment.trim().length > 0;
   const normalStoryReady = !tutorialActive && storyReady;
   const normalStoryChoiceReady = !tutorialActive && storyChoiceReady;
-  const normalKittyChatReady = !tutorialActive && serviceServed && kittyChatReady;
+  const normalKittyChatReady = !tutorialActive && (serviceServed || forceDialogueReady) && kittyChatReady;
   const storyReplyPending = normalStoryChoiceReady && Boolean(storyChoices) && !storyChoiceAnswered;
   const kittyReplyPending = normalKittyChatReady && kittyOptions != null && kittyAnswer <= 0;
   const replyPromptActive = storyReplyPending || kittyReplyPending;
@@ -13568,7 +14161,7 @@ function VisitScreen({
     return {
       backgroundImage: imageSrc ? `url("${imageSrc}")` : undefined,
       backgroundPosition: `${item.imagePosition.x}% ${item.imagePosition.y}%`,
-      backgroundSize: `${item.imageScale}% auto`,
+      backgroundSize: `${item.imageScale}% ${item.imageScale}%`,
       left: `${item.position.x}%`,
       top: `${item.position.y}%`,
       right: 'auto',
@@ -13826,15 +14419,6 @@ function VisitScreen({
           >
             {chatMenuImage('meow') ? null : <CatHeadIcon />}
             <strong>Meow</strong>
-            <small>
-              {!catActionsUnlocked
-                ? 'Serve first'
-                : catMenuLockedForReply
-                  ? 'Reply below'
-                  : tutorialMeowActive
-                    ? 'Reply'
-                    : `+${MEOW_MOOD_GAIN}`}
-            </small>
           </button>
           <button
             className={`visit-hex-button visit-hex-purr ${
@@ -13852,13 +14436,6 @@ function VisitScreen({
           >
             {chatMenuImage('purr') ? null : <PawIcon />}
             <strong>Purr</strong>
-            <small>
-              {!catActionsUnlocked
-                ? 'Serve first'
-                : purrReady
-                  ? 'Soothe'
-                  : formatCooldown(purrCooldownRemaining)}
-            </small>
           </button>
           <button
             className={`visit-hex-button visit-hex-listen ${
@@ -13876,13 +14453,6 @@ function VisitScreen({
           >
             {chatMenuImage('listen') ? null : <CupIcon />}
             <strong>Listen</strong>
-            <small>
-              {!catActionsUnlocked
-                ? 'Serve first'
-                : quietReady
-                  ? `+${listenMoodGain}`
-                  : formatCooldown(quietCooldownRemaining)}
-            </small>
           </button>
           <button
             className={`visit-hex-button visit-hex-leave ${
@@ -13906,7 +14476,6 @@ function VisitScreen({
           >
             {chatMenuImage('leave') ? null : <ShopIcon />}
             <strong>Leave</strong>
-            <small>{!catActionsUnlocked ? 'Serve first' : shopDayEnded ? 'Close' : 'Shop'}</small>
           </button>
           <button
             className={`visit-hex-button visit-hex-cute ${
@@ -13925,13 +14494,6 @@ function VisitScreen({
           >
             {chatMenuImage('cute') ? null : <StarIcon />}
             <strong>Be Cute</strong>
-            <small>
-              {!fullMoodCareUnlocked
-                ? 'Serve first'
-                : cuteReady
-                  ? 'Charm'
-                  : formatCooldown(cuteCooldownRemaining)}
-            </small>
           </button>
           <button
             className={`visit-hex-button visit-hex-roll ${
@@ -13950,13 +14512,6 @@ function VisitScreen({
           >
             {chatMenuImage('roll') ? null : <CatHeadIcon />}
             <strong>Roll</strong>
-            <small>
-              {!fullMoodCareUnlocked
-                ? 'Serve first'
-                : rollReady
-                  ? 'Play'
-                  : formatCooldown(rollCooldownRemaining)}
-            </small>
           </button>
           <button
             className={`visit-hex-button visit-hex-center ${
