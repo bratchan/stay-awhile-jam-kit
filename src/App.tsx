@@ -132,6 +132,7 @@ interface AdminTalkingLayout {
   bubble: AdminPosition;
   drink: AdminPosition;
   patience: AdminPosition;
+  faceBlocker: AdminFaceBlocker;
   characterScale: number;
   drinkScale: number;
   catScale: number;
@@ -633,7 +634,7 @@ const ADMIN_OPENING_DB_VERSION = 1;
 const ADMIN_OPENING_STORE_NAME = 'opening-settings';
 const ADMIN_OPENING_RECORD_KEY = 'settings';
 const ADMIN_PORTABLE_STATE_SRC = '/admin-uploads/admin-state.json';
-const PUBLIC_ASSET_BASE_URL = import.meta.env.BASE_URL || './';
+const PUBLIC_ASSET_BASE_URL = new URL(import.meta.env.BASE_URL || './', window.location.href).href;
 const ADMIN_PORTABLE_FETCH_TIMEOUT_MS = 5_000;
 const PRELOAD_IMAGE_TIMEOUT_MS = 4_000;
 const STARTUP_PRELOAD_TIMEOUT_MS = 9_000;
@@ -641,7 +642,7 @@ const OPENING_IMAGE_NONE = '__none';
 const MUSIC_MUTED_KEY = 'tea-shop-cat-music-muted-v1';
 const MUSIC_VOLUME_KEY = 'tea-shop-cat-music-volume-v1';
 const DEFAULT_MUSIC_VOLUME = 42;
-const BACKGROUND_MUSIC_SRC = '/cdn-assets/music/rainy-table-by-the-window.mp3';
+const BACKGROUND_MUSIC_SRC = '/music/rainy-table-by-the-window.mp3';
 const EMPTY_TABLE_IMAGE_SRC = '/admin-uploads/store/smallChair.png';
 const UI_ICON_SRC = {
   gear: '/icons/gear.png',
@@ -675,10 +676,7 @@ function resolveAssetSrc(src: unknown): string {
   if (/^(?:data:|blob:|https?:\/\/)/i.test(trimmed)) return trimmed;
   if (!trimmed.startsWith('/')) return trimmed;
 
-  const base = PUBLIC_ASSET_BASE_URL.endsWith('/')
-    ? PUBLIC_ASSET_BASE_URL
-    : `${PUBLIC_ASSET_BASE_URL}/`;
-  return `${base}${trimmed.replace(/^\/+/, '')}`;
+  return new URL(trimmed.replace(/^\/+/, ''), PUBLIC_ASSET_BASE_URL).href;
 }
 
 function cssAssetUrl(src: unknown): string | undefined {
@@ -994,6 +992,7 @@ const DEFAULT_ADMIN_LAYOUT: AdminLayout = {
     bubble: { x: 27, y: 18 },
     drink: { x: 39, y: 72 },
     patience: { x: 43, y: 79 },
+    faceBlocker: { x: 52, y: 27, width: 18, height: 24 },
     characterScale: 100,
     drinkScale: 100,
     catScale: 82,
@@ -1501,6 +1500,17 @@ function getCharacterAdminSeatSpot(
   return getAdminSeatSpot(getAdminSeatSpots(layouts, subjectId), slot);
 }
 
+function normalizeAdminFaceBlocker(value: unknown, fallback: AdminFaceBlocker): AdminFaceBlocker {
+  const parsed =
+    value != null && typeof value === 'object' ? (value as Partial<AdminFaceBlocker>) : {};
+  return {
+    x: clamp(numericValue(parsed.x, fallback.x), -20, 120),
+    y: clamp(numericValue(parsed.y, fallback.y), -20, 120),
+    width: clamp(numericValue(parsed.width, fallback.width), 6, 48),
+    height: clamp(numericValue(parsed.height, fallback.height), 6, 48),
+  };
+}
+
 function normalizeAdminTalkingLayout(
   value: unknown,
   subjectId?: AdminSubjectId,
@@ -1557,6 +1567,7 @@ function normalizeAdminTalkingLayout(
     bubble: normalizeAdminPosition(parsed.bubble, fallback.bubble),
     drink: normalizeAdminPosition(parsed.drink, fallback.drink),
     patience: normalizeAdminPosition(parsed.patience, fallback.patience),
+    faceBlocker: normalizeAdminFaceBlocker(parsed.faceBlocker, fallback.faceBlocker),
     characterScale: clamp(
       Math.floor(numericValue(parsed.characterScale, fallback.characterScale)),
       45,
@@ -5889,7 +5900,6 @@ function TeaShopCat() {
   const pauseStartedAtRef = useRef(initialState.isPaused ? Date.now() : 0);
   const sessionStateRef = useRef<RuntimeSessionState | null>(null);
   const skipInitialPatienceResetRef = useRef(initialState.restoredSession);
-  const autoCollectedStoryKeyRef = useRef('');
   const forcedFirstDayStoryTutorialRef = useRef(false);
   const storyToastTimerRef = useRef<number | null>(null);
   const openingSaveTimerRef = useRef<number | null>(null);
@@ -6198,8 +6208,12 @@ function TeaShopCat() {
       : currentStoryLineCount;
   const currentStoryAlreadyCollected =
     getCustomerVisitCount(game, currentCustomer.id) >= currentVisitNumber;
+  const currentFirstDayStoryTutorialActive =
+    game.tutorialStep === 'firstDayStoryOrder' &&
+    currentCustomer.id === 'matthew' &&
+    currentVisitNumber === 1;
   const currentStoryAvailable =
-    game.storiesToday <= 0 &&
+    (game.storiesToday <= 0 || currentFirstDayStoryTutorialActive) &&
     currentConversationKind === 'story' &&
     currentVisitNumber <= currentStoryArcLength &&
     isStoryTriggerReady(currentStory, game) &&
@@ -6494,31 +6508,6 @@ function TeaShopCat() {
     },
     [],
   );
-
-  useEffect(() => {
-    if (scene !== 'visit') return;
-    if (isPaused) return;
-    if (!currentStoryComplete) return;
-    if (!currentStoryAvailable) return;
-    const canCollectDuringTutorial =
-      game.tutorialStep === 'firstDayStoryOrder' && currentCustomer.id === 'matthew';
-    if (tutorialActive && !canCollectDuringTutorial) return;
-    const storyKey = `${selectedOccupiedSlot}:${currentCustomer.id}:${currentVisitNumber}`;
-    if (autoCollectedStoryKeyRef.current === storyKey) return;
-
-    autoCollectedStoryKeyRef.current = storyKey;
-    collectStory();
-  }, [
-    currentCustomer.id,
-    currentStoryAvailable,
-    currentStoryComplete,
-    currentVisitNumber,
-    game.tutorialStep,
-    isPaused,
-    scene,
-    selectedOccupiedSlot,
-    tutorialActive,
-  ]);
 
   useEffect(() => {
     if (arrivalTimersRef.current.length === 0) return;
@@ -7742,12 +7731,19 @@ function TeaShopCat() {
     return clamp(care.storyTalks + 1, 0, Math.max(0, currentStoryLineCount - 1));
   }
 
+  function collectCompletedStoryForInteraction() {
+    if (!currentStoryComplete) return;
+    if (!currentStoryAvailable) return;
+    collectStory();
+  }
+
   function meow() {
     if (isPausedRef.current || !serviceServed) return;
     const now = Date.now();
     setActionNow(now);
     if (meowReadyAt > now) return;
     setMeowReadyAt(now + meowCooldownMs);
+    collectCompletedStoryForInteraction();
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -7766,6 +7762,7 @@ function TeaShopCat() {
     setActionNow(now);
     if (purrReadyAt > now) return;
     setPurrReadyAt(now + purrCooldownMs);
+    collectCompletedStoryForInteraction();
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -7787,6 +7784,7 @@ function TeaShopCat() {
     setActionNow(now);
     if (quietReadyAt > now) return;
     setQuietReadyAt(now + quietCooldownMs);
+    collectCompletedStoryForInteraction();
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -7811,6 +7809,7 @@ function TeaShopCat() {
     setActionNow(now);
     if (rollReadyAt > now) return;
     setRollReadyAt(now + rollCooldownMs);
+    collectCompletedStoryForInteraction();
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -7830,6 +7829,7 @@ function TeaShopCat() {
     setActionNow(now);
     if (cuteReadyAt > now) return;
     setCuteReadyAt(now + cuteCooldownMs);
+    collectCompletedStoryForInteraction();
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -8431,6 +8431,29 @@ function TeaShopCat() {
     setAdminSaveMessage('');
   }
 
+  function updateAdminTalkingFaceBlocker(
+    characterId: AdminSubjectId,
+    faceBlocker: AdminFaceBlocker,
+  ) {
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          talking: {
+            ...currentLayout.talking,
+            faceBlocker: normalizeAdminFaceBlocker(
+              faceBlocker,
+              currentLayout.talking.faceBlocker,
+            ),
+          },
+        },
+      };
+    });
+    setAdminSaveMessage('');
+  }
+
   function resetAdminTalkingLayout(characterId: AdminSubjectId) {
     setAdminLayouts((prev) => {
       const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
@@ -8991,6 +9014,7 @@ function TeaShopCat() {
             onTalkingImageChange={updateAdminTalkingImage}
             onTalkingImageDelete={deleteAdminTalkingImage}
             onTalkingImagesAdd={addAdminTalkingImages}
+            onTalkingFaceBlockerChange={updateAdminTalkingFaceBlocker}
             onTalkingLayoutChange={updateAdminTalkingLayout}
             onTalkingScaleChange={updateAdminTalkingScale}
           />
@@ -10122,30 +10146,33 @@ function MenuScreen({
               Admin
             </button>
           ) : null}
-          <div className="settings-anchor menu-settings-anchor">
-            <button
-              className="paper-button"
-              type="button"
-              onClick={() => setSettingsOpen((prev) => !prev)}
-            >
-              Settings
-            </button>
-            {settingsOpen ? (
-              <SettingsPopup
-                musicMuted={musicMuted}
-                musicVolume={musicVolume}
-                onClose={() => setSettingsOpen(false)}
-                onMusicMutedChange={onMusicMutedChange}
-                onMusicVolumeChange={onMusicVolumeChange}
-                onReset={onReset}
-              />
-            ) : null}
-          </div>
+          <button
+            className="paper-button"
+            type="button"
+            onClick={() => setSettingsOpen((prev) => !prev)}
+          >
+            Settings
+          </button>
         </div>
         <p className="menu-content-note">
           Note: There are topics in this game such as stalking, slavery mentioned.
         </p>
       </section>
+
+      {settingsOpen ? (
+        <div className="menu-settings-modal" role="presentation">
+          <div className="menu-settings-dialog">
+            <SettingsPopup
+              musicMuted={musicMuted}
+              musicVolume={musicVolume}
+              onClose={() => setSettingsOpen(false)}
+              onMusicMutedChange={onMusicMutedChange}
+              onMusicVolumeChange={onMusicVolumeChange}
+              onReset={onReset}
+            />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -10194,6 +10221,10 @@ interface AdminScreenProps {
   onTalkingImageChange: (characterId: AdminSubjectId, imageSrc: string) => void;
   onTalkingImageDelete: (characterId: AdminSubjectId, imageSrc: string) => void;
   onTalkingImagesAdd: (characterId: AdminSubjectId, imageSrcs: string[]) => void;
+  onTalkingFaceBlockerChange: (
+    characterId: AdminSubjectId,
+    faceBlocker: AdminFaceBlocker,
+  ) => void;
   onTalkingLayoutChange: (
     characterId: AdminSubjectId,
     item: 'character' | 'cat' | 'bubble' | 'drink' | 'patience',
@@ -10241,6 +10272,7 @@ function AdminScreen({
   onTalkingImageChange,
   onTalkingImageDelete,
   onTalkingImagesAdd,
+  onTalkingFaceBlockerChange,
   onTalkingLayoutChange,
   onTalkingScaleChange,
 }: AdminScreenProps) {
@@ -10265,12 +10297,6 @@ function AdminScreen({
   const [mobilePreview, setMobilePreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<AdminPreviewMode>('shop');
   const [showChatFaceBlocker, setShowChatFaceBlocker] = useState(false);
-  const [chatFaceBlocker, setChatFaceBlocker] = useState<AdminFaceBlocker>({
-    x: 44,
-    y: 34,
-    width: 18,
-    height: 20,
-  });
   const [characterManagerView, setCharacterManagerView] =
     useState<AdminCharacterManagerView>('list');
   const [characterDetailTab, setCharacterDetailTab] = useState<AdminCharacterDetailTab>('settings');
@@ -10301,6 +10327,7 @@ function AdminScreen({
   );
   const selectedLayout = normalizeAdminLayout(layouts[selectedCharacterId], selectedCharacterId);
   const selectedTalkingLayout = selectedLayout.talking;
+  const chatFaceBlocker = selectedTalkingLayout.faceBlocker;
   const selectedSubjectEnabled = selectedSubjectIsParty
     ? selectedLayout.enabled
     : selectedSettings.enabled;
@@ -10937,12 +10964,14 @@ function AdminScreen({
   }
 
   function updateChatFaceBlocker(patch: Partial<AdminFaceBlocker>) {
-    setChatFaceBlocker((current) => ({
-      x: clamp(numericValue(patch.x, current.x), -20, 120),
-      y: clamp(numericValue(patch.y, current.y), -20, 120),
-      width: clamp(numericValue(patch.width, current.width), 6, 48),
-      height: clamp(numericValue(patch.height, current.height), 6, 48),
-    }));
+    const nextFaceBlocker = normalizeAdminFaceBlocker(
+      {
+        ...selectedTalkingLayout.faceBlocker,
+        ...patch,
+      },
+      selectedTalkingLayout.faceBlocker,
+    );
+    onTalkingFaceBlockerChange(selectedCharacterId, nextFaceBlocker);
   }
 
   function beginChatFaceBlockerDrag(event: ReactPointerEvent<HTMLElement>) {
@@ -15530,7 +15559,6 @@ function VisitScreen({
   const catActionsUnlocked = serviceServed || tutorialActive || storyCompleteLeaveOnly;
   const canMeow =
     catActionsUnlocked &&
-    !storyCompleteLeaveOnly &&
     meowReady &&
     (tutorialMeowActive || tutorialMoodActive || (!tutorialActive && !catMenuLockedForReply));
   const showKittyReplyPanel = kittyReplyPending;
@@ -15576,7 +15604,7 @@ function VisitScreen({
         : '';
   const showInteractionHint = storyCompleteLeaveOnly || (!tutorialActive && !hasDialoguePanel);
   const interactionHint = storyCompleteLeaveOnly
-    ? `Leave to finish ${customer.name}'s visit`
+    ? `Select another action to continue with ${customer.name}`
     : catActionsUnlocked
       ? `Select an action to interact with ${customer.name}`
       : `Serve ${customer.name}'s order to unlock cat actions`;
@@ -15666,8 +15694,66 @@ function VisitScreen({
     };
   }
 
+  function talkingBubbleStyle(): CSSProperties {
+    const faceBlocker = normalizeAdminFaceBlocker(
+      visitLayout.talking.faceBlocker,
+      DEFAULT_ADMIN_LAYOUT.talking.faceBlocker,
+    );
+    const menuScale = safeChatMenuSettings.scale / 100;
+    const menuLeftEdge = safeChatMenuSettings.position.x - 21 * menuScale;
+    const safeRight = clamp(menuLeftEdge - 3, 48, 86);
+    const compactVisit =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(orientation: landscape) and (max-height: 520px)').matches;
+    const estimatedBubbleWidth = compactVisit ? 24 : 20;
+    const centerX = clamp(faceBlocker.x + faceBlocker.width / 2, 18, safeRight - 8);
+    const middleY = clamp(faceBlocker.y + faceBlocker.height / 2, 18, 42);
+    const rightX = faceBlocker.x + faceBlocker.width + 2;
+    const leftX = faceBlocker.x - 2;
+
+    if (rightX + estimatedBubbleWidth <= safeRight) {
+      return {
+        bottom: 'auto',
+        left: `${clamp(rightX, 16, safeRight - estimatedBubbleWidth)}%`,
+        right: 'auto',
+        top: `${middleY}%`,
+        transform: 'translate(0, -50%)',
+      };
+    }
+
+    if (leftX - estimatedBubbleWidth >= 12) {
+      return {
+        bottom: 'auto',
+        left: `${clamp(leftX, estimatedBubbleWidth + 12, 70)}%`,
+        right: 'auto',
+        top: `${middleY}%`,
+        transform: 'translate(-100%, -50%)',
+      };
+    }
+
+    const aboveTop = faceBlocker.y - 4;
+
+    if (aboveTop >= 20) {
+      return {
+        bottom: 'auto',
+        left: `${centerX}%`,
+        right: 'auto',
+        top: `${aboveTop}%`,
+        transform: 'translate(-50%, -100%)',
+      };
+    }
+
+    return {
+      bottom: 'auto',
+      left: `${clamp(safeRight - estimatedBubbleWidth, 28, 62)}%`,
+      right: 'auto',
+      top: `${clamp(faceBlocker.y + faceBlocker.height + 5, 28, 46)}%`,
+      transform: 'translate(0, -50%)',
+    };
+  }
+
   const bubbleStyle = useTalkingImage
-    ? talkingPositionStyle('bubble')
+    ? talkingBubbleStyle()
     : visitPositionStyle('bubble');
   const catStyle = useTalkingImage
     ? talkingPositionStyle('cat', visitLayout.talking.catScale / 100)
@@ -15834,7 +15920,7 @@ function VisitScreen({
         </aside>
 
         <div
-          className={`visit-action-wheel ${leaveOnlyMode ? 'tutorial-leave-mode' : ''} ${
+          className={`visit-action-wheel ${tutorialLeaveActive ? 'tutorial-leave-mode' : ''} ${
             catMenuLockedForReply ? 'visit-action-wheel-locked' : ''
           }`}
           aria-label="Cat actions"
@@ -15871,7 +15957,6 @@ function VisitScreen({
               chatMenuImage('purr') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('purr')}`}
             disabled={
-              storyCompleteLeaveOnly ||
               catMenuLockedForReply ||
               !catActionsUnlocked ||
               (tutorialActive && !tutorialMoodActive) ||
@@ -15890,7 +15975,6 @@ function VisitScreen({
               chatMenuImage('listen') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('listen')}`}
             disabled={
-              storyCompleteLeaveOnly ||
               catMenuLockedForReply ||
               !catActionsUnlocked ||
               (tutorialActive && !tutorialMoodActive) ||
@@ -15907,7 +15991,7 @@ function VisitScreen({
           <button
             className={`visit-hex-button visit-hex-leave ${
               chatMenuImage('leave') ? 'visit-hex-custom-bg' : ''
-            } ${leaveOnlyMode ? 'tutorial-leave-target tutorial-focus' : ''} ${chatMenuTextClass(
+            } ${tutorialLeaveActive ? 'tutorial-leave-target tutorial-focus' : ''} ${chatMenuTextClass(
               'leave',
             )}`}
             onClick={onBack}
@@ -15933,7 +16017,6 @@ function VisitScreen({
               chatMenuImage('cute') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('cute')}`}
             disabled={
-              storyCompleteLeaveOnly ||
               catMenuLockedForReply ||
               !catActionsUnlocked ||
               (tutorialActive && !tutorialMoodActive) ||
@@ -15953,7 +16036,6 @@ function VisitScreen({
               chatMenuImage('roll') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('roll')}`}
             disabled={
-              storyCompleteLeaveOnly ||
               catMenuLockedForReply ||
               !catActionsUnlocked ||
               (tutorialActive && !tutorialMoodActive) ||

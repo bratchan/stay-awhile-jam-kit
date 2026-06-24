@@ -477,8 +477,60 @@ button {
 }
 
 .menu-settings-anchor .settings-popover {
-  left: 0;
+  position: fixed;
+  left: 50%;
   right: auto;
+  top: 50%;
+  width: min(320px, calc(100vw - 28px));
+  max-height: calc(100dvh - 28px);
+  overflow: auto;
+  transform: translate(-50%, -50%);
+}
+
+.menu-settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(38, 24, 15, 0.38);
+}
+
+.menu-settings-dialog {
+  width: min(300px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+}
+
+.menu-settings-dialog .settings-popover {
+  position: static;
+  width: 100%;
+  max-height: none;
+  gap: 8px;
+  padding: 10px;
+  border-width: 2px;
+  transform: none;
+}
+
+.menu-settings-dialog .menu-toggle-row,
+.menu-settings-dialog .settings-volume-row {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
+.menu-settings-dialog .settings-volume-row {
+  gap: 5px 8px;
+}
+
+.menu-settings-dialog .settings-menu-button,
+.menu-settings-dialog .danger-reset-button {
+  min-height: 34px;
+}
+
+.menu-settings-dialog .menu-reset-area p {
+  font-size: 0.68rem;
+  line-height: 1.18;
 }
 
 .settings-popover-head {
@@ -6454,7 +6506,8 @@ h3 {
 
 .story-toast {
   position: absolute;
-  left: 14px;
+  left: auto;
+  right: 14px;
   top: 84px;
   z-index: 42;
   width: min(310px, calc(100% - 28px));
@@ -8089,13 +8142,14 @@ h3 {
     align-items: stretch;
     justify-content: stretch;
     padding: 0;
-    background: #fff3df;
+    background: #2b1a10;
   }
 
   .shop-stage {
     flex: 1 1 auto;
     width: 100%;
     height: 100%;
+    min-height: 100%;
     max-width: none;
     max-height: none;
     aspect-ratio: auto;
@@ -8106,12 +8160,68 @@ h3 {
     min-height: 0;
     align-items: stretch;
     justify-content: stretch;
+    padding: 0;
+    background: #2b1a10;
   }
 
   .visit-stage {
     --visit-mobile-scale: 0.68;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
     min-height: 0;
     background-size: 100% 100%;
+  }
+
+  .tutorial-coach-card {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    min-height: 54px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: 5px 8px;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .tutorial-coach-card p {
+    margin-top: 1px;
+    font-size: 0.74rem;
+    line-height: 1.12;
+  }
+
+  .tutorial-coach-card strong {
+    font-size: 0.78rem;
+  }
+
+  .tutorial-coach-portrait {
+    width: 38px;
+    height: 38px;
+  }
+
+  .tutorial-coach-action {
+    grid-column: auto;
+    align-self: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-width: 1px;
+    font-size: 0.72rem;
+  }
+
+  .mood-panel.visit-dialogue-panel.tutorial-panel-open {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+  }
+
+  .mood-panel.visit-dialogue-panel.tutorial-panel-open .tutorial-coach-card {
+    position: static;
+    width: 100%;
   }
 
   .visit-mood-bar {
@@ -8148,7 +8258,8 @@ h3 {
   }
 
   .customer-story-bubble {
-    width: min(340px, 38vw);
+    width: min(210px, 24vw);
+    max-width: calc(100% - 340px);
     padding: 8px 10px;
   }
 
@@ -8213,6 +8324,71 @@ h3 {
     gap: 8px;
     padding: 10px 12px 8px;
     border-radius: 0;
+  }
+
+  .story-detail-view {
+    overflow-x: hidden;
+    padding-right: 0;
+  }
+
+  .story-detail-view .story-entry {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    padding: 8px;
+    border-width: 1px;
+  }
+
+  .story-detail-view .animal-avatar-small {
+    width: 74px;
+    height: 64px;
+  }
+
+  .story-entry-head {
+    gap: 6px;
+    margin-bottom: 5px;
+  }
+
+  .story-entry-head h3 {
+    font-size: 0.95rem;
+  }
+
+  .customer-log-stats {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+
+  .customer-log-stats span {
+    min-height: 22px;
+    padding: 0 5px;
+    border-width: 1px;
+    font-size: 0.62rem;
+  }
+
+  .relationship-stat {
+    gap: 4px;
+  }
+
+  .relationship-stat img {
+    width: 18px;
+    height: 18px;
+  }
+
+  .relationship-stat strong {
+    font-size: 0.62rem;
+  }
+
+  .story-empty-note,
+  .story-chapter-row p {
+    font-size: 0.72rem;
+    line-height: 1.24;
+  }
+
+  .visit-counter {
+    min-height: 22px;
+    margin-top: 6px;
+    padding: 0 7px;
+    font-size: 0.66rem;
   }
 
   .story-ledger .ledger-head {
