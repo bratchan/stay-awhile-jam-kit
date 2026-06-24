@@ -10,7 +10,7 @@ import { getSafeArea } from '../services/environment';
 import { theme } from '../theme';
 
 const EXAMPLE_PROMPTS = [
-  'Build a tiny tea shop where regulars wander in and I slowly learn their favorite orders.',
+  'Build a tiny cat cafe where regulars wander in and I slowly learn their favorite orders.',
   'I want a balcony garden. Seeds sprout overnight, and I can send a friend a cutting.',
   "A lighthouse keeper's journal: one new page each morning, soft ambient sound, nothing to lose.",
 ];

@@ -1,6 +1,14 @@
 {
+  "gameId": "YUEWhURuAbODANuXnXgw",
   "relativePathToDistFolder": "dist",
   "usesPreloader": false,
-  "orientation": "portrait",
+  "orientation": "landscape",
+  "keywords": [
+    "cozy",
+    "cat",
+    "cafe",
+    "story",
+    "tea"
+  ],
   "kitId": "stay-awhile"
 }

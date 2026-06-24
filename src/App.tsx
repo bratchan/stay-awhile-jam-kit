@@ -8,6 +8,12 @@ import type {
 } from 'react';
 import { unzipSync, strFromU8 } from 'fflate';
 import { getSafeArea, isDev } from './services/environment';
+import {
+  SAVE_SCHEMA_VERSION,
+  clearSave as clearPlatformSave,
+  loadSave as loadPlatformSave,
+  persistSave as persistPlatformSave,
+} from './services/storage';
 
 type Scene =
   | 'start'
@@ -60,6 +66,7 @@ type AdminSidePanelMode =
   | 'chats'
   | 'chatMenu'
   | 'cat'
+  | 'ref'
   | 'opening';
 type AdminChatKind = 'story' | 'comment' | 'leave' | 'order' | 'happy';
 type AdminChatEditorMode = 'list' | AdminChatKind;
@@ -68,7 +75,7 @@ type AdminOpeningTab = 'settings' | 'dialogue' | 'preview';
 type AdminChatBlockKind = 'bubble' | 'catReply';
 type AdminAssetKind = 'store' | 'portrait' | 'static';
 type AdminSeatSpotKey = '0' | '1' | '2';
-type AdminSeatAnchor = 'marker' | 'drink' | 'order' | 'patience' | 'moodIcon';
+type AdminSeatAnchor = 'marker' | 'emptyTable' | 'drink' | 'order' | 'patience' | 'moodIcon';
 type TutorialStep =
   | 'opening'
   | 'patience'
@@ -77,6 +84,9 @@ type TutorialStep =
   | 'meow'
   | 'mood'
   | 'leave'
+  | 'firstDayStoryIntro'
+  | 'firstDayStoryOrder'
+  | 'firstDayStoryLeave'
   | 'clock'
   | 'open'
   | 'done';
@@ -92,6 +102,7 @@ interface AdminPosition {
 
 interface AdminSeatSpot {
   marker: AdminPosition;
+  emptyTable: AdminPosition;
   drink: AdminPosition;
   order: AdminPosition;
   patience: AdminPosition;
@@ -191,6 +202,10 @@ interface AdminChatMenuSettings {
 }
 
 type AdminCatSettings = Record<CatPoseKey, string>;
+type AssetPreloadState = {
+  loaded: number;
+  total: number;
+};
 
 interface AdminOpeningBeat {
   id: string;
@@ -218,6 +233,13 @@ interface AdminOpeningPlacement {
   x: number;
   y: number;
   scale: number;
+}
+
+interface AdminFaceBlocker {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 interface AdminOpeningSettings {
@@ -315,6 +337,7 @@ interface StoryChapter {
   lines?: string[];
   imageSrc?: string;
   lineImageSrcs?: string[];
+  moodIconIds?: string[];
   choices?: readonly [KittyChatOption, KittyChatOption];
   replyAfterLineIndex?: number;
   triggerStoryId?: string;
@@ -479,6 +502,9 @@ interface SessionSnapshot {
   nextArrivalTimerId: number;
   arrivalTimers: SessionArrivalTimer[];
   activeLedgerTab: LedgerTab;
+  tutorialLineIndex: number;
+  tutorialPatienceExpired: boolean;
+  tutorialOpenPopup: boolean;
 }
 
 interface InitialAppState {
@@ -508,6 +534,9 @@ interface InitialAppState {
   nextArrivalTimerId: number;
   arrivalTimers: SessionArrivalTimer[];
   activeLedgerTab: LedgerTab;
+  tutorialLineIndex: number;
+  tutorialPatienceExpired: boolean;
+  tutorialOpenPopup: boolean;
 }
 
 interface RuntimeSessionState {
@@ -536,6 +565,9 @@ interface RuntimeSessionState {
   nextCustomerSlot: number;
   nextArrivalTimerId: number;
   activeLedgerTab: LedgerTab;
+  tutorialLineIndex: number;
+  tutorialPatienceExpired: boolean;
+  tutorialOpenPopup: boolean;
 }
 
 interface ShopRank {
@@ -546,11 +578,11 @@ interface ShopRank {
 const SAVE_KEY = 'tea-shop-cat-save-v1';
 const SESSION_KEY = 'tea-shop-cat-session-v1';
 const SESSION_VERSION = 1;
-const ARRIVAL_DELAY_MS = 2400;
+const ARRIVAL_DELAY_MS = 3600;
 const PATIENCE_TICK_MS = 250;
 const SHOP_CLOCK_TICK_MS = 250;
 const SHOP_DAY_REAL_MS = 120_000;
-const SERVED_PATIENCE_SLOWDOWN = 2;
+const SERVED_PATIENCE_SLOWDOWN = 1;
 const SERVED_LEAVE_DELAY_MS = 7_000;
 const TABLE_SLOTS = [0, 1, 2] as const;
 const SHOP_DAY_START_HOUR = 8;
@@ -561,7 +593,7 @@ const FIRST_DAY_START_ELAPSED_MS = Math.round(
 );
 const YEAR_LENGTH_DAYS = 365;
 const GOOD_SHOP_SCORE = 70;
-const DEFAULT_CAFE_NAME = 'Sweet Purr Café';
+const DEFAULT_CAFE_NAME = 'Cat Cafe';
 const DEFAULT_CAT_NAME = 'Mr. Kitty';
 const STARTER_RECIPE_ID = 'blackTea';
 const SECOND_TABLE_UPGRADE_ID = 'second-table-spot';
@@ -601,6 +633,10 @@ const ADMIN_OPENING_DB_VERSION = 1;
 const ADMIN_OPENING_STORE_NAME = 'opening-settings';
 const ADMIN_OPENING_RECORD_KEY = 'settings';
 const ADMIN_PORTABLE_STATE_SRC = '/admin-uploads/admin-state.json';
+const PUBLIC_ASSET_BASE_URL = import.meta.env.BASE_URL || './';
+const ADMIN_PORTABLE_FETCH_TIMEOUT_MS = 5_000;
+const PRELOAD_IMAGE_TIMEOUT_MS = 4_000;
+const STARTUP_PRELOAD_TIMEOUT_MS = 9_000;
 const OPENING_IMAGE_NONE = '__none';
 const MUSIC_MUTED_KEY = 'tea-shop-cat-music-muted-v1';
 const MUSIC_VOLUME_KEY = 'tea-shop-cat-music-volume-v1';
@@ -632,11 +668,29 @@ const OPENING_CAFE_FRONT_BACKGROUND_SRC = '/admin-uploads/opening/green-door-caf
 const LEGACY_OPENING_LOCATION_DETAIL = 'Planet: Caelorin, City';
 const OPENING_LOCATION_DETAIL = 'Planet: Caelorin, City: Ganyra';
 
+function resolveAssetSrc(src: unknown): string {
+  if (typeof src !== 'string') return '';
+  const trimmed = src.trim();
+  if (!trimmed) return '';
+  if (/^(?:data:|blob:|https?:\/\/)/i.test(trimmed)) return trimmed;
+  if (!trimmed.startsWith('/')) return trimmed;
+
+  const base = PUBLIC_ASSET_BASE_URL.endsWith('/')
+    ? PUBLIC_ASSET_BASE_URL
+    : `${PUBLIC_ASSET_BASE_URL}/`;
+  return `${base}${trimmed.replace(/^\/+/, '')}`;
+}
+
+function cssAssetUrl(src: unknown): string | undefined {
+  const resolved = resolveAssetSrc(src);
+  return resolved ? `url("${resolved.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")` : undefined;
+}
+
 const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
   {
     id: 'opening-location',
     actor: 'narrator',
-    speaker: 'Sweet Purr Café',
+    speaker: 'Cat Cafe',
     text: OPENING_LOCATION_DETAIL,
     side: 'none',
     backgroundSrc: OPENING_CITY_BACKGROUND_SRC,
@@ -771,7 +825,7 @@ const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
 ];
 
 const DEFAULT_OPENING_SETTINGS: AdminOpeningSettings = {
-  locationName: 'Sweet Purr Café',
+  locationName: 'Cat Cafe',
   locationDetail: OPENING_LOCATION_DETAIL,
   backgroundSrc: '',
   lilaImageSrc: '',
@@ -802,8 +856,11 @@ const TUTORIAL_CLOCK_MESSAGE =
   "We only run the shop so late since it's just the two of us. Pay attention, because we close at 6pm.";
 const TUTORIAL_OPEN_MESSAGE = "It's on you PLAYER.";
 const TUTORIAL_OPEN_POPUP_MESSAGE = 'The store is official open. Greet customers and serve them.';
-const BIRTHDAY_STORY_TUTORIAL_MESSAGE =
-  "This is Matthew's birthday story. Keep using cat actions to listen, and the story will move forward.";
+const FIRST_DAY_STORY_INTRO_MESSAGE =
+  'Oh we have one more customer of the night. Looks like something is bothering him go chat with him.';
+const FIRST_DAY_STORY_ORDER_MESSAGE = "Can i snag a drink I know it's late";
+const FIRST_DAY_STORY_COLLECTED_MESSAGE =
+  'You just collected a Story. Collect stories of characters, they will tell you about their life.';
 
 const DEFAULT_MOOD_ICON_SRC =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 122'><path fill='%23fff7d9' stroke='%23141210' stroke-width='9' stroke-linejoin='round' d='M24 13h112c10 0 18 8 18 18v49c0 10-8 18-18 18H62l-39 18 13-23H24c-10 0-18-8-18-18V31c0-10 8-18 18-18Z'/><path fill='none' stroke='%23141210' stroke-width='8' stroke-linecap='round' d='M51 62c8-20 40 24 57-1M45 47c15-21 52 27 73 2M55 75c21-17 34 12 58-9M68 42c-11 23 15 33 5 48M92 37c-20 20 16 32-4 54'/></svg>";
@@ -875,6 +932,8 @@ const DEFAULT_CAT_SETTINGS: AdminCatSettings = {
   serve: '',
 };
 
+const LOADING_CAT_POSES: CatPoseKey[] = ['idle', 'meow', 'purr', 'listen', 'cute', 'roll', 'serve'];
+
 function getCatPoseLabel(poseKey: CatPoseKey): string {
   return poseKey === 'idle' ? 'Idle' : CAT_ACTION_LABELS[poseKey];
 }
@@ -887,6 +946,7 @@ function getCatImageSrc(settings: AdminCatSettings, poseKey: CatPoseKey): string
 const DEFAULT_ADMIN_SEAT_SPOTS: AdminSeatSpots = {
   '0': {
     marker: { x: 31, y: 80 },
+    emptyTable: { x: 31, y: 83 },
     drink: { x: 39, y: 72 },
     order: { x: 40, y: 55 },
     patience: { x: 31, y: 47 },
@@ -896,6 +956,7 @@ const DEFAULT_ADMIN_SEAT_SPOTS: AdminSeatSpots = {
   },
   '1': {
     marker: { x: 50, y: 76 },
+    emptyTable: { x: 50, y: 82 },
     drink: { x: 58, y: 68 },
     order: { x: 59, y: 51 },
     patience: { x: 50, y: 43 },
@@ -905,6 +966,7 @@ const DEFAULT_ADMIN_SEAT_SPOTS: AdminSeatSpots = {
   },
   '2': {
     marker: { x: 78, y: 79 },
+    emptyTable: { x: 78, y: 83 },
     drink: { x: 86, y: 71 },
     order: { x: 87, y: 54 },
     patience: { x: 78, y: 46 },
@@ -1181,6 +1243,8 @@ const ADMIN_PARTY_IDS = ['liam-eli', 'matthew-shadow', 'alaric-eli'] as const;
 type AdminPartyId = (typeof ADMIN_PARTY_IDS)[number];
 type AdminSubjectId = CharacterId | AdminPartyId;
 const ADMIN_SUBJECT_IDS = [...ADMIN_CHARACTER_IDS, ...ADMIN_PARTY_IDS] as AdminSubjectId[];
+const EMPTY_TABLE_SEAT_SPOTS_ID = '__empty-table';
+type AdminSeatSpotOwnerId = AdminSubjectId | typeof EMPTY_TABLE_SEAT_SPOTS_ID;
 
 const CHARACTER_TALKING_POSES = {
   shadow: [
@@ -1266,17 +1330,27 @@ function getDefaultAdminLayout(subjectId?: AdminSubjectId): AdminLayout {
   };
 }
 
-function normalizeAdminPosition(value: unknown, fallback: AdminPosition): AdminPosition {
+function normalizeAdminPosition(
+  value: unknown,
+  fallback: AdminPosition,
+  bounds = { minX: 0, maxX: 100, minY: 0, maxY: 100 },
+): AdminPosition {
   const parsed =
     value != null && typeof value === 'object' ? (value as Partial<AdminPosition>) : {};
   return {
-    x: clamp(Math.floor(numericValue(parsed.x, fallback.x)), 0, 100),
-    y: clamp(Math.floor(numericValue(parsed.y, fallback.y)), 0, 100),
+    x: clamp(Math.floor(numericValue(parsed.x, fallback.x)), bounds.minX, bounds.maxX),
+    y: clamp(Math.floor(numericValue(parsed.y, fallback.y)), bounds.minY, bounds.maxY),
   };
 }
 
 function clampAdminStagePosition(position: AdminPosition, item: AdminDragItem): AdminPosition {
   const minY = item === 'bubble' ? 2 : 6;
+  if (item === 'character') {
+    return {
+      x: clamp(position.x, -40, 140),
+      y: clamp(position.y, -30, 165),
+    };
+  }
   return {
     x: clamp(position.x, 4, 96),
     y: clamp(position.y, minY, 94),
@@ -1287,16 +1361,21 @@ function seatSpotKey(slot: TableSlot): AdminSeatSpotKey {
   return String(slot) as AdminSeatSpotKey;
 }
 
-function normalizeAdminSeatSpot(value: unknown, fallback: AdminSeatSpot): AdminSeatSpot {
+function normalizeAdminSeatSpot(
+  value: unknown,
+  fallback: AdminSeatSpot,
+  scaleMax = 180,
+): AdminSeatSpot {
   const parsed =
     value != null && typeof value === 'object' ? (value as Partial<AdminSeatSpot>) : {};
   return {
     marker: normalizeAdminPosition(parsed.marker, fallback.marker),
+    emptyTable: normalizeAdminPosition(parsed.emptyTable, fallback.emptyTable ?? fallback.marker),
     drink: normalizeAdminPosition(parsed.drink, fallback.drink),
     order: normalizeAdminPosition(parsed.order, fallback.order),
     patience: normalizeAdminPosition(parsed.patience, fallback.patience),
     moodIcon: normalizeAdminPosition(parsed.moodIcon, fallback.moodIcon),
-    scale: clamp(Math.floor(numericValue(parsed.scale, fallback.scale)), 55, 180),
+    scale: clamp(Math.floor(numericValue(parsed.scale, fallback.scale)), 55, scaleMax),
     drinkScale: clamp(Math.floor(numericValue(parsed.drinkScale, fallback.drinkScale)), 45, 250),
   };
 }
@@ -1305,12 +1384,13 @@ function normalizeAdminSeatSpots(
   value: unknown,
   fallback: AdminSeatSpots = DEFAULT_ADMIN_SEAT_SPOTS,
   useDefaultDepthScales = false,
+  scaleMax = 180,
 ): AdminSeatSpots {
   const source =
     value != null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   const spots = TABLE_SLOTS.reduce<AdminSeatSpots>((output, slot) => {
     const key = seatSpotKey(slot);
-    output[key] = normalizeAdminSeatSpot(source[key], fallback[key]);
+    output[key] = normalizeAdminSeatSpot(source[key], fallback[key], scaleMax);
     return output;
   }, {} as AdminSeatSpots);
   const savedScales = TABLE_SLOTS.map((slot) => {
@@ -1353,10 +1433,20 @@ function normalizeAdminSeatSpotLayouts(value: unknown): AdminSeatSpotLayouts {
     ? normalizeAdminSeatSpots(source, DEFAULT_ADMIN_SEAT_SPOTS, !hasDepthVersion)
     : DEFAULT_ADMIN_SEAT_SPOTS;
 
-  return ADMIN_SUBJECT_IDS.reduce<AdminSeatSpotLayouts>((layouts, subjectId) => {
-    layouts[subjectId] = normalizeAdminSeatSpots(source[subjectId], fallback, !hasDepthVersion);
-    return layouts;
-  }, {});
+  return ADMIN_SUBJECT_IDS.reduce<AdminSeatSpotLayouts>(
+    (layouts, subjectId) => {
+      layouts[subjectId] = normalizeAdminSeatSpots(source[subjectId], fallback, !hasDepthVersion);
+      return layouts;
+    },
+    {
+      [EMPTY_TABLE_SEAT_SPOTS_ID]: normalizeAdminSeatSpots(
+        source[EMPTY_TABLE_SEAT_SPOTS_ID],
+        fallback,
+        !hasDepthVersion,
+        300,
+      ),
+    },
+  );
 }
 
 function loadAdminSeatSpotLayouts(): AdminSeatSpotLayouts {
@@ -1389,9 +1479,18 @@ function getAdminSeatSpots(
   return normalizeAdminSeatSpots(layouts[subjectId]);
 }
 
-function getAdminSeatSpot(spots: AdminSeatSpots, slot: TableSlot): AdminSeatSpot {
+function getEmptyTableSeatSpots(layouts: AdminSeatSpotLayouts): AdminSeatSpots {
+  return normalizeAdminSeatSpots(
+    layouts[EMPTY_TABLE_SEAT_SPOTS_ID],
+    DEFAULT_ADMIN_SEAT_SPOTS,
+    false,
+    300,
+  );
+}
+
+function getAdminSeatSpot(spots: AdminSeatSpots, slot: TableSlot, scaleMax = 180): AdminSeatSpot {
   const key = seatSpotKey(slot);
-  return normalizeAdminSeatSpot(spots[key], DEFAULT_ADMIN_SEAT_SPOTS[key]);
+  return normalizeAdminSeatSpot(spots[key], DEFAULT_ADMIN_SEAT_SPOTS[key], scaleMax);
 }
 
 function getCharacterAdminSeatSpot(
@@ -1427,9 +1526,7 @@ function normalizeAdminTalkingLayout(
       ),
     ),
   );
-  const imageSrc = hiddenImageSrcs.includes(rawImageSrc)
-    ? ''
-    : rawImageSrc || fallback.imageSrc;
+  const imageSrc = hiddenImageSrcs.includes(rawImageSrc) ? '' : rawImageSrc || fallback.imageSrc;
   const defaultImageSrc = hiddenImageSrcs.includes(rawDefaultImageSrc)
     ? ''
     : rawDefaultImageSrc || fallback.defaultImageSrc;
@@ -1450,7 +1547,12 @@ function normalizeAdminTalkingLayout(
   );
 
   return {
-    character: normalizeAdminPosition(parsed.character, fallback.character),
+    character: normalizeAdminPosition(parsed.character, fallback.character, {
+      minX: -40,
+      maxX: 140,
+      minY: -30,
+      maxY: 165,
+    }),
     cat: normalizeAdminPosition(parsed.cat, fallback.cat),
     bubble: normalizeAdminPosition(parsed.bubble, fallback.bubble),
     drink: normalizeAdminPosition(parsed.drink, fallback.drink),
@@ -1680,7 +1782,7 @@ function defaultAdminChatEntry(
           ? 'I know what I would like today.'
           : kind === 'happy'
             ? 'That helped more than you know.'
-          : 'Hello there kitty.';
+            : 'Hello there kitty.';
   return {
     id: `${subjectId}-${kind}-${Date.now()}-${index}`,
     kind,
@@ -2050,10 +2152,34 @@ function createEmptyAdminChats(): AdminChats {
 
 function normalizeSpreadsheetHeader(value: string): string {
   const normalized = value.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (normalized === 'rep' || normalized === 'repneed' || normalized === 'requiredrep') {
+  if (
+    normalized === 'rep' ||
+    normalized === 'repneed' ||
+    normalized === 'repneeded' ||
+    normalized === 'reprequired' ||
+    normalized === 'requiredrep' ||
+    normalized === 'relationship' ||
+    normalized === 'relationshipneed' ||
+    normalized === 'relationshipneeded' ||
+    normalized === 'relationshiprequired' ||
+    normalized === 'requiredrelationship' ||
+    normalized === 'bondneeded' ||
+    normalized === 'bondrequired' ||
+    normalized === 'trustneeded' ||
+    normalized === 'trustrequired'
+  ) {
     return 'repneeded';
   }
   return normalized;
+}
+
+function spreadsheetNumericValue(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  const parsed = Number(trimmed.replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function normalizeSpreadsheetName(value: string): string {
@@ -2090,7 +2216,7 @@ function parseImportedTrigger(value: string): { triggerStoryId: string; triggerD
 
   return {
     triggerStoryId: (delayMatch[1] ?? '').trim(),
-    triggerDelayDays: clamp(Math.floor(numericValue(delayMatch[2], 0)), 0, 365),
+    triggerDelayDays: clamp(Math.floor(spreadsheetNumericValue(delayMatch[2], 0)), 0, 365),
   };
 }
 
@@ -2119,7 +2245,22 @@ function importChatKindValue(value: string): AdminChatKind {
   return 'comment';
 }
 
+function xmlAttribute(
+  element: Element,
+  namespace: string,
+  localName: string,
+  prefixedName: string,
+): string {
+  return (
+    element.getAttributeNS(namespace, localName) ??
+    element.getAttribute(prefixedName) ??
+    element.getAttribute(localName) ??
+    ''
+  );
+}
+
 function odsCellText(cell: Element): string {
+  const officeNamespace = 'urn:oasis:names:tc:opendocument:xmlns:office:1.0';
   const paragraphs = Array.from(
     cell.getElementsByTagNameNS('urn:oasis:names:tc:opendocument:xmlns:text:1.0', 'p'),
   );
@@ -2130,9 +2271,8 @@ function odsCellText(cell: Element): string {
     .trim();
   if (text) return text;
   return (
-    cell.getAttributeNS('urn:oasis:names:tc:opendocument:xmlns:office:1.0', 'value') ??
-    cell.getAttributeNS('urn:oasis:names:tc:opendocument:xmlns:office:1.0', 'string-value') ??
-    ''
+    xmlAttribute(cell, officeNamespace, 'value', 'office:value') ||
+    xmlAttribute(cell, officeNamespace, 'string-value', 'office:string-value')
   ).trim();
 }
 
@@ -2142,12 +2282,22 @@ function parseOdsTables(contentXml: string): Array<{ name: string; rows: string[
   if (document.querySelector('parsererror')) throw new Error('Could not read the spreadsheet XML.');
 
   return Array.from(document.getElementsByTagNameNS(tableNamespace, 'table')).map((table) => {
-    const name = table.getAttributeNS(tableNamespace, 'name') ?? 'Sheet';
+    const name = xmlAttribute(table, tableNamespace, 'name', 'table:name') || 'Sheet';
     const rows = Array.from(table.getElementsByTagNameNS(tableNamespace, 'table-row')).flatMap(
       (row) => {
         const rowRepeat = Math.max(
           1,
-          Math.floor(numericValue(row.getAttributeNS(tableNamespace, 'number-rows-repeated'), 1)),
+          Math.floor(
+            spreadsheetNumericValue(
+              xmlAttribute(
+                row,
+                tableNamespace,
+                'number-rows-repeated',
+                'table:number-rows-repeated',
+              ),
+              1,
+            ),
+          ),
         );
         const values: string[] = [];
         Array.from(row.children).forEach((cell) => {
@@ -2157,7 +2307,15 @@ function parseOdsTables(contentXml: string): Array<{ name: string; rows: string[
             Math.max(
               1,
               Math.floor(
-                numericValue(cell.getAttributeNS(tableNamespace, 'number-columns-repeated'), 1),
+                spreadsheetNumericValue(
+                  xmlAttribute(
+                    cell,
+                    tableNamespace,
+                    'number-columns-repeated',
+                    'table:number-columns-repeated',
+                  ),
+                  1,
+                ),
               ),
             ),
           );
@@ -2189,17 +2347,11 @@ function createImportedChatEntry(
     .filter(Boolean)
     .map((value, index) =>
       value.toUpperCase() === 'PLAYERREPLY'
-        ? createAdminCatReplyBlock(
-            defaultAdminCatReply(),
-            `${id}-reply-${index}`,
-          )
-        : createAdminBubbleBlock(
-            value,
-            `${id}-bubble-${index}`,
-          ),
+        ? createAdminCatReplyBlock(defaultAdminCatReply(), `${id}-reply-${index}`)
+        : createAdminBubbleBlock(value, `${id}-bubble-${index}`),
     );
   const synced = syncAdminChatEntryBlocks(blocks);
-  const firstLine = synced.bubbles[0] ?? '';
+  const firstLine = synced.bubbles.find((bubble) => bubble.trim()) ?? '';
   if (synced.blocks.length === 0 || !firstLine) return null;
 
   const safeTitle =
@@ -2210,7 +2362,7 @@ function createImportedChatEntry(
         ? firstLine || `Comment ${rowIndex}`
         : kind === 'happy'
           ? firstLine || `Happy ${rowIndex}`
-        : `${ADMIN_CHAT_KIND_LABELS[kind]} ${rowIndex}`);
+          : `${ADMIN_CHAT_KIND_LABELS[kind]} ${rowIndex}`);
   const safeSummary = summary.trim() || synced.bubbles.join(' ');
 
   return {
@@ -2241,10 +2393,7 @@ function importChatRowsForSubject(
   if (!headerRow) return [];
 
   const headers = headerRow.map(normalizeSpreadsheetHeader);
-  const thresholdIndex = headers.findIndex(
-    (header) =>
-      header === 'repneeded' || header === 'relationship' || header === 'relationshipneeded',
-  );
+  const thresholdIndex = headers.findIndex((header) => header === 'repneeded');
   const idIndex = headers.findIndex((header) => header === 'id' || header === 'chatid');
   const typeIndex = headers.findIndex((header) => header === 'type');
   const titleIndex = headers.findIndex(
@@ -2261,13 +2410,15 @@ function importChatRowsForSubject(
     .filter(({ header }) => header === 'text' || /^text\d+$/.test(header))
     .map(({ index }) => index);
 
-  if (typeIndex < 0 || textIndexes.length === 0) return [];
+  if (typeIndex < 0) return [];
 
   const groupsByThreshold = new Map<number, AdminRelationshipChatGroup>();
   const usedIds = new Set<string>();
+  const firstFallbackTextIndex =
+    Math.max(idIndex, thresholdIndex, typeIndex, titleIndex, triggerIndex, summaryIndex) + 1;
   rows.slice(headerIndex + 1).forEach((row, rowOffset) => {
     const threshold = clamp(
-      Math.floor(numericValue(thresholdIndex >= 0 ? row[thresholdIndex] : 0, 0)),
+      Math.floor(spreadsheetNumericValue(thresholdIndex >= 0 ? row[thresholdIndex] : 0, 0)),
       0,
       MAX_RELATIONSHIP_SCORE,
     );
@@ -2277,6 +2428,10 @@ function importChatRowsForSubject(
     const id = spreadsheetEntryId(idIndex >= 0 ? (row[idIndex] ?? '') : '', fallbackId, usedIds);
     const summary = summaryIndex >= 0 ? (row[summaryIndex] ?? '') : '';
     const trigger = parseImportedTrigger(triggerIndex >= 0 ? (row[triggerIndex] ?? '') : '');
+    const indexedTextValues = textIndexes.map((index) => row[index] ?? '');
+    const textValues = indexedTextValues.some((value) => value.trim())
+      ? indexedTextValues
+      : row.slice(Math.max(firstFallbackTextIndex, 0));
     const entry = createImportedChatEntry(
       id,
       kind,
@@ -2284,7 +2439,7 @@ function importChatRowsForSubject(
       summary,
       trigger.triggerStoryId,
       trigger.triggerDelayDays,
-      textIndexes.map((index) => row[index] ?? ''),
+      textValues,
       rowOffset + 1,
     );
     if (!entry) return;
@@ -2596,14 +2751,20 @@ function normalizeAdminPortableState(value: unknown): AdminPortableState {
 }
 
 async function loadAdminPortableState(): Promise<AdminPortableState | null> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), ADMIN_PORTABLE_FETCH_TIMEOUT_MS);
+
   try {
-    const response = await fetch(`${ADMIN_PORTABLE_STATE_SRC}?v=${Date.now()}`, {
+    const response = await fetch(`${resolveAssetSrc(ADMIN_PORTABLE_STATE_SRC)}?v=${Date.now()}`, {
       cache: 'no-store',
+      signal: controller.signal,
     });
     if (!response.ok) return null;
     return normalizeAdminPortableState(await response.json());
   } catch {
     return null;
+  } finally {
+    window.clearTimeout(timeout);
   }
 }
 
@@ -2931,10 +3092,7 @@ function getEditableCharacterProfile(
   return applyAdminSettingsToProfile(CHARACTER_PROFILES[characterId], settings);
 }
 
-function isCharacterEnabled(
-  characterId: string,
-  settings = activeAdminCharacterSettings,
-): boolean {
+function isCharacterEnabled(characterId: string, settings = activeAdminCharacterSettings): boolean {
   if (!isCharacterId(characterId)) return true;
   return normalizeCharacterAdminSettings(characterId, settings[characterId]).enabled;
 }
@@ -3105,14 +3263,32 @@ function baseTipForMembers(members: readonly CharacterProfile[]): number {
 function patienceForMembers(members: readonly CharacterProfile[]): number {
   const total = members.reduce((sum, member) => sum + member.patienceMs, 0);
   const average = total / members.length;
-  return Math.round(average + (members.length > 1 ? 4_000 : 0));
+  return Math.round(average + 3_000 + (members.length > 1 ? 4_000 : 0));
+}
+
+function defaultReturnStories(customerName: string): readonly StoryChapter[] {
+  return [
+    {
+      title: 'A Familiar Cup',
+      text: `${customerName} returns to the same table and seems pleased that the room remembers them.`,
+    },
+    {
+      title: 'A Little Easier',
+      text: `${customerName} talks a little longer today, trusting the quiet between sips.`,
+    },
+    {
+      title: 'Their Place',
+      text: `${customerName} starts calling the cafe their usual spot, almost like they have been practicing the words.`,
+    },
+  ];
 }
 
 function makeCustomer(seed: CustomerSeed): Customer {
   const members = characterList(seed.memberIds);
+  const name = seed.name ?? characterNames(members);
   return {
     id: seed.id,
-    name: seed.name ?? characterNames(members),
+    name,
     members,
     seat: seed.seat,
     moodStart: seed.moodStart ?? Math.max(30, 46 - members.length * 4),
@@ -3122,7 +3298,7 @@ function makeCustomer(seed: CustomerSeed): Customer {
     storyTitle: seed.storyTitle,
     story: seed.story,
     storyChoices: seed.choices,
-    followUps: seed.followUps,
+    followUps: seed.followUps.length > 0 ? seed.followUps : defaultReturnStories(name),
     blockedIfPresent: seed.blockedIfPresent,
     requiresPresent: seed.requiresPresent,
   };
@@ -4593,7 +4769,7 @@ function getAdminChatStoryLines(entry: AdminChatEntry): string[] {
 function getAdminChatStoryLineImages(entry: AdminChatEntry): string[] {
   return entry.blocks
     .filter((block) => block.kind === 'bubble' && block.text.trim())
-    .map((block) => block.imageSrc || entry.startImageSrc);
+    .map((block) => block.imageSrc || '');
 }
 
 function getAdminChatReplyAfterLineIndex(entry: AdminChatEntry): number | undefined {
@@ -4619,6 +4795,7 @@ function adminChatEntryToStoryChapter(
     lines,
     imageSrc: entry.startImageSrc || fallback.imageSrc,
     lineImageSrcs: getAdminChatStoryLineImages(entry),
+    moodIconIds: entry.moodIconIds,
     choices: entry.catReply ?? undefined,
     replyAfterLineIndex: entry.catReply ? getAdminChatReplyAfterLineIndex(entry) : undefined,
     triggerStoryId: entry.triggerStoryId || fallback.triggerStoryId || '',
@@ -4654,12 +4831,16 @@ function getStoryArc(customer: Customer, chats = activeAdminChats): StoryChapter
   return (adminStories.length > 0 ? adminStories : baseArc).slice(0, 5);
 }
 
-function getStoryArcLength(customer: Customer): number {
-  return getStoryArc(customer).length;
+function getStoryArcLength(customer: Customer, chats = activeAdminChats): number {
+  return getStoryArc(customer, chats).length;
 }
 
-function getStoryForVisit(customer: Customer, visitNumber: number): StoryChapter {
-  const arc = getStoryArc(customer);
+function getStoryForVisit(
+  customer: Customer,
+  visitNumber: number,
+  chats = activeAdminChats,
+): StoryChapter {
+  const arc = getStoryArc(customer, chats);
   const fallback: StoryChapter = arc[0] ?? {
     id: `${customer.id}-story-0`,
     title: `${customer.name}'s Corner`,
@@ -4769,41 +4950,7 @@ function getStoryTalkLines(story: StoryChapter): string[] {
 }
 
 function getStoryTalkImage(story: StoryChapter, lineIndex: number): string {
-  const imageSrc = story.lineImageSrcs?.[lineIndex] ?? '';
-  return imageSrc || story.imageSrc || '';
-}
-
-function getStoryClosingLine(customer: Customer): string {
-  switch (customer.id) {
-    case 'shadow':
-      return 'Thanks for listening. I did not expect the quiet to feel this safe.';
-    case 'matthew':
-      return "I can't believe I just told a cat all that, but I'm glad I did.";
-    case 'liam':
-      return 'Thanks for not rushing me. I know I do enough of that myself.';
-    case 'alfrin':
-      return 'Do not make a big thing of it, but that helped.';
-    case 'alaric':
-      return 'Thank you for keeping time with me.';
-    case 'eli':
-      return 'Thank you for listening. Somehow it feels easier to carry now.';
-    case 'miles':
-      return 'That felt lucky. Or maybe I just needed to say it.';
-    case 'nia':
-      return 'Thanks for letting the room stay quiet around that.';
-    case 'gene':
-      return 'Thank you. I feel like I can stop counting for a minute.';
-    case 'quou':
-      return 'Thanks for hearing me right.';
-    case 'matthew-shadow':
-      return 'Neither of us can believe we just told a cat, but apparently we did.';
-    case 'liam-eli':
-      return 'Thanks for listening to both versions. They finally match a little.';
-    case 'alaric-eli':
-      return 'You heard the soft part and stayed. That means more than I expected.';
-    default:
-      return 'Thanks for listening. I feel a little lighter now.';
-  }
+  return story.lineImageSrcs?.[lineIndex] ?? '';
 }
 
 const DEFAULT_KITTY_CHAT: KittyChat = {
@@ -4886,7 +5033,7 @@ function getAdminCommentChat(
   return {
     question: lines.join(' ') || entry.title || 'Hi there...',
     options: entry.catReply,
-    imageSrc: lineImages.find(Boolean) || entry.startImageSrc,
+    imageSrc: lineImages.find(Boolean) || '',
   };
 }
 
@@ -5173,6 +5320,26 @@ function loadGame(): GameState {
   }
 }
 
+function gameSaveData(game: GameState): Record<string, unknown> {
+  return { game };
+}
+
+function gameFromSaveData(
+  data: Record<string, unknown>,
+  fallback = DEFAULT_GAME,
+): GameState | null {
+  const rawGame = data['game'];
+  if (rawGame != null && typeof rawGame === 'object' && !Array.isArray(rawGame)) {
+    return normalizeGame(rawGame, fallback);
+  }
+
+  if ('day' in data || 'cafeName' in data || 'customerSlot' in data) {
+    return normalizeGame(data, fallback);
+  }
+
+  return null;
+}
+
 function sceneValue(value: unknown, fallback: Scene): Scene {
   if (
     value === 'start' ||
@@ -5204,6 +5371,9 @@ function tutorialStepValue(value: unknown, fallback: TutorialStep): TutorialStep
     value === 'visit' ||
     value === 'mood' ||
     value === 'leave' ||
+    value === 'firstDayStoryIntro' ||
+    value === 'firstDayStoryOrder' ||
+    value === 'firstDayStoryLeave' ||
     value === 'clock' ||
     value === 'open' ||
     value === 'done'
@@ -5253,6 +5423,7 @@ function visitCareRecord(value: unknown): Partial<Record<TableSlot, VisitCare>> 
       cutes: clamp(Math.floor(numericValue(care.cutes, 0)), 0, 99),
       storyTalks: clamp(Math.floor(numericValue(care.storyTalks, 0)), 0, 99),
       kittyAnswer: clamp(Math.floor(numericValue(care.kittyAnswer, 0)), 0, 2) as 0 | 1 | 2,
+      happySeen: Boolean(care.happySeen),
     };
   }
   return output;
@@ -5305,6 +5476,9 @@ function defaultInitialState(game: GameState): InitialAppState {
     nextArrivalTimerId: 0,
     arrivalTimers: [],
     activeLedgerTab: 'recipes',
+    tutorialLineIndex: 0,
+    tutorialPatienceExpired: false,
+    tutorialOpenPopup: false,
   };
 }
 
@@ -5434,6 +5608,9 @@ function loadSession(savedGame: GameState): InitialAppState {
       nextArrivalTimerId: clamp(Math.floor(numericValue(parsed.nextArrivalTimerId, 0)), 0, 9999),
       arrivalTimers: sessionArrivalTimers(parsed.arrivalTimers),
       activeLedgerTab: ledgerTabValue(parsed.activeLedgerTab, 'recipes'),
+      tutorialLineIndex: clamp(Math.floor(numericValue(parsed.tutorialLineIndex, 0)), 0, 99),
+      tutorialPatienceExpired: Boolean(parsed.tutorialPatienceExpired),
+      tutorialOpenPopup: Boolean(parsed.tutorialOpenPopup),
     };
   } catch {
     return defaultInitialState(savedGame);
@@ -5442,6 +5619,167 @@ function loadSession(savedGame: GameState): InitialAppState {
 
 function loadInitialAppState(): InitialAppState {
   return loadSession(loadGame());
+}
+
+function preloadableImageSrc(src: unknown): string {
+  if (typeof src !== 'string') return '';
+  const trimmed = src.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('data:') && !trimmed.startsWith('data:image/')) return '';
+  return resolveAssetSrc(trimmed);
+}
+
+function addPreloadImageSource(sources: Set<string>, src: unknown) {
+  const imageSrc = preloadableImageSrc(src);
+  if (imageSrc) sources.add(imageSrc);
+}
+
+function collectPreloadImageSources({
+  layouts,
+  characterSettings,
+  chats,
+  moodIcons,
+  chatMenu,
+  catSettings,
+  openingSettings,
+}: {
+  layouts: AdminLayouts;
+  characterSettings: AdminCharacterSettings;
+  chats: AdminChats;
+  moodIcons: AdminMoodIcon[];
+  chatMenu: AdminChatMenuSettings;
+  catSettings: AdminCatSettings;
+  openingSettings: AdminOpeningSettings;
+}): string[] {
+  const sources = new Set<string>();
+
+  addPreloadImageSource(sources, EMPTY_TABLE_IMAGE_SRC);
+  Object.values(UI_ICON_SRC).forEach((src) => addPreloadImageSource(sources, src));
+  Object.values(RELATIONSHIP_HEART_SRC).forEach((src) => addPreloadImageSource(sources, src));
+  SERVICE_ITEMS.forEach((service) => addPreloadImageSource(sources, service.imageSrc));
+
+  const normalizedCatSettings = normalizeAdminCatSettings(catSettings);
+  Object.values(normalizedCatSettings).forEach((src) => addPreloadImageSource(sources, src));
+
+  addPreloadImageSource(sources, chatMenu.backgroundImageSrc);
+  Object.values(chatMenu.items).forEach((item) => {
+    addPreloadImageSource(sources, item.imageSrc);
+    addPreloadImageSource(sources, item.servedImageSrc);
+  });
+
+  moodIcons.forEach((icon) => addPreloadImageSource(sources, icon.src));
+
+  addPreloadImageSource(sources, OPENING_CITY_BACKGROUND_SRC);
+  addPreloadImageSource(sources, OPENING_CAFE_FRONT_BACKGROUND_SRC);
+  addPreloadImageSource(sources, openingSettings.backgroundSrc);
+  addPreloadImageSource(sources, openingSettings.lilaImageSrc);
+  addPreloadImageSource(sources, openingSettings.graceImageSrc);
+  openingSettings.lilaImages.forEach((image) => addPreloadImageSource(sources, image.src));
+  openingSettings.graceImages.forEach((image) => addPreloadImageSource(sources, image.src));
+  openingSettings.beats.forEach((beat) => addPreloadImageSource(sources, beat.backgroundSrc));
+
+  ADMIN_CHARACTER_IDS.forEach((characterId) => {
+    const baseProfile = CHARACTER_PROFILES[characterId];
+    const imageProfile = baseProfile as CharacterProfile;
+    addPreloadImageSource(sources, imageProfile.imageSrc);
+    addPreloadImageSource(sources, imageProfile.portraitImageSrc);
+    const settings = normalizeCharacterAdminSettings(
+      characterId,
+      characterSettings[characterId] ?? defaultCharacterAdminSettings(baseProfile),
+    );
+    addPreloadImageSource(sources, settings.portrait.imageSrc);
+  });
+
+  ADMIN_SUBJECT_IDS.forEach((subjectId) => {
+    const layout = normalizeAdminLayout(layouts[subjectId], subjectId);
+    addPreloadImageSource(sources, layout.talking.defaultImageSrc);
+    addPreloadImageSource(sources, layout.talking.imageSrc);
+    layout.talking.enabledImageSrcs.forEach((src) => addPreloadImageSource(sources, src));
+
+    const customer = getAdminSubjectCustomer(subjectId, characterSettings);
+    customer.members.forEach((member) => {
+      addPreloadImageSource(sources, member.imageSrc);
+      addPreloadImageSource(sources, member.portraitImageSrc);
+    });
+  });
+
+  Object.values(chats).forEach((groups) => {
+    groups.forEach((group) => {
+      group.entries.forEach((entry) => {
+        addPreloadImageSource(sources, entry.startImageSrc);
+        entry.blocks.forEach((block) => addPreloadImageSource(sources, block.imageSrc));
+      });
+    });
+  });
+
+  return Array.from(sources);
+}
+
+function preloadImageAsset(src: string, timeoutMs = PRELOAD_IMAGE_TIMEOUT_MS): Promise<void> {
+  if (typeof Image === 'undefined') return Promise.resolve();
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      resolve();
+    };
+    const timeout = window.setTimeout(finish, timeoutMs);
+    image.onload = finish;
+    image.onerror = finish;
+    image.decoding = 'async';
+    image.loading = 'eager';
+    image.src = src;
+  });
+}
+
+async function preloadImageAssets(
+  sources: string[],
+  onProgress: (state: AssetPreloadState) => void,
+  maxDurationMs = STARTUP_PRELOAD_TIMEOUT_MS,
+) {
+  const total = sources.length;
+  if (total <= 0) {
+    onProgress({ loaded: 1, total: 1 });
+    return;
+  }
+
+  let loaded = 0;
+  let timedOut = false;
+  onProgress({ loaded, total });
+  const queue = [...sources];
+  const workerCount = Math.min(6, queue.length);
+  const workers = Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (queue.length > 0) {
+        if (timedOut) return;
+        const src = queue.shift();
+        if (!src) return;
+        await preloadImageAsset(src);
+        loaded += 1;
+        onProgress({ loaded, total });
+      }
+    }),
+  );
+
+  await Promise.race([
+    workers,
+    new Promise<void>((resolve) => {
+      window.setTimeout(() => {
+        timedOut = true;
+        resolve();
+      }, maxDurationMs);
+    }),
+  ]);
+
+  if (timedOut) {
+    onProgress({ loaded: total, total });
+  } else {
+    await workers;
+  }
 }
 
 function TeaShopCat() {
@@ -5515,14 +5853,26 @@ function TeaShopCat() {
   const [adminSaveMessage, setAdminSaveMessage] = useState('');
   const [catActionPose, setCatActionPose] = useState<CatPoseKey>('idle');
   const [storyToast, setStoryToast] = useState<StoryToast | null>(null);
-  const [tutorialLineIndex, setTutorialLineIndex] = useState(0);
-  const [tutorialPatienceExpired, setTutorialPatienceExpired] = useState(false);
-  const [tutorialOpenPopup, setTutorialOpenPopup] = useState(false);
+  const [tutorialLineIndex, setTutorialLineIndex] = useState(initialState.tutorialLineIndex);
+  const [tutorialPatienceExpired, setTutorialPatienceExpired] = useState(
+    initialState.tutorialPatienceExpired,
+  );
+  const [tutorialOpenPopup, setTutorialOpenPopup] = useState(initialState.tutorialOpenPopup);
   const [musicMuted, setMusicMuted] = useState(
     () => window.localStorage.getItem(MUSIC_MUTED_KEY) === 'true',
   );
   const [musicVolume, setMusicVolume] = useState(loadMusicVolume);
   const [musicUnlocked, setMusicUnlocked] = useState(false);
+  const [saveWarning, setSaveWarning] = useState('');
+  const [platformSaveReady, setPlatformSaveReady] = useState(false);
+  const [adminAssetsReady, setAdminAssetsReady] = useState(false);
+  const [assetPreloadReady, setAssetPreloadReady] = useState(false);
+  const [assetPreloadState, setAssetPreloadState] = useState<AssetPreloadState>({
+    loaded: 0,
+    total: 1,
+  });
+  const [loadingCatPose, setLoadingCatPose] = useState<CatPoseKey>('idle');
+  const [departingSlots, setDepartingSlots] = useState<TableSlot[]>([]);
   const [activeStoryBySlot, setActiveStoryBySlot] = useState<
     Partial<Record<TableSlot, ActiveStorySession>>
   >({});
@@ -5545,9 +5895,13 @@ function TeaShopCat() {
   const openingSaveTimerRef = useRef<number | null>(null);
   const openingSaveVersionRef = useRef(0);
   const adminLargeLoadedRef = useRef(false);
+  const assetPreloadStartedRef = useRef(false);
   const adminLargeSaveTimersRef = useRef<Record<string, number>>({});
   const adminPortableSaveTimerRef = useRef<number | null>(null);
   const catActionPoseTimerRef = useRef<number | null>(null);
+  const platformSaveTimerRef = useRef<number | null>(null);
+  const departingSlotsRef = useRef<Set<TableSlot>>(new Set());
+  const departureTimersRef = useRef<number[]>([]);
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const adminChatTestSnapshotRef = useRef<{
     game: GameState;
@@ -5630,32 +5984,40 @@ function TeaShopCat() {
       loadAdminLargeRecord('chat-menu', normalizeAdminChatMenuSettings),
       loadAdminLargeRecord('cat-settings', normalizeAdminCatSettings),
       loadAdminPortableState(),
-    ]).then(([layouts, seatSpots, settings, chats, moodIcons, chatMenu, catSettings, portable]) => {
-      if (cancelled) return;
-      const portableState = portable ?? null;
-      const nextLayouts = portableState?.layouts ?? layouts;
-      const nextSeatSpots = portableState?.seatSpots ?? seatSpots;
-      const nextSettings = portableState?.characterSettings ?? settings;
-      const nextChats = portableState?.chats ?? chats;
-      const nextMoodIcons = portableState?.moodIcons ?? moodIcons;
-      const nextChatMenu = portableState?.chatMenu ?? chatMenu;
-      const nextCatSettings = portableState?.catSettings ?? catSettings;
+    ]).then(
+      ([layouts, seatSpots, settings, chats, moodIcons, chatMenu, catSettings, portable]) => {
+        if (cancelled) return;
+        const portableState = portable ?? null;
+        const nextLayouts = portableState?.layouts ?? layouts;
+        const nextSeatSpots = portableState?.seatSpots ?? seatSpots;
+        const nextSettings = portableState?.characterSettings ?? settings;
+        const nextChats = portableState?.chats ?? chats;
+        const nextMoodIcons = portableState?.moodIcons ?? moodIcons;
+        const nextChatMenu = portableState?.chatMenu ?? chatMenu;
+        const nextCatSettings = portableState?.catSettings ?? catSettings;
 
-      if (nextLayouts) setAdminLayouts(nextLayouts);
-      if (nextSeatSpots) setAdminSeatSpotLayouts(nextSeatSpots);
-      if (nextSettings) {
-        setAdminCharacterSettings(nextSettings);
-        setActiveAdminCharacterSettings(nextSettings);
-      }
-      if (nextChats) {
-        setAdminChats(nextChats);
-        setActiveAdminChats(nextChats);
-      }
-      if (nextMoodIcons) setAdminMoodIcons(nextMoodIcons);
-      if (nextChatMenu) setAdminChatMenuSettings(nextChatMenu);
-      if (nextCatSettings) setAdminCatSettings(nextCatSettings);
-      adminLargeLoadedRef.current = true;
-    });
+        if (nextLayouts) setAdminLayouts(nextLayouts);
+        if (nextSeatSpots) setAdminSeatSpotLayouts(nextSeatSpots);
+        if (nextSettings) {
+          setAdminCharacterSettings(nextSettings);
+          setActiveAdminCharacterSettings(nextSettings);
+        }
+        if (nextChats) {
+          setAdminChats(nextChats);
+          setActiveAdminChats(nextChats);
+        }
+        if (nextMoodIcons) setAdminMoodIcons(nextMoodIcons);
+        if (nextChatMenu) setAdminChatMenuSettings(nextChatMenu);
+        if (nextCatSettings) setAdminCatSettings(nextCatSettings);
+        adminLargeLoadedRef.current = true;
+        setAdminAssetsReady(true);
+      },
+      () => {
+        if (cancelled) return;
+        adminLargeLoadedRef.current = true;
+        setAdminAssetsReady(true);
+      },
+    );
 
     return () => {
       cancelled = true;
@@ -5722,6 +6084,52 @@ function TeaShopCat() {
     saveAdminCatSettings(normalizedCatSettings);
     scheduleAdminLargeSave('cat-settings', normalizedCatSettings);
   }, [adminCatSettings]);
+
+  useEffect(() => {
+    if (assetPreloadReady) return undefined;
+    let poseIndex = 0;
+    setLoadingCatPose(LOADING_CAT_POSES[poseIndex] ?? 'idle');
+    const interval = window.setInterval(() => {
+      poseIndex = (poseIndex + 1) % LOADING_CAT_POSES.length;
+      setLoadingCatPose(LOADING_CAT_POSES[poseIndex] ?? 'idle');
+    }, 560);
+
+    return () => window.clearInterval(interval);
+  }, [assetPreloadReady]);
+
+  useEffect(() => {
+    if (!adminAssetsReady || assetPreloadStartedRef.current) return undefined;
+    assetPreloadStartedRef.current = true;
+    let cancelled = false;
+    const sources = collectPreloadImageSources({
+      layouts: adminLayouts,
+      characterSettings: adminCharacterSettings,
+      chats: adminChats,
+      moodIcons: adminMoodIcons,
+      chatMenu: adminChatMenuSettings,
+      catSettings: adminCatSettings,
+      openingSettings: adminOpeningSettings,
+    });
+
+    void preloadImageAssets(sources, (state) => {
+      if (!cancelled) setAssetPreloadState(state);
+    }).then(() => {
+      if (!cancelled) setAssetPreloadReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    adminAssetsReady,
+    adminCatSettings,
+    adminCharacterSettings,
+    adminChatMenuSettings,
+    adminChats,
+    adminLayouts,
+    adminMoodIcons,
+    adminOpeningSettings,
+  ]);
 
   function showCatPose(poseKey: CatPoseKey) {
     setCatActionPose(poseKey);
@@ -5818,9 +6226,7 @@ function TeaShopCat() {
     currentKittyAnswer <= 0 &&
     currentStoryProgress >= currentStoryReplyAfterLine;
   const currentStoryChoiceReply =
-    currentKittyAnswer > 0
-      ? (currentStoryChoices?.[currentKittyAnswer - 1]?.reply ?? '')
-      : '';
+    currentKittyAnswer > 0 ? (currentStoryChoices?.[currentKittyAnswer - 1]?.reply ?? '') : '';
   const currentStoryComplete =
     currentStoryReady &&
     currentStoryProgress >= currentStoryLineCount &&
@@ -5831,7 +6237,6 @@ function TeaShopCat() {
   const currentStoryImageSrc = currentStoryReady
     ? getStoryTalkImage(currentStory, currentStoryProgress - 1)
     : '';
-  const currentStoryClosingLine = getStoryClosingLine(currentCustomer);
   const currentKittyChat = getKittyChat(
     currentCustomer,
     game,
@@ -5845,12 +6250,10 @@ function TeaShopCat() {
       ? (currentKittyOptions[currentKittyAnswer - 1]?.reply ?? '')
       : '';
   const currentKittyChatReady = !currentStoryReady && !currentStoryChoiceReady;
-  const currentOrderComment = getCustomerOrderComment(
-    currentCustomer,
-    game,
-    currentVisitNumber,
-    currentChatSeed,
-  );
+  const currentOrderComment =
+    game.tutorialStep === 'firstDayStoryOrder' && currentCustomer.id === 'matthew'
+      ? FIRST_DAY_STORY_ORDER_MESSAGE
+      : getCustomerOrderComment(currentCustomer, game, currentVisitNumber, currentChatSeed);
   const visibleCustomers = useMemo(
     () =>
       TABLE_SLOTS.map((slot) => {
@@ -5873,6 +6276,11 @@ function TeaShopCat() {
     seatCustomerSlots,
     selectedOccupiedSlot,
   );
+  const patienceRemaining = getSeatPatience(
+    patienceBySlot,
+    seatCustomerSlots,
+    selectedOccupiedSlot,
+  );
   const patiencePercents = useMemo(
     () => getPatiencePercentsBySlot(patienceBySlot, seatCustomerSlots),
     [patienceBySlot, seatCustomerSlots],
@@ -5889,6 +6297,7 @@ function TeaShopCat() {
   const clockProgress = clamp((dayElapsedMs / SHOP_DAY_REAL_MS) * 100, 0, 100);
   const shopTimeLabel = formatShopTime(clockProgress);
   const purrCooldownMs = getActionCooldown(game.upgrades, 'purr');
+  const meowCooldownMs = BASE_MEOW_COOLDOWN_MS;
   const quietCooldownMs = getActionCooldown(game.upgrades, 'quiet');
   const rollCooldownMs = getActionCooldown(game.upgrades, 'roll');
   const cuteCooldownMs = getActionCooldown(game.upgrades, 'cute');
@@ -5909,6 +6318,10 @@ function TeaShopCat() {
   const adminAvailable = isLocalAdminMode();
   const tutorialStep = game.tutorialStep;
   const tutorialActive = tutorialStep !== 'done';
+  function isTutorialProtectedMatthew(customer: Customer): boolean {
+    return tutorialActive && tutorialStep !== 'firstDayStoryLeave' && customer.id === 'matthew';
+  }
+
   const tutorialMatthewActive =
     tutorialStep === 'meow' && scene === 'visit' && currentCustomer.id === 'matthew';
   const tutorialMoodActive =
@@ -5916,15 +6329,6 @@ function TeaShopCat() {
   const tutorialMatthewLine = tutorialMatthewActive
     ? (TUTORIAL_MATTHEW_LINES[clamp(tutorialLineIndex, 0, TUTORIAL_MATTHEW_LINES.length - 1)] ?? '')
     : '';
-  const birthdayStoryTutorialActive =
-    game.day === 1 &&
-    game.tutorialStep === 'done' &&
-    scene === 'visit' &&
-    currentCustomer.id === 'matthew' &&
-    currentVisitNumber === 1 &&
-    currentStoryReady &&
-    !currentStoryChoiceReady &&
-    !currentStoryComplete;
 
   sessionStateRef.current = {
     game,
@@ -5952,7 +6356,35 @@ function TeaShopCat() {
     nextCustomerSlot: nextCustomerSlotRef.current,
     nextArrivalTimerId: arrivalTimerIdRef.current,
     activeLedgerTab,
+    tutorialLineIndex,
+    tutorialPatienceExpired,
+    tutorialOpenPopup,
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadPlatformSave()
+      .then((save) => {
+        if (cancelled) return;
+        const savedGame = gameFromSaveData(save.data, game);
+        if (savedGame && !initialState.restoredSession) {
+          hydrateSavedGame(savedGame);
+        }
+        setSaveWarning('');
+        setPlatformSaveReady(true);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setSaveWarning('Cloud save unavailable. Progress is saved on this device.');
+        setPlatformSaveReady(true);
+        console.warn('Cat Cafe cloud save load failed', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -5960,7 +6392,31 @@ function TeaShopCat() {
     } catch {
       // Local saves are a convenience in browser preview; the game still runs without them.
     }
-  }, [game]);
+
+    if (!platformSaveReady) return undefined;
+    if (platformSaveTimerRef.current != null) window.clearTimeout(platformSaveTimerRef.current);
+
+    platformSaveTimerRef.current = window.setTimeout(() => {
+      platformSaveTimerRef.current = null;
+      void persistPlatformSave({
+        version: SAVE_SCHEMA_VERSION,
+        savedAt: Date.now(),
+        data: gameSaveData(game),
+      })
+        .then(() => setSaveWarning(''))
+        .catch((error) => {
+          setSaveWarning('Cloud save unavailable. Progress is saved on this device.');
+          console.warn('Cat Cafe cloud save failed', error);
+        });
+    }, 900);
+
+    return () => {
+      if (platformSaveTimerRef.current != null) {
+        window.clearTimeout(platformSaveTimerRef.current);
+        platformSaveTimerRef.current = null;
+      }
+    };
+  }, [game, platformSaveReady]);
 
   useEffect(() => {
     persistSessionSnapshot();
@@ -6031,7 +6487,10 @@ function TeaShopCat() {
     () => () => {
       arrivalTimersRef.current.forEach((timer) => window.clearTimeout(timer.timeout));
       arrivalTimersRef.current = [];
+      departureTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      departureTimersRef.current = [];
       if (storyToastTimerRef.current != null) window.clearTimeout(storyToastTimerRef.current);
+      if (platformSaveTimerRef.current != null) window.clearTimeout(platformSaveTimerRef.current);
     },
     [],
   );
@@ -6039,9 +6498,11 @@ function TeaShopCat() {
   useEffect(() => {
     if (scene !== 'visit') return;
     if (isPaused) return;
-    if (tutorialActive) return;
     if (!currentStoryComplete) return;
     if (!currentStoryAvailable) return;
+    const canCollectDuringTutorial =
+      game.tutorialStep === 'firstDayStoryOrder' && currentCustomer.id === 'matthew';
+    if (tutorialActive && !canCollectDuringTutorial) return;
     const storyKey = `${selectedOccupiedSlot}:${currentCustomer.id}:${currentVisitNumber}`;
     if (autoCollectedStoryKeyRef.current === storyKey) return;
 
@@ -6052,6 +6513,7 @@ function TeaShopCat() {
     currentStoryAvailable,
     currentStoryComplete,
     currentVisitNumber,
+    game.tutorialStep,
     isPaused,
     scene,
     selectedOccupiedSlot,
@@ -6213,6 +6675,11 @@ function TeaShopCat() {
           if (customerSlot == null) continue;
 
           const customer = getCustomer(customerSlot);
+          if (isTutorialProtectedMatthew(customer)) {
+            nextPatience[slot] = customer.patienceMs;
+            continue;
+          }
+
           const fullyServed = isTableFullyServed(customer, servedOrdersBySlot, slot);
           if (scene === 'visit' && slot === selectedOccupiedSlot && fullyServed) {
             nextPatience[slot] = getSeatPatience(prev, seatCustomerSlots, slot);
@@ -6275,6 +6742,17 @@ function TeaShopCat() {
     const expiredFullyServed = isTableFullyServed(expiredCustomer, servedOrdersBySlot, expiredSlot);
     if (scene === 'visit' && expiredSlot === selectedOccupiedSlot && expiredFullyServed) return;
 
+    if (isTutorialProtectedMatthew(expiredCustomer)) {
+      if (!expiredFullyServed && !tutorialPatienceExpired) {
+        setTutorialPatienceExpired(true);
+      }
+      setPatienceBySlot((prev) => ({
+        ...prev,
+        [expiredSlot]: expiredCustomer.patienceMs,
+      }));
+      return;
+    }
+
     if (
       tutorialActive &&
       expiredCustomer.id === 'matthew' &&
@@ -6321,6 +6799,13 @@ function TeaShopCat() {
     arrivalTimersRef.current = [];
   }
 
+  function clearDepartureTimers() {
+    departureTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    departureTimersRef.current = [];
+    departingSlotsRef.current.clear();
+    setDepartingSlots([]);
+  }
+
   function createSessionSnapshot(now = Date.now()): SessionSnapshot | null {
     const state = sessionStateRef.current;
     if (!state) return null;
@@ -6363,6 +6848,9 @@ function TeaShopCat() {
         remainingMs: Math.max(0, timer.remainingMs ?? timer.dueAt - now),
       })),
       activeLedgerTab: state.activeLedgerTab,
+      tutorialLineIndex: state.tutorialLineIndex,
+      tutorialPatienceExpired: state.tutorialPatienceExpired,
+      tutorialOpenPopup: state.tutorialOpenPopup,
     };
   }
 
@@ -6381,6 +6869,44 @@ function TeaShopCat() {
     } catch {
       // Local session restore is a browser convenience; storage can be unavailable in preview.
     }
+  }
+
+  function hydrateSavedGame(nextGame: GameState) {
+    clearArrivalTimers();
+    clearDepartureTimers();
+    clearPauseState();
+    clearSessionSnapshot();
+
+    const nextInitialState = defaultInitialState(nextGame);
+    nextCustomerSlotRef.current = nextInitialState.nextCustomerSlot;
+    arrivalTimerIdRef.current = nextInitialState.nextArrivalTimerId;
+    arrivalTimersRef.current = [];
+    setGame(nextInitialState.game);
+    setScene(nextInitialState.scene);
+    setMood(nextInitialState.mood);
+    setMoodBySlot(nextInitialState.moodBySlot);
+    setPurrBeat(nextInitialState.purrBeat);
+    setArrivalState(nextInitialState.arrivalState);
+    setSelectedSlot(nextInitialState.selectedSlot);
+    setTableCount(nextInitialState.tableCount);
+    setSeatCustomerSlots(nextInitialState.seatCustomerSlots);
+    setServedSlots(nextInitialState.servedSlots);
+    setServedOrdersBySlot(nextInitialState.servedOrdersBySlot);
+    setServiceQualityBySlot(nextInitialState.serviceQualityBySlot);
+    setCareBySlot(nextInitialState.careBySlot);
+    setActiveStoryBySlot({});
+    setPatienceBySlot(nextInitialState.patienceBySlot);
+    setDayElapsedMs(nextInitialState.dayElapsedMs);
+    setPurrReadyAt(0);
+    setMeowReadyAt(0);
+    setQuietReadyAt(0);
+    setRollReadyAt(0);
+    setCuteReadyAt(0);
+    setActionNow(Date.now());
+    setActiveLedgerTab(nextInitialState.activeLedgerTab);
+    setTutorialLineIndex(0);
+    setTutorialPatienceExpired(false);
+    setTutorialOpenPopup(false);
   }
 
   function completeSeatArrival(timerId: number) {
@@ -6578,10 +7104,7 @@ function TeaShopCat() {
     clearArrivalTimers();
 
     const targetSlot: TableSlot = 0;
-    const matthewSlot = createCustomerToken(
-      FIRST_DAY_STORY_TUTORIAL_FINAL_SLOT,
-      matthewIndex,
-    );
+    const matthewSlot = createCustomerToken(FIRST_DAY_STORY_TUTORIAL_FINAL_SLOT, matthewIndex);
     const matthewCustomer = getCustomer(matthewSlot);
     const nextSeats = TABLE_SLOTS.map((slot) => (slot === targetSlot ? matthewSlot : null));
     nextCustomerSlotRef.current = Math.max(
@@ -6612,6 +7135,7 @@ function TeaShopCat() {
       recordCustomerArrivals(
         {
           ...prev,
+          tutorialStep: 'firstDayStoryIntro',
           customerSlot: Math.max(prev.customerSlot, nextCustomerSlotRef.current),
           metCustomers: Array.from(
             new Set([...prev.metCustomers, ...getCustomerMetIds(matthewCustomer)]),
@@ -6812,7 +7336,11 @@ function TeaShopCat() {
     }));
     setMoodForSlot(
       targetSlot,
-      startingMood(testCustomer, getService(nextCustomerSlot, game.recipes, 0, testCustomer), false),
+      startingMood(
+        testCustomer,
+        getService(nextCustomerSlot, game.recipes, 0, testCustomer),
+        false,
+      ),
     );
     setGame((prev) => ({
       ...prev,
@@ -6889,6 +7417,7 @@ function TeaShopCat() {
 
   function closeShopForDay() {
     clearArrivalTimers();
+    clearDepartureTimers();
     clearPauseState();
     setSeatCustomerSlots(TABLE_SLOTS.map(() => null));
     setServedSlots([]);
@@ -6911,31 +7440,41 @@ function TeaShopCat() {
   }
 
   function finishSeatDeparture(slot: TableSlot) {
+    if (departingSlotsRef.current.has(slot)) return;
     const keepCurrentVisitOpen = scene === 'visit' && slot !== selectedOccupiedSlot;
     const departingCustomerSlot = seatCustomerSlots[slot] ?? null;
     const departingWasFirstDayStoryTutorialFinalCustomer =
       isFirstDayStoryTutorialFinalCustomerSlot(departingCustomerSlot);
-    vacateSeat(slot);
     const canQueueAnotherCustomer = dayElapsedMs < SHOP_DAY_REAL_MS;
 
-    if (keepCurrentVisitOpen) {
-      if (canQueueAnotherCustomer) queueSeatArrival(slot);
-      return;
-    }
+    departingSlotsRef.current.add(slot);
+    setDepartingSlots(Array.from(departingSlotsRef.current));
 
-    if (!canQueueAnotherCustomer) {
-      if (
-        firstDayStoryTutorialNeeded &&
-        !departingWasFirstDayStoryTutorialFinalCustomer
-      ) {
-        seatFirstDayStoryTutorialMatthew();
-      } else {
-        closeShopForDay();
+    const timer = window.setTimeout(() => {
+      departureTimersRef.current = departureTimersRef.current.filter((item) => item !== timer);
+      departingSlotsRef.current.delete(slot);
+      setDepartingSlots(Array.from(departingSlotsRef.current));
+
+      vacateSeat(slot);
+
+      if (keepCurrentVisitOpen) {
+        if (canQueueAnotherCustomer) queueSeatArrival(slot);
+        return;
       }
-    } else {
-      queueSeatArrival(slot);
-      setScene('shop');
-    }
+
+      if (!canQueueAnotherCustomer) {
+        if (firstDayStoryTutorialNeeded && !departingWasFirstDayStoryTutorialFinalCustomer) {
+          seatFirstDayStoryTutorialMatthew();
+        } else {
+          closeShopForDay();
+        }
+      } else {
+        queueSeatArrival(slot);
+        setScene('shop');
+      }
+    }, 420);
+
+    departureTimersRef.current.push(timer);
   }
 
   function startTutorialFromOpening() {
@@ -7092,12 +7631,18 @@ function TeaShopCat() {
     const customer = getCustomer(customerSlot);
     const service = getService(customerSlot, game.recipes, 0, customer);
     const metCustomerIds = getCustomerMetIds(customer);
+    const enteringFirstDayStoryTutorial =
+      game.tutorialStep === 'firstDayStoryIntro' && customer.id === 'matthew';
     setSelectedSlot(nextSlot);
     setGame((prev) => {
       const nextMetCustomers = Array.from(new Set([...prev.metCustomers, ...metCustomerIds]));
-      return nextMetCustomers.length === prev.metCustomers.length
-        ? prev
-        : { ...prev, metCustomers: nextMetCustomers };
+      const nextGame =
+        nextMetCustomers.length === prev.metCustomers.length
+          ? prev
+          : { ...prev, metCustomers: nextMetCustomers };
+      return enteringFirstDayStoryTutorial
+        ? { ...nextGame, tutorialStep: 'firstDayStoryOrder' }
+        : nextGame;
     });
     setActiveStoryBySlot((prev) => {
       const existingStory = prev[nextSlot];
@@ -7108,8 +7653,9 @@ function TeaShopCat() {
         ...prev,
         [nextSlot]: {
           customerId: customer.id,
-          kind:
-            game.tutorialStep === 'visit' && customer.id === 'matthew'
+          kind: enteringFirstDayStoryTutorial
+            ? 'story'
+            : game.tutorialStep === 'visit' && customer.id === 'matthew'
               ? 'kitty'
               : chooseVisitConversationKind(customer, game, visitNumber, nextSlot),
           visitNumber,
@@ -7163,10 +7709,14 @@ function TeaShopCat() {
     }
     setPatienceBySlot((prev) => ({
       ...prev,
-      [nextSlot]: Math.max(
-        getSeatPatience(prev, seatCustomerSlots, nextSlot),
-        targetCustomer.patienceMs * 0.65,
-      ),
+      [nextSlot]: isTutorialProtectedMatthew(targetCustomer)
+        ? targetCustomer.patienceMs
+        : fullyServed
+          ? SERVED_LEAVE_DELAY_MS
+          : Math.max(
+              getSeatPatience(prev, seatCustomerSlots, nextSlot),
+              targetCustomer.patienceMs * 0.65,
+            ),
     }));
     if (scene === 'visit') {
       const nextMood = clamp(mood + targetService.moodBoost, 0, 100);
@@ -7177,6 +7727,14 @@ function TeaShopCat() {
       setTutorialPatienceExpired(false);
       setGame((prev) => ({ ...prev, tutorialStep: 'visit' }));
     }
+    if (
+      game.tutorialStep === 'firstDayStoryOrder' &&
+      targetCustomer.id === 'matthew' &&
+      fullyServed
+    ) {
+      setTutorialPatienceExpired(false);
+      setGame((prev) => ({ ...prev, tutorialStep: 'done' }));
+    }
   }
 
   function advanceStoryTalks(care: VisitCare): number {
@@ -7186,7 +7744,10 @@ function TeaShopCat() {
 
   function meow() {
     if (isPausedRef.current || !serviceServed) return;
-    setActionNow(Date.now());
+    const now = Date.now();
+    setActionNow(now);
+    if (meowReadyAt > now) return;
+    setMeowReadyAt(now + meowCooldownMs);
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       const storyTalks = advanceStoryTalks(care);
@@ -7290,9 +7851,12 @@ function TeaShopCat() {
     setCareBySlot((prev) => {
       const care = getVisitCare(prev, selectedOccupiedSlot);
       if (care.kittyAnswer > 0) return prev;
+      const storyTalks = currentStoryChoiceReady
+        ? clamp(care.storyTalks + 1, 0, Math.max(0, currentStoryLineCount - 1))
+        : care.storyTalks;
       return {
         ...prev,
-        [selectedOccupiedSlot]: { ...care, kittyAnswer: answer },
+        [selectedOccupiedSlot]: { ...care, kittyAnswer: answer, storyTalks },
       };
     });
     setMoodForSlot(selectedOccupiedSlot, mood + MEOW_MOOD_GAIN);
@@ -7319,6 +7883,11 @@ function TeaShopCat() {
     const collectedCount = getCustomerVisitCount(game, currentCustomer.id);
     const nextCollectedCount = Math.min(collectedCount + 1, getStoryArcLength(currentCustomer));
     const gainedChapter = nextCollectedCount > collectedCount;
+    const collectedFirstDayMatthewStory =
+      gainedChapter &&
+      game.day === 1 &&
+      currentCustomer.id === 'matthew' &&
+      currentVisitNumber === 1;
 
     if (gainedChapter) {
       showStoryAddedToast(currentStory, currentCustomer, nextCollectedCount);
@@ -7336,6 +7905,10 @@ function TeaShopCat() {
 
       return {
         ...prev,
+        tutorialStep:
+          collectedFirstDayMatthewStory && gainedStoryChapter
+            ? 'firstDayStoryLeave'
+            : prev.tutorialStep,
         stories: hasLegacyStory ? prev.stories : [...prev.stories, currentCustomer.id],
         storiesToday: gainedStoryChapter ? prev.storiesToday + 1 : prev.storiesToday,
         customerVisits: {
@@ -7358,6 +7931,19 @@ function TeaShopCat() {
       finishAdminChatTest();
       return;
     }
+    if (currentStoryComplete && currentStoryAvailable) {
+      collectStory();
+      return;
+    }
+    if (game.tutorialStep === 'firstDayStoryLeave' && currentCustomer.id === 'matthew') {
+      setGame((prev) => ({ ...prev, tutorialStep: 'done' }));
+      if (serviceServed) {
+        servedCustomerLeaves();
+      } else {
+        customerLeaves();
+      }
+      return;
+    }
     if (game.tutorialStep === 'leave' && currentCustomer.id === 'matthew') {
       setGame((prev) => ({ ...prev, tutorialStep: 'clock' }));
       setScene('shop');
@@ -7377,11 +7963,20 @@ function TeaShopCat() {
 
   function servedCustomerLeaves(slot = selectedOccupiedSlot) {
     const departingSlot = clampTableSlot(slot, tableCount);
+    if (departingSlotsRef.current.has(departingSlot)) return;
     const departingCustomerSlot = seatCustomerSlots[departingSlot];
     if (departingCustomerSlot == null) return;
 
     const affectsCurrentVisit = scene !== 'visit' || departingSlot === selectedOccupiedSlot;
     const departingCustomer = getCustomer(departingCustomerSlot);
+    if (isTutorialProtectedMatthew(departingCustomer)) {
+      setPatienceBySlot((prev) => ({
+        ...prev,
+        [departingSlot]: departingCustomer.patienceMs,
+      }));
+      return;
+    }
+
     const departingServices = getServicesForCustomer(
       departingCustomerSlot,
       game.recipes,
@@ -7448,11 +8043,20 @@ function TeaShopCat() {
 
   function customerLeaves(slot = selectedOccupiedSlot) {
     const departingSlot = clampTableSlot(slot, tableCount);
+    if (departingSlotsRef.current.has(departingSlot)) return;
     const departingCustomerSlot = seatCustomerSlots[departingSlot];
     if (departingCustomerSlot == null) return;
 
     const affectsCurrentVisit = scene !== 'visit' || departingSlot === selectedOccupiedSlot;
     const departingCustomer = getCustomer(departingCustomerSlot);
+    if (isTutorialProtectedMatthew(departingCustomer)) {
+      setPatienceBySlot((prev) => ({
+        ...prev,
+        [departingSlot]: departingCustomer.patienceMs,
+      }));
+      return;
+    }
+
     const partialService = isTablePartiallyServed(
       departingCustomer,
       servedOrdersBySlot,
@@ -7516,6 +8120,11 @@ function TeaShopCat() {
   function buyUpgrade(id: string) {
     const upgrade = UPGRADES.find((item) => item.id === id);
     if (!upgrade) return;
+    if (game.upgrades.includes(id) || game.teaCups < upgrade.cost) return;
+
+    const previousTableCount = getTableCount(game);
+    const nextUpgradeIds = [...game.upgrades, id];
+    const nextTableCount = getUnlockedTableCount(nextUpgradeIds);
 
     setGame((prev) => {
       if (prev.upgrades.includes(id) || prev.teaCups < upgrade.cost) return prev;
@@ -7526,6 +8135,24 @@ function TeaShopCat() {
         shopHappiness: clamp(prev.shopHappiness + upgrade.happiness, 0, 100),
       };
     });
+
+    if (nextTableCount > previousTableCount) {
+      const newlyOpenedSlots = TABLE_SLOTS.filter(
+        (slot) => slot >= previousTableCount && slot < nextTableCount,
+      );
+
+      setTableCount(nextTableCount);
+      setSeatCustomerSlots((prev) =>
+        TABLE_SLOTS.map((slot) => (slot < nextTableCount ? (prev[slot] ?? null) : null)),
+      );
+      setPatienceBySlot((prev) =>
+        normalizePatienceBySlot(prev, seatCustomerSlots, selectedOccupiedSlot, undefined),
+      );
+      if (dayElapsedMs < SHOP_DAY_REAL_MS) {
+        newlyOpenedSlots.forEach((slot) => queueSeatArrival(slot));
+        setArrivalState(hasSeatedCustomers ? 'ready' : 'waiting');
+      }
+    }
   }
 
   function buyRecipe(id: string) {
@@ -7560,8 +8187,24 @@ function TeaShopCat() {
 
   function resetSave() {
     clearArrivalTimers();
+    clearDepartureTimers();
     clearPauseState();
     clearSessionSnapshot();
+    if (platformSaveTimerRef.current != null) {
+      window.clearTimeout(platformSaveTimerRef.current);
+      platformSaveTimerRef.current = null;
+    }
+    try {
+      window.localStorage.removeItem(SAVE_KEY);
+    } catch {
+      // Local saves are a browser-preview convenience; reset still works without them.
+    }
+    void clearPlatformSave()
+      .then(() => setSaveWarning(''))
+      .catch((error) => {
+        setSaveWarning('Cloud save unavailable. Progress is saved on this device.');
+        console.warn('Cat Cafe cloud save reset failed', error);
+      });
     const resetTableCount = getTableCount(DEFAULT_GAME);
     const resetSeats = createSeatSlots(DEFAULT_GAME.customerSlot, resetTableCount, DEFAULT_GAME);
     nextCustomerSlotRef.current = DEFAULT_GAME.customerSlot + resetTableCount;
@@ -7638,19 +8281,26 @@ function TeaShopCat() {
   }
 
   function updateAdminSeatSpotAnchor(
-    characterId: AdminSubjectId,
+    ownerId: AdminSeatSpotOwnerId,
     slot: TableSlot,
     anchor: AdminSeatAnchor,
     position: AdminPosition,
   ) {
     setAdminSeatSpotLayouts((prev) => {
       const key = seatSpotKey(slot);
-      const characterSpots = getAdminSeatSpots(prev, characterId);
-      const currentSpot = getAdminSeatSpot(characterSpots, slot);
+      const ownerSpots =
+        ownerId === EMPTY_TABLE_SEAT_SPOTS_ID
+          ? getEmptyTableSeatSpots(prev)
+          : getAdminSeatSpots(prev, ownerId);
+      const currentSpot = getAdminSeatSpot(
+        ownerSpots,
+        slot,
+        ownerId === EMPTY_TABLE_SEAT_SPOTS_ID ? 300 : 180,
+      );
       return {
         ...prev,
-        [characterId]: {
-          ...characterSpots,
+        [ownerId]: {
+          ...ownerSpots,
           [key]: {
             ...currentSpot,
             [anchor]: {
@@ -7664,17 +8314,25 @@ function TeaShopCat() {
     setAdminSaveMessage('');
   }
 
-  function updateAdminSeatSpotScale(characterId: AdminSubjectId, slot: TableSlot, scale: number) {
+  function updateAdminSeatSpotScale(ownerId: AdminSeatSpotOwnerId, slot: TableSlot, scale: number) {
     setAdminSeatSpotLayouts((prev) => {
       const key = seatSpotKey(slot);
-      const characterSpots = getAdminSeatSpots(prev, characterId);
+      const scaleMax = ownerId === EMPTY_TABLE_SEAT_SPOTS_ID ? 300 : 180;
+      const ownerSpots =
+        ownerId === EMPTY_TABLE_SEAT_SPOTS_ID
+          ? getEmptyTableSeatSpots(prev)
+          : getAdminSeatSpots(prev, ownerId);
       return {
         ...prev,
-        [characterId]: {
-          ...characterSpots,
+        [ownerId]: {
+          ...ownerSpots,
           [key]: {
-            ...getAdminSeatSpot(characterSpots, slot),
-            scale: clamp(Math.floor(scale), 55, 180),
+            ...getAdminSeatSpot(
+              ownerSpots,
+              slot,
+              ownerId === EMPTY_TABLE_SEAT_SPOTS_ID ? 300 : 180,
+            ),
+            scale: clamp(Math.floor(scale), 55, scaleMax),
           },
         },
       };
@@ -7704,10 +8362,13 @@ function TeaShopCat() {
     setAdminSaveMessage('');
   }
 
-  function resetAdminSeatSpots(characterId: AdminSubjectId) {
+  function resetAdminSeatSpots(ownerId: AdminSeatSpotOwnerId) {
     setAdminSeatSpotLayouts((prev) => ({
       ...prev,
-      [characterId]: normalizeAdminSeatSpots({}),
+      [ownerId]:
+        ownerId === EMPTY_TABLE_SEAT_SPOTS_ID
+          ? normalizeAdminSeatSpots({}, DEFAULT_ADMIN_SEAT_SPOTS, false, 300)
+          : normalizeAdminSeatSpots({}),
     }));
     setAdminSaveMessage('');
   }
@@ -7760,8 +8421,8 @@ function TeaShopCat() {
           talking: {
             ...currentLayout.talking,
             [item]: {
-              x: clamp(position.x, 0, 100),
-              y: clamp(position.y, 0, 100),
+              x: item === 'character' ? clamp(position.x, -40, 140) : clamp(position.x, 0, 100),
+              y: item === 'character' ? clamp(position.y, -30, 165) : clamp(position.y, 0, 100),
             },
           },
         },
@@ -7889,7 +8550,9 @@ function TeaShopCat() {
             ...currentTalking,
             hiddenImageSrcs,
             defaultImageSrc:
-              currentTalking.defaultImageSrc === cleanImageSrc ? '' : currentTalking.defaultImageSrc,
+              currentTalking.defaultImageSrc === cleanImageSrc
+                ? ''
+                : currentTalking.defaultImageSrc,
             imageSrc: currentTalking.imageSrc === cleanImageSrc ? '' : currentTalking.imageSrc,
             enabledImageSrcs: currentTalking.enabledImageSrcs.filter(
               (src) => src !== cleanImageSrc,
@@ -8035,8 +8698,41 @@ function TeaShopCat() {
     setAdminSaveMessage(openingSavedToLocalStorage ? 'Saved' : 'Saving opening...');
   }
 
+  const appStyle = {
+    paddingTop: safeArea.top,
+    paddingBottom: safeArea.bottom,
+    '--opening-screen-bg': cssAssetUrl('/cat/opening.png'),
+    '--shop-stage-bg': cssAssetUrl('/cat/shop-empty-tall.png'),
+    '--summary-screen-bg': cssAssetUrl('/cdn-assets/end-day-background.png'),
+  } as CSSProperties;
+
+  if (!assetPreloadReady) {
+    return (
+      <div className="tea-app" style={appStyle}>
+        <div className="landscape-gate" role="dialog" aria-label="Landscape required">
+          <div>
+            <RotateIcon />
+            <h2>Oh no!</h2>
+            <p>You can't play like this. Turn your phone sideways.</p>
+          </div>
+        </div>
+        {saveWarning ? (
+          <div className="save-warning" role="status" aria-live="polite">
+            {saveWarning}
+          </div>
+        ) : null}
+        <LoadingScreen
+          adminReady={adminAssetsReady}
+          catImageSrc={getCatImageSrc(adminCatSettings, loadingCatPose)}
+          poseLabel={getCatPoseLabel(loadingCatPose)}
+          state={assetPreloadState}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="tea-app" style={{ paddingTop: safeArea.top, paddingBottom: safeArea.bottom }}>
+    <div className="tea-app" style={appStyle}>
       <div className="landscape-gate" role="dialog" aria-label="Landscape required">
         <div>
           <RotateIcon />
@@ -8044,6 +8740,11 @@ function TeaShopCat() {
           <p>You can't play like this. Turn your phone sideways.</p>
         </div>
       </div>
+      {saveWarning ? (
+        <div className="save-warning" role="status" aria-live="polite">
+          {saveWarning}
+        </div>
+      ) : null}
       <div className="tea-shell">
         {showTopBar ? (
           <TopBar
@@ -8116,7 +8817,9 @@ function TeaShopCat() {
             activeService={currentService}
             servedSlots={servedSlots}
             servedOrdersBySlot={servedOrdersBySlot}
+            departingSlots={departingSlots}
             patiencePercents={patiencePercents}
+            patienceRemainingBySlot={patienceBySlot}
             clockProgress={clockProgress}
             catImageSrc={getCatImageSrc(adminCatSettings, 'idle')}
             onServe={serveRequest}
@@ -8140,6 +8843,7 @@ function TeaShopCat() {
             servedOrderIndexes={currentServedOrders}
             serviceServed={serviceServed}
             patiencePercent={patiencePercent}
+            patienceRemaining={patienceRemaining}
             mood={mood}
             purrBeat={purrBeat}
             purrCooldownRemaining={purrCooldownRemaining}
@@ -8155,7 +8859,6 @@ function TeaShopCat() {
             nextStoryTitle={resolveGameTextVariables(currentStory.title, game)}
             storyLine={resolveGameTextVariables(currentStoryLine, game)}
             storyImageSrc={currentStoryImageSrc}
-            storyClosingLine={resolveGameTextVariables(currentStoryClosingLine, game)}
             storyChoices={currentStoryChoices}
             storyChoiceReady={currentStoryChoiceReady}
             storyChoiceAnswer={currentKittyAnswer}
@@ -8175,7 +8878,6 @@ function TeaShopCat() {
               getCustomerAfterHoursComment(currentCustomer, game),
               game,
             )}
-            birthdayStoryTutorialActive={birthdayStoryTutorialActive}
             tutorialStep={tutorialStep}
             tutorialCoachSrc={adminOpeningSettings.lilaImageSrc}
             tutorialLine={tutorialMatthewLine}
@@ -8304,7 +9006,11 @@ function TeaShopCat() {
           <PauseOverlay game={game} shopTimeLabel={shopTimeLabel} onResume={resumeGame} />
         ) : null}
 
-        <audio ref={backgroundMusicRef} src={BACKGROUND_MUSIC_SRC} preload="auto" />
+        <audio
+          ref={backgroundMusicRef}
+          src={resolveAssetSrc(BACKGROUND_MUSIC_SRC)}
+          preload="auto"
+        />
       </div>
     </div>
   );
@@ -8349,23 +9055,23 @@ function TopBar({
   const tutorialClockActive = tutorialStep === 'clock';
 
   return (
-    <header className="top-bar" aria-label="Tea shop status">
+    <header className="top-bar" aria-label="Cat cafe status">
       <div
         className={`day-meter ${tutorialClockActive ? 'tutorial-focus' : ''}`}
-        aria-label="Shop time"
+        aria-label="Cafe time"
       >
         {tutorialClockActive ? <span className="tutorial-time-arrow">Time</span> : null}
         <span>{shopTimeLabel}</span>
-        <Meter value={clockProgress} label="Shop day progress" />
+        <Meter value={clockProgress} label="Cafe day progress" />
       </div>
       <div className="happiness-meter">
         <CatHeadIcon />
         <div>
           <div className="meter-label">
-            <span>Shop Quality</span>
+            <span>Cafe Comfort</span>
             <strong>{shopQuality}%</strong>
           </div>
-          <Meter value={shopQuality} label="Shop quality" />
+          <Meter value={shopQuality} label="Cafe comfort" />
         </div>
       </div>
       <div className="cup-bank">
@@ -8528,7 +9234,16 @@ function openingCharacterPlacementStyle(
     left: `${placement.x}%`,
     right: 'auto',
     top: `${placement.y}%`,
-    transform: `translate(-50%, -100%) translateY(${active ? -8 : 0}px) scale(${placement.scale / 100}) scaleX(${flipped ? -1 : 1})`,
+    transform: `translate(-50%, -100%) translateY(${active ? -8 : 0}px) scale(${placement.scale / 100}) scale(var(--opening-character-safe-scale, 1)) scaleX(${flipped ? -1 : 1})`,
+  };
+}
+
+function openingBlockerStyle(blocker: AdminFaceBlocker): CSSProperties {
+  return {
+    left: `${blocker.x}%`,
+    top: `${blocker.y}%`,
+    width: `${blocker.width}%`,
+    height: `${blocker.height}%`,
   };
 }
 
@@ -8663,9 +9378,16 @@ function OpeningStagePreview({
   onBeatChange,
 }: OpeningStagePreviewProps) {
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const dragActorRef = useRef<'lila' | 'grace' | null>(null);
+  const dragTargetRef = useRef<'lila' | 'grace' | 'blocker' | null>(null);
   const dragOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const [beatIndex, setBeatIndex] = useState(0);
+  const [showBlocker, setShowBlocker] = useState(false);
+  const [blocker, setBlocker] = useState<AdminFaceBlocker>({
+    x: 50,
+    y: 34,
+    width: 16,
+    height: 18,
+  });
   const safeSettings = normalizeOpeningSettings(settings);
   const beats = safeSettings.beats;
   const beat = beats[clamp(beatIndex, 0, beats.length - 1)] ?? beats[0];
@@ -8707,6 +9429,15 @@ function OpeningStagePreview({
     );
   }
 
+  function updateBlocker(patch: Partial<AdminFaceBlocker>) {
+    setBlocker((current) => ({
+      x: clamp(numericValue(patch.x, current.x), -20, 120),
+      y: clamp(numericValue(patch.y, current.y), -20, 120),
+      width: clamp(numericValue(patch.width, current.width), 6, 48),
+      height: clamp(numericValue(patch.height, current.height), 6, 48),
+    }));
+  }
+
   function beginOpeningDrag(actor: 'lila' | 'grace', event: ReactPointerEvent<HTMLElement>) {
     if (!editable) return;
     event.preventDefault();
@@ -8714,26 +9445,46 @@ function OpeningStagePreview({
     const pointerPosition = getPreviewPosition(event);
     if (!pointerPosition) return;
     const currentPlacement = actor === 'lila' ? currentLilaPlacement : currentGracePlacement;
-    dragActorRef.current = actor;
+    dragTargetRef.current = actor;
     dragOffsetRef.current = {
       x: pointerPosition.x - currentPlacement.x,
       y: pointerPosition.y - currentPlacement.y,
     };
   }
 
-  function moveOpeningDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    const actor = dragActorRef.current;
-    if (!actor) return;
+  function beginBlockerDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (!editable) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
     const pointerPosition = getPreviewPosition(event);
     if (!pointerPosition) return;
-    updatePlacement(actor, {
+    dragTargetRef.current = 'blocker';
+    dragOffsetRef.current = {
+      x: pointerPosition.x - blocker.x,
+      y: pointerPosition.y - blocker.y,
+    };
+  }
+
+  function moveOpeningDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const target = dragTargetRef.current;
+    if (!target) return;
+    const pointerPosition = getPreviewPosition(event);
+    if (!pointerPosition) return;
+    if (target === 'blocker') {
+      updateBlocker({
+        x: pointerPosition.x - dragOffsetRef.current.x,
+        y: pointerPosition.y - dragOffsetRef.current.y,
+      });
+      return;
+    }
+    updatePlacement(target, {
       x: clamp(pointerPosition.x - dragOffsetRef.current.x, -60, 160),
       y: clamp(pointerPosition.y - dragOffsetRef.current.y, -20, 140),
     });
   }
 
   function stopOpeningDrag() {
-    dragActorRef.current = null;
+    dragTargetRef.current = null;
     dragOffsetRef.current = { x: 0, y: 0 };
   }
 
@@ -8856,6 +9607,17 @@ function OpeningStagePreview({
             />
           </button>
         ) : null}
+        {editable && showBlocker ? (
+          <button
+            aria-label="Move face blocker guide"
+            className="admin-opening-face-blocker"
+            onPointerDown={beginBlockerDrag}
+            style={openingBlockerStyle(blocker)}
+            type="button"
+          >
+            <span>Keep Clear</span>
+          </button>
+        ) : null}
         <div className="opening-location-card">
           <strong>{safeSettings.locationName}</strong>
           <span>{safeSettings.locationDetail}</span>
@@ -8893,6 +9655,13 @@ function OpeningStagePreview({
               Onion Previous
             </button>
             <button
+              className={showBlocker ? 'active' : ''}
+              type="button"
+              onClick={() => setShowBlocker((visible) => !visible)}
+            >
+              Face Blocker
+            </button>
+            <button
               className={isOpeningActorFlipped(beat, 'lila') ? 'active' : ''}
               disabled={!lilaVisible}
               type="button"
@@ -8909,6 +9678,42 @@ function OpeningStagePreview({
               Flip Grace
             </button>
           </div>
+          {showBlocker ? (
+            <>
+              <label>
+                <span>Block width</span>
+                <input
+                  min={6}
+                  max={48}
+                  type="range"
+                  value={blocker.width}
+                  onInput={(event) =>
+                    updateBlocker({ width: Number(event.currentTarget.value) })
+                  }
+                  onChange={(event) =>
+                    updateBlocker({ width: Number(event.currentTarget.value) })
+                  }
+                />
+                <small>{Math.round(blocker.width)}%</small>
+              </label>
+              <label>
+                <span>Block height</span>
+                <input
+                  min={6}
+                  max={48}
+                  type="range"
+                  value={blocker.height}
+                  onInput={(event) =>
+                    updateBlocker({ height: Number(event.currentTarget.value) })
+                  }
+                  onChange={(event) =>
+                    updateBlocker({ height: Number(event.currentTarget.value) })
+                  }
+                />
+                <small>{Math.round(blocker.height)}%</small>
+              </label>
+            </>
+          ) : null}
           {(['lila', 'grace'] as const).map((actor) => {
             const placement = actor === 'lila' ? currentLilaPlacement : currentGracePlacement;
             const label = actor === 'lila' ? 'Lila' : 'Grace';
@@ -8948,7 +9753,7 @@ function OpeningStageBackground({ settings }: OpeningStageBackgroundProps) {
       className={`opening-background ${settings.backgroundSrc ? 'has-image' : ''}`}
       style={
         settings.backgroundSrc
-          ? ({ '--opening-bg': `url("${settings.backgroundSrc}")` } as CSSProperties)
+          ? ({ '--opening-bg': cssAssetUrl(settings.backgroundSrc) } as CSSProperties)
           : undefined
       }
       aria-hidden="true"
@@ -8988,7 +9793,7 @@ function OpeningCharacterSprite({
       style={inline ? openingCharacterPlacementStyle(placement, active, flipped) : undefined}
     >
       {imageSrc ? (
-        <img alt="" draggable={false} src={imageSrc} />
+        <img alt="" draggable={false} src={resolveAssetSrc(imageSrc)} />
       ) : (
         <span className="opening-character-placeholder">{label}</span>
       )}
@@ -9014,7 +9819,11 @@ function TutorialCoachCard({
   return (
     <aside className="tutorial-coach-card" aria-live="polite">
       <div className="tutorial-coach-portrait" aria-hidden="true">
-        {imageSrc ? <img alt="" draggable={false} src={imageSrc} /> : <span>Lila</span>}
+        {imageSrc ? (
+          <img alt="" draggable={false} src={resolveAssetSrc(imageSrc)} />
+        ) : (
+          <span>Lila</span>
+        )}
       </div>
       <div>
         <strong>Lila</strong>
@@ -9073,11 +9882,11 @@ function StartGameScreen({ onStart }: StartGameScreenProps) {
   return (
     <main className="setup-screen intro-screen">
       <section className="setup-card intro-card" aria-label="Game introduction">
-        <p className="eyebrow">Sweet Purr Café</p>
+        <p className="eyebrow">Cat Cafe</p>
         <h1>Start Game</h1>
         <p className="setup-intro">
           Play as the cafe cat in a quiet story game about listening to the people who visit your
-          shop. Serve their drinks, comfort them with gentle cat actions, and help lift their moods
+          cafe. Serve their drinks, comfort them with gentle cat actions, and help lift their moods
           as they share pieces of their lives. The more cared for your guests feel, the more your
           cafe's reputation grows.
         </p>
@@ -9123,7 +9932,7 @@ function SetupScreen({ onComplete }: SetupScreenProps) {
     <main className="setup-screen">
       <form className="setup-card" aria-label="Name your cafe and cat" onSubmit={submitSetup}>
         <h1>Welcome In</h1>
-        <p className="setup-intro">Please name your shop and name you the cat!</p>
+        <p className="setup-intro">Please name your cafe and the cat!</p>
         <label>
           <span>Cafe name</span>
           <input
@@ -9172,8 +9981,9 @@ function SettingsPopup({
   onMusicVolumeChange,
   onReset,
 }: SettingsPopupProps) {
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+
   function confirmResetSave() {
-    if (!window.confirm('Reset your save? This clears your current progress.')) return;
     onReset();
     onClose();
   }
@@ -9220,12 +10030,44 @@ function SettingsPopup({
         <button
           className="quiet-button danger-reset-button"
           type="button"
-          onClick={confirmResetSave}
+          onClick={() => setResetConfirmOpen(true)}
         >
           Reset Save
         </button>
         <p>Warning: this clears your current save and starts the game over.</p>
       </div>
+      {resetConfirmOpen ? (
+        <div className="reset-confirm-overlay" role="presentation">
+          <section
+            className="reset-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-confirm-title"
+          >
+            <strong id="reset-confirm-title">Reset save?</strong>
+            <p>
+              Reset can remove your data. This clears your cafe progress, stories, tips, upgrades,
+              and tutorial state.
+            </p>
+            <div className="reset-confirm-actions">
+              <button
+                className="paper-button"
+                type="button"
+                onClick={() => setResetConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="quiet-button danger-reset-button"
+                type="button"
+                onClick={confirmResetSave}
+              >
+                Reset Save
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -9245,10 +10087,10 @@ function MenuScreen({
 
   return (
     <main className="menu-screen">
-      <section className="storefront" aria-label="Tea Shop Cat storefront">
+      <section className="storefront" aria-label="Cat Cafe storefront">
         <div className="shop-sign">
-          <span>Tea Shop</span>
-          <strong>Cat</strong>
+          <span>Cat</span>
+          <strong>Cafe</strong>
           <PawIcon />
         </div>
         <div className="store-door">
@@ -9335,17 +10177,17 @@ interface AdminScreenProps {
     position: AdminPosition,
   ) => void;
   onResetLayout: (characterId: AdminSubjectId) => void;
-  onResetSeatSpots: (characterId: AdminSubjectId) => void;
+  onResetSeatSpots: (ownerId: AdminSeatSpotOwnerId) => void;
   onResetTalkingLayout: (characterId: AdminSubjectId) => void;
   onSave: () => void;
   onSeatSpotAnchorChange: (
-    characterId: AdminSubjectId,
+    ownerId: AdminSeatSpotOwnerId,
     slot: TableSlot,
     anchor: AdminSeatAnchor,
     position: AdminPosition,
   ) => void;
   onSeatSpotDrinkScaleChange: (characterId: AdminSubjectId, slot: TableSlot, scale: number) => void;
-  onSeatSpotScaleChange: (characterId: AdminSubjectId, slot: TableSlot, scale: number) => void;
+  onSeatSpotScaleChange: (ownerId: AdminSeatSpotOwnerId, slot: TableSlot, scale: number) => void;
   onSelectCharacter: (characterId: AdminSubjectId) => void;
   onSubjectEnabledChange: (characterId: AdminSubjectId, enabled: boolean) => void;
   onTalkingDefaultImageChange: (characterId: AdminSubjectId, imageSrc: string) => void;
@@ -9409,20 +10251,29 @@ function AdminScreen({
   const dragItemOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const dragSeatSlotRef = useRef<TableSlot | null>(null);
   const dragSeatAnchorRef = useRef<AdminSeatAnchor>('marker');
+  const dragSeatOwnerRef = useRef<AdminSeatSpotOwnerId | null>(null);
   const dragSeatOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const dragChatMenuActionRef = useRef<CatActionId | null>(null);
   const dragChatMenuOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const dragChatMenuWheelRef = useRef(false);
   const dragChatMenuWheelOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const dragChatBlockIdRef = useRef('');
+  const dragFaceBlockerRef = useRef(false);
+  const dragFaceBlockerOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const [sidePanelMode, setSidePanelMode] = useState<AdminSidePanelMode>('inspector');
   const [sidePanelCollapsed, setSidePanelCollapsed] = useState(false);
   const [mobilePreview, setMobilePreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<AdminPreviewMode>('shop');
+  const [showChatFaceBlocker, setShowChatFaceBlocker] = useState(false);
+  const [chatFaceBlocker, setChatFaceBlocker] = useState<AdminFaceBlocker>({
+    x: 44,
+    y: 34,
+    width: 18,
+    height: 20,
+  });
   const [characterManagerView, setCharacterManagerView] =
     useState<AdminCharacterManagerView>('list');
-  const [characterDetailTab, setCharacterDetailTab] =
-    useState<AdminCharacterDetailTab>('settings');
+  const [characterDetailTab, setCharacterDetailTab] = useState<AdminCharacterDetailTab>('settings');
   const [selectedAssetId, setSelectedAssetId] = useState('');
   const [selectedChatSubjectId, setSelectedChatSubjectId] = useState<AdminSubjectId | ''>('');
   const [selectedChatGroupId, setSelectedChatGroupId] = useState('');
@@ -9491,12 +10342,25 @@ function AdminScreen({
   const patienceSeconds = Math.round(selectedSettings.patienceMs / 1000);
   const selectedSeatSpots = getAdminSeatSpots(seatSpotLayouts, selectedCharacterId);
   const selectedSeatSpot = getAdminSeatSpot(selectedSeatSpots, selectedSeatSlot);
+  const emptyTableSeatSpots = getEmptyTableSeatSpots(seatSpotLayouts);
+  const selectedEmptyTableSpot = getAdminSeatSpot(emptyTableSeatSpots, selectedSeatSlot, 300);
   const activeOnionCharacterId =
     onionCharacterId && onionCharacterId !== selectedCharacterId ? onionCharacterId : null;
   const onionCustomer = activeOnionCharacterId
     ? getAdminSubjectCustomer(activeOnionCharacterId, characterSettings)
     : null;
   const onionCharacter = onionCustomer?.members[0] ?? null;
+  const onionPrimaryCharacterId = onionCustomer
+    ? getCustomerPrimaryCharacterId(onionCustomer)
+    : null;
+  const onionPortrait =
+    onionPrimaryCharacterId != null
+      ? normalizeCharacterAdminSettings(
+          onionPrimaryCharacterId,
+          characterSettings[onionPrimaryCharacterId] ??
+            defaultCharacterAdminSettings(CHARACTER_PROFILES[onionPrimaryCharacterId]),
+        ).portrait
+      : null;
   const onionLayout = activeOnionCharacterId
     ? normalizeAdminLayout(layouts[activeOnionCharacterId], activeOnionCharacterId)
     : null;
@@ -9507,6 +10371,15 @@ function AdminScreen({
   const onionTalkingImage =
     activeOnionCharacterId != null && onionLayout
       ? onionLayout.talking.defaultImageSrc ||
+        getVisibleDefaultTalkingImageSrc(
+          activeOnionCharacterId,
+          onionLayout.talking.hiddenImageSrcs,
+        )
+      : '';
+  const onionConversationImage =
+    activeOnionCharacterId != null && onionLayout
+      ? onionLayout.talking.imageSrc ||
+        onionLayout.talking.defaultImageSrc ||
         getVisibleDefaultTalkingImageSrc(
           activeOnionCharacterId,
           onionLayout.talking.hiddenImageSrcs,
@@ -9598,9 +10471,7 @@ function AdminScreen({
     null;
   const previewChatImage =
     previewChatEntry && previewChatEntry.kind !== 'leave'
-      ? getAdminChatStoryLineImages(previewChatEntry).find(Boolean) ||
-        previewChatEntry.startImageSrc ||
-        ''
+      ? getAdminChatStoryLineImages(previewChatEntry).find(Boolean) || ''
       : '';
   const activePreviewTalkingImage = previewChatImage || activeTalkingImage;
   const previewChatLines = previewChatEntry ? getAdminChatStoryLines(previewChatEntry) : [];
@@ -9742,7 +10613,7 @@ function AdminScreen({
           ...counts,
           [entry.kind]: counts[entry.kind] + 1,
         }),
-        { story: 0, comment: 0, leave: 0, order: 0 },
+        { story: 0, comment: 0, leave: 0, order: 0, happy: 0 },
       );
   }
   const selectedChatCounts = getChatKindCounts(selectedCharacterId);
@@ -9757,9 +10628,11 @@ function AdminScreen({
             ? 'Chat menu editor'
             : sidePanelMode === 'cat'
               ? 'Cat editor'
-              : sidePanelMode === 'opening'
-                ? 'Opening editor'
-                : 'Inspector';
+              : sidePanelMode === 'ref'
+                ? 'Reference editor'
+                : sidePanelMode === 'opening'
+                  ? 'Opening editor'
+                  : 'Inspector';
   const sidePanelEyebrow =
     sidePanelMode === 'characters'
       ? 'Roster'
@@ -9771,9 +10644,11 @@ function AdminScreen({
             ? 'Chat Menu'
             : sidePanelMode === 'cat'
               ? 'Cat'
-              : sidePanelMode === 'opening'
-                ? 'Opening'
-                : 'Properties';
+              : sidePanelMode === 'ref'
+                ? 'Ref'
+                : sidePanelMode === 'opening'
+                  ? 'Opening'
+                  : 'Properties';
   const sidePanelTitle =
     sidePanelMode === 'characters'
       ? 'Characters'
@@ -9785,9 +10660,11 @@ function AdminScreen({
             ? 'Action Wheel'
             : sidePanelMode === 'cat'
               ? 'Cat Images'
-              : sidePanelMode === 'opening'
-                ? 'Opening'
-                : 'Inspector';
+              : sidePanelMode === 'ref'
+                ? 'Reference Points'
+                : sidePanelMode === 'opening'
+                  ? 'Opening'
+                  : 'Inspector';
 
   useEffect(() => {
     if (onionCharacterId === selectedCharacterId) setOnionCharacterId('');
@@ -9877,12 +10754,21 @@ function AdminScreen({
     } as CSSProperties;
   }
 
+  function emptyTableSpotStyle(slot: TableSlot, spots = emptyTableSeatSpots): CSSProperties {
+    const spot = getAdminSeatSpot(spots, slot, 300);
+    return {
+      ...seatAnchorStyle(slot, 'emptyTable', spots),
+      '--empty-table-scale': spot.scale / 100,
+    } as CSSProperties;
+  }
+
   function seatScaleBarStyle(slot: TableSlot, anchor: 'marker' | 'drink'): CSSProperties {
     return seatAnchorStyle(slot, anchor);
   }
 
   function seatAnchorDragItem(anchor: AdminSeatAnchor): AdminDragItem {
     if (anchor === 'marker') return 'character';
+    if (anchor === 'emptyTable') return 'character';
     if (anchor === 'patience') return 'order';
     if (anchor === 'moodIcon') return 'moodIcon';
     return anchor;
@@ -9890,8 +10776,9 @@ function AdminScreen({
 
   function talkingDragStyle(
     item: 'character' | 'cat' | 'bubble' | 'drink' | 'patience',
+    layout: AdminTalkingLayout = selectedTalkingLayout,
   ): CSSProperties {
-    const position = selectedTalkingLayout[item] ?? DEFAULT_ADMIN_LAYOUT.talking[item];
+    const position = layout[item] ?? DEFAULT_ADMIN_LAYOUT.talking[item];
     return {
       bottom: 'auto',
       left: `${position.x}%`,
@@ -9900,10 +10787,12 @@ function AdminScreen({
     };
   }
 
-  function talkingCharacterStyle(): CSSProperties {
+  function talkingCharacterStyle(
+    layout: AdminTalkingLayout = selectedTalkingLayout,
+  ): CSSProperties {
     return {
-      ...talkingDragStyle('character'),
-      '--talking-character-scale': selectedTalkingLayout.characterScale / 100,
+      ...talkingDragStyle('character', layout),
+      '--talking-character-scale': layout.characterScale / 100,
     } as CSSProperties;
   }
 
@@ -10035,6 +10924,39 @@ function AdminScreen({
     );
   }
 
+  function getStagePercent(event: ReactPointerEvent<HTMLElement>): AdminPosition | null {
+    const stage = stageRef.current;
+    if (!stage) return null;
+    const rect = stage.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+
+    return {
+      x: clamp(((event.clientX - rect.left) / rect.width) * 100, -20, 120),
+      y: clamp(((event.clientY - rect.top) / rect.height) * 100, -20, 120),
+    };
+  }
+
+  function updateChatFaceBlocker(patch: Partial<AdminFaceBlocker>) {
+    setChatFaceBlocker((current) => ({
+      x: clamp(numericValue(patch.x, current.x), -20, 120),
+      y: clamp(numericValue(patch.y, current.y), -20, 120),
+      width: clamp(numericValue(patch.width, current.width), 6, 48),
+      height: clamp(numericValue(patch.height, current.height), 6, 48),
+    }));
+  }
+
+  function beginChatFaceBlockerDrag(event: ReactPointerEvent<HTMLElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const position = getStagePercent(event);
+    if (!position) return;
+    dragFaceBlockerRef.current = true;
+    dragFaceBlockerOffsetRef.current = {
+      x: position.x - chatFaceBlocker.x,
+      y: position.y - chatFaceBlocker.y,
+    };
+  }
+
   function offsetStagePosition(
     position: AdminPosition,
     offset: AdminPosition,
@@ -10072,6 +10994,7 @@ function AdminScreen({
     const currentPosition = currentDragPosition(item);
     dragItemRef.current = item;
     dragSeatSlotRef.current = null;
+    dragSeatOwnerRef.current = null;
     dragItemOffsetRef.current = {
       x: position.x - currentPosition.x,
       y: position.y - currentPosition.y,
@@ -10079,9 +11002,20 @@ function AdminScreen({
   }
 
   function moveDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if (dragFaceBlockerRef.current) {
+      const position = getStagePercent(event);
+      if (!position) return;
+      updateChatFaceBlocker({
+        x: position.x - dragFaceBlockerOffsetRef.current.x,
+        y: position.y - dragFaceBlockerOffsetRef.current.y,
+      });
+      return;
+    }
+
     const dragSeatSlot = dragSeatSlotRef.current;
     if (dragSeatSlot != null) {
       const dragSeatAnchor = dragSeatAnchorRef.current;
+      const dragSeatOwner = dragSeatOwnerRef.current ?? selectedCharacterId;
       const position = getStagePosition(event, seatAnchorDragItem(dragSeatAnchor));
       if (!position) return;
       const nextPosition = offsetStagePosition(
@@ -10089,7 +11023,7 @@ function AdminScreen({
         dragSeatOffsetRef.current,
         seatAnchorDragItem(dragSeatAnchor),
       );
-      onSeatSpotAnchorChange(selectedCharacterId, dragSeatSlot, dragSeatAnchor, nextPosition);
+      onSeatSpotAnchorChange(dragSeatOwner, dragSeatSlot, dragSeatAnchor, nextPosition);
       return;
     }
 
@@ -10117,23 +11051,30 @@ function AdminScreen({
     dragItemOffsetRef.current = { x: 0, y: 0 };
     dragSeatSlotRef.current = null;
     dragSeatAnchorRef.current = 'marker';
+    dragSeatOwnerRef.current = null;
     dragSeatOffsetRef.current = { x: 0, y: 0 };
+    dragFaceBlockerRef.current = false;
+    dragFaceBlockerOffsetRef.current = { x: 0, y: 0 };
   }
 
   function beginSeatSpotDrag(
     slot: TableSlot,
     event: ReactPointerEvent<HTMLElement>,
     anchor: AdminSeatAnchor = 'marker',
+    ownerId: AdminSeatSpotOwnerId = selectedCharacterId,
   ) {
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     setSelectedSeatSlot(slot);
     const position = getStagePosition(event, seatAnchorDragItem(anchor));
     if (!position) return;
-    const currentPosition = getAdminSeatSpot(selectedSeatSpots, slot)[anchor];
+    const ownerSpots =
+      ownerId === EMPTY_TABLE_SEAT_SPOTS_ID ? emptyTableSeatSpots : selectedSeatSpots;
+    const currentPosition = getAdminSeatSpot(ownerSpots, slot)[anchor];
     dragItemRef.current = null;
     dragSeatSlotRef.current = slot;
     dragSeatAnchorRef.current = anchor;
+    dragSeatOwnerRef.current = ownerId;
     dragSeatOffsetRef.current = {
       x: position.x - currentPosition.x,
       y: position.y - currentPosition.y,
@@ -10153,6 +11094,93 @@ function AdminScreen({
         DEFAULT_ADMIN_SEAT_SPOTS[seatSpotKey(slot)].drinkScale,
       );
     });
+  }
+
+  function seatSpotForOwner(ownerId: AdminSeatSpotOwnerId): AdminSeatSpot {
+    return ownerId === EMPTY_TABLE_SEAT_SPOTS_ID ? selectedEmptyTableSpot : selectedSeatSpot;
+  }
+
+  function updateReferencePointAxis(
+    ownerId: AdminSeatSpotOwnerId,
+    anchor: AdminSeatAnchor,
+    axis: keyof AdminPosition,
+    value: string,
+  ) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return;
+    const currentPosition = seatSpotForOwner(ownerId)[anchor];
+    onSeatSpotAnchorChange(ownerId, selectedSeatSlot, anchor, {
+      ...currentPosition,
+      [axis]: numeric,
+    });
+  }
+
+  function renderReferencePointControls(
+    label: string,
+    ownerId: AdminSeatSpotOwnerId,
+    anchor: AdminSeatAnchor,
+    position: AdminPosition,
+  ) {
+    return (
+      <fieldset className="admin-reference-point-editor" key={`${ownerId}-${anchor}`}>
+        <legend>{label}</legend>
+        <label>
+          <span>X</span>
+          <input
+            max={100}
+            min={0}
+            step={1}
+            type="number"
+            value={Math.round(position.x)}
+            onChange={(event) =>
+              updateReferencePointAxis(ownerId, anchor, 'x', event.currentTarget.value)
+            }
+          />
+          <small>%</small>
+        </label>
+        <label>
+          <span>Y</span>
+          <input
+            max={100}
+            min={0}
+            step={1}
+            type="number"
+            value={Math.round(position.y)}
+            onChange={(event) =>
+              updateReferencePointAxis(ownerId, anchor, 'y', event.currentTarget.value)
+            }
+          />
+          <small>%</small>
+        </label>
+      </fieldset>
+    );
+  }
+
+  function renderOnionSelector() {
+    return (
+      <label>
+        <span>Onion</span>
+        <select
+          value={onionCharacterId}
+          onChange={(event) => {
+            const nextId = event.currentTarget.value;
+            setOnionCharacterId(
+              isAdminSubjectId(nextId) && nextId !== selectedCharacterId ? nextId : '',
+            );
+          }}
+        >
+          <option value="">Off</option>
+          {ADMIN_SUBJECT_IDS.filter((characterId) => characterId !== selectedCharacterId).map(
+            (characterId) => (
+              <option key={characterId} value={characterId}>
+                {getAdminSubjectCustomer(characterId, characterSettings).name}
+              </option>
+            ),
+          )}
+        </select>
+        <small>{onionCharacter ? 'View only' : 'Off'}</small>
+      </label>
+    );
   }
 
   function replaceSelectedAsset(imageSrc: string) {
@@ -10504,7 +11532,7 @@ function AdminScreen({
               type="button"
               onClick={() => onSelect(option.src)}
             >
-              <img alt="" draggable={false} src={option.src} />
+              <img alt="" draggable={false} src={resolveAssetSrc(option.src)} />
               <span>{option.label}</span>
             </button>
           ))}
@@ -10695,7 +11723,7 @@ function AdminScreen({
   function chatMenuActionStyle(actionId: CatActionId): CSSProperties {
     const item = adminChatMenuSettings.items[actionId];
     return {
-      backgroundImage: item.imageSrc ? `url("${item.imageSrc}")` : undefined,
+      backgroundImage: cssAssetUrl(item.imageSrc),
       backgroundPosition: `${item.imagePosition.x}% ${item.imagePosition.y}%`,
       backgroundSize: `${item.imageScale}% ${item.imageScale}%`,
       left: `${item.position.x}%`,
@@ -10709,7 +11737,7 @@ function AdminScreen({
 
   function chatMenuBackgroundStyle(): CSSProperties {
     return {
-      backgroundImage: `url("${adminChatMenuSettings.backgroundImageSrc}")`,
+      backgroundImage: cssAssetUrl(adminChatMenuSettings.backgroundImageSrc),
       width: `${44 * (adminChatMenuSettings.backgroundScale / 100)}%`,
       zIndex: adminChatMenuSettings.backgroundLayer,
     };
@@ -10747,6 +11775,13 @@ function AdminScreen({
     if (previewMode === 'settings') setPreviewMode('shop');
   }
 
+  function openReferenceEditor() {
+    setSidePanelMode('ref');
+    setSidePanelCollapsed(false);
+    setMobilePreview(false);
+    setPreviewMode('shop');
+  }
+
   function openCharacterManager() {
     setCharacterManagerView('list');
     setCharacterDetailTab('settings');
@@ -10764,6 +11799,10 @@ function AdminScreen({
 
   const openingMode = sidePanelMode === 'opening';
   const charactersMode = sidePanelMode === 'characters';
+  const refMode = sidePanelMode === 'ref';
+  const referenceEditMode = refMode && previewMode === 'shop';
+  const storePlacementEditMode =
+    sidePanelMode === 'inspector' && previewMode === 'shop' && !referenceEditMode;
   const fullWorkbenchMode =
     openingMode || charactersMode || sidePanelMode === 'chatMenu' || sidePanelMode === 'cat';
 
@@ -10775,10 +11814,7 @@ function AdminScreen({
 
   function addCustomCharacter() {
     const nextCharacterId = CUSTOM_CHARACTER_IDS.find((characterId) => {
-      const settings = normalizeCharacterAdminSettings(
-        characterId,
-        characterSettings[characterId],
-      );
+      const settings = normalizeCharacterAdminSettings(characterId, characterSettings[characterId]);
       return !settings.enabled;
     });
     if (!nextCharacterId) return;
@@ -10796,11 +11832,16 @@ function AdminScreen({
 
   function deleteCustomCharacter(characterId: AdminSubjectId) {
     if (!isCharacterId(characterId) || !CUSTOM_CHARACTER_IDS.includes(characterId)) return;
-    if (!window.confirm(`Delete ${selectedCustomer.name}? This clears this custom character slot.`)) {
+    if (
+      !window.confirm(`Delete ${selectedCustomer.name}? This clears this custom character slot.`)
+    ) {
       return;
     }
 
-    onCharacterSettingsChange(characterId, defaultCharacterAdminSettings(CHARACTER_PROFILES[characterId]));
+    onCharacterSettingsChange(
+      characterId,
+      defaultCharacterAdminSettings(CHARACTER_PROFILES[characterId]),
+    );
     const nextChats = { ...adminChats };
     delete nextChats[characterId];
     onAdminChatsChange(nextChats);
@@ -10839,9 +11880,11 @@ function AdminScreen({
                 ? 'Chat Menu'
                 : sidePanelMode === 'cat'
                   ? 'Cat'
-                  : sidePanelMode === 'opening'
-                    ? 'Opening'
-                    : selectedCustomer.name}
+                  : sidePanelMode === 'ref'
+                    ? 'Ref'
+                    : sidePanelMode === 'opening'
+                      ? 'Opening'
+                      : selectedCustomer.name}
           </h1>
         </div>
         <div className="admin-topbar-tabs" aria-label="Admin preview mode" role="tablist">
@@ -10939,6 +11982,13 @@ function AdminScreen({
           <span>Cat</span>
         </button>
         <button
+          className={sidePanelMode === 'ref' ? 'active' : ''}
+          type="button"
+          onClick={openReferenceEditor}
+        >
+          <span>Ref</span>
+        </button>
+        <button
           className={sidePanelMode === 'opening' ? 'active' : ''}
           type="button"
           onClick={() => openSidePanel('opening')}
@@ -11012,7 +12062,8 @@ function AdminScreen({
                               characterSettings[characterId],
                             ).enabled,
                         ).length
-                      } people, {ADMIN_PARTY_IDS.length} parties
+                      }{' '}
+                      people, {ADMIN_PARTY_IDS.length} parties
                     </span>
                   </div>
                 </header>
@@ -11026,8 +12077,7 @@ function AdminScreen({
                     ).enabled;
                   }).map((characterId) => {
                     const customer = getAdminSubjectCustomer(characterId, characterSettings);
-                    const primaryCharacterId =
-                      getCustomerPrimaryCharacterId(customer) ?? 'shadow';
+                    const primaryCharacterId = getCustomerPrimaryCharacterId(customer) ?? 'shadow';
                     const settings = normalizeCharacterAdminSettings(
                       primaryCharacterId,
                       characterSettings[primaryCharacterId],
@@ -11066,14 +12116,14 @@ function AdminScreen({
                                 alt=""
                                 className="admin-portrait-image"
                                 draggable={false}
-                                src={subjectImageSrc}
+                                src={resolveAssetSrc(subjectImageSrc)}
                               />
                             ) : settings.portrait.imageSrc ? (
                               <img
                                 alt=""
                                 className="admin-portrait-image"
                                 draggable={false}
-                                src={settings.portrait.imageSrc}
+                                src={resolveAssetSrc(settings.portrait.imageSrc)}
                                 style={portraitImageStyle(settings.portrait)}
                               />
                             ) : (
@@ -11085,9 +12135,7 @@ function AdminScreen({
                             <small>{party ? 'Party' : TIP_STYLE_LABELS[settings.tipStyle]}</small>
                           </span>
                         </button>
-                        <span
-                          className={`admin-status-pill ${enabled ? 'enabled' : 'disabled'}`}
-                        >
+                        <span className={`admin-status-pill ${enabled ? 'enabled' : 'disabled'}`}>
                           {enabled ? 'Enabled' : 'Disabled'}
                         </span>
                         <div className="admin-character-card-meta">
@@ -11138,26 +12186,25 @@ function AdminScreen({
                     role="tablist"
                     aria-label={`${selectedCustomer.name} settings sections`}
                   >
-                    {(
-                      selectedSubjectIsParty
-                        ? (['settings', 'uploads'] as AdminCharacterDetailTab[])
-                        : (['settings', 'uploads', 'portrait'] as AdminCharacterDetailTab[])
+                    {(selectedSubjectIsParty
+                      ? (['settings', 'uploads'] as AdminCharacterDetailTab[])
+                      : (['settings', 'uploads', 'portrait'] as AdminCharacterDetailTab[])
                     ).map((tab) => (
-                        <button
-                          aria-selected={characterDetailTab === tab}
-                          className={characterDetailTab === tab ? 'active' : ''}
-                          key={tab}
-                          onClick={() => setCharacterDetailTab(tab)}
-                          role="tab"
-                          type="button"
-                        >
-                          {tab === 'settings'
-                            ? 'Settings'
-                            : tab === 'uploads'
-                              ? 'Uploads'
-                              : 'Portrait'}
-                        </button>
-                      ))}
+                      <button
+                        aria-selected={characterDetailTab === tab}
+                        className={characterDetailTab === tab ? 'active' : ''}
+                        key={tab}
+                        onClick={() => setCharacterDetailTab(tab)}
+                        role="tab"
+                        type="button"
+                      >
+                        {tab === 'settings'
+                          ? 'Settings'
+                          : tab === 'uploads'
+                            ? 'Uploads'
+                            : 'Portrait'}
+                      </button>
+                    ))}
                   </div>
 
                   {characterDetailTab === 'settings' ? (
@@ -11282,11 +12329,9 @@ function AdminScreen({
                               }
                               key={`chat-${option.src}`}
                               type="button"
-                              onClick={() =>
-                                onTalkingImageChange(selectedCharacterId, option.src)
-                              }
+                              onClick={() => onTalkingImageChange(selectedCharacterId, option.src)}
                             >
-                              <img alt="" draggable={false} src={option.src} />
+                              <img alt="" draggable={false} src={resolveAssetSrc(option.src)} />
                               <strong>{option.label}</strong>
                               <small>{option.source}</small>
                             </button>
@@ -11302,9 +12347,7 @@ function AdminScreen({
                           <button
                             className={!selectedTalkingLayout.defaultImageSrc ? 'active' : ''}
                             type="button"
-                            onClick={() =>
-                              onTalkingDefaultImageChange(selectedCharacterId, '')
-                            }
+                            onClick={() => onTalkingDefaultImageChange(selectedCharacterId, '')}
                           >
                             <span className="admin-chat-image-empty">Built-in default</span>
                             <strong>No store override</strong>
@@ -11317,13 +12360,10 @@ function AdminScreen({
                               key={`sitting-${option.src}`}
                               type="button"
                               onClick={() =>
-                                onTalkingDefaultImageChange(
-                                  selectedCharacterId,
-                                  option.src,
-                                )
+                                onTalkingDefaultImageChange(selectedCharacterId, option.src)
                               }
                             >
-                              <img alt="" draggable={false} src={option.src} />
+                              <img alt="" draggable={false} src={resolveAssetSrc(option.src)} />
                               <strong>{option.label}</strong>
                               <small>{option.source}</small>
                             </button>
@@ -11352,7 +12392,7 @@ function AdminScreen({
                       <div className="admin-picture-grid">
                         {selectedCharacterImageOptions.map((option) => (
                           <article className="admin-picture-card" key={`upload-${option.src}`}>
-                            <img alt="" draggable={false} src={option.src} />
+                            <img alt="" draggable={false} src={resolveAssetSrc(option.src)} />
                             <strong>{option.label}</strong>
                             <small>{option.source}</small>
                             <div className="admin-picture-actions">
@@ -11375,10 +12415,7 @@ function AdminScreen({
                                 }
                                 type="button"
                                 onClick={() =>
-                                  onTalkingDefaultImageChange(
-                                    selectedCharacterId,
-                                    option.src,
-                                  )
+                                  onTalkingDefaultImageChange(selectedCharacterId, option.src)
                                 }
                               >
                                 Store
@@ -11387,7 +12424,9 @@ function AdminScreen({
                                 <button
                                   className="danger"
                                   type="button"
-                                  onClick={() => onTalkingImageDelete(selectedCharacterId, option.src)}
+                                  onClick={() =>
+                                    onTalkingImageDelete(selectedCharacterId, option.src)
+                                  }
                                 >
                                   Delete
                                 </button>
@@ -11397,7 +12436,9 @@ function AdminScreen({
                         ))}
                       </div>
                       {selectedCharacterImageOptions.length === 0 ? (
-                        <p className="admin-muted-copy">No pictures uploaded for this character yet.</p>
+                        <p className="admin-muted-copy">
+                          No pictures uploaded for this character yet.
+                        </p>
                       ) : null}
                     </section>
                   ) : null}
@@ -11411,7 +12452,7 @@ function AdminScreen({
                               alt=""
                               className="admin-portrait-image"
                               draggable={false}
-                              src={selectedPortrait.imageSrc}
+                              src={resolveAssetSrc(selectedPortrait.imageSrc)}
                               style={portraitImageStyle(selectedPortrait)}
                             />
                           ) : (
@@ -11443,7 +12484,7 @@ function AdminScreen({
                             type="button"
                             onClick={() => updatePortrait({ imageSrc: option.src })}
                           >
-                            <img alt="" draggable={false} src={option.src} />
+                            <img alt="" draggable={false} src={resolveAssetSrc(option.src)} />
                             <strong>{option.label}</strong>
                             <small>{option.source}</small>
                           </button>
@@ -11561,7 +12602,11 @@ function AdminScreen({
                   </label>
                   {safeOpeningSettings.backgroundSrc ? (
                     <div className="admin-opening-image-preview">
-                      <img alt="" draggable={false} src={safeOpeningSettings.backgroundSrc} />
+                      <img
+                        alt=""
+                        draggable={false}
+                        src={resolveAssetSrc(safeOpeningSettings.backgroundSrc)}
+                      />
                       <span>Opening image loaded</span>
                     </div>
                   ) : null}
@@ -11588,7 +12633,7 @@ function AdminScreen({
                           type="button"
                           onClick={() => updateOpeningSettings({ lilaImageSrc: image.src })}
                         >
-                          <img alt="" draggable={false} src={image.src} />
+                          <img alt="" draggable={false} src={resolveAssetSrc(image.src)} />
                           <span>{image.label}</span>
                         </button>
                       ))}
@@ -11619,7 +12664,7 @@ function AdminScreen({
                           type="button"
                           onClick={() => updateOpeningSettings({ graceImageSrc: image.src })}
                         >
-                          <img alt="" draggable={false} src={image.src} />
+                          <img alt="" draggable={false} src={resolveAssetSrc(image.src)} />
                           <span>{image.label}</span>
                         </button>
                       ))}
@@ -11718,7 +12763,11 @@ function AdminScreen({
                               onClick={() => updateOpeningBeatImage(beat.id, sceneActor, '')}
                             >
                               {defaultImageSrc ? (
-                                <img alt="" draggable={false} src={defaultImageSrc} />
+                                <img
+                                  alt=""
+                                  draggable={false}
+                                  src={resolveAssetSrc(defaultImageSrc)}
+                                />
                               ) : (
                                 <span className="admin-opening-reaction-placeholder">
                                   {actorLabel}
@@ -11736,7 +12785,7 @@ function AdminScreen({
                                     updateOpeningBeatImage(beat.id, sceneActor, image.id)
                                   }
                                 >
-                                  <img alt="" draggable={false} src={image.src} />
+                                  <img alt="" draggable={false} src={resolveAssetSrc(image.src)} />
                                   <strong>{image.label}</strong>
                                 </button>
                               ),
@@ -11789,7 +12838,7 @@ function AdminScreen({
                   onClick={() => setSelectedAssetId(asset.id)}
                 >
                   <span className="admin-asset-thumb">
-                    <img alt="" draggable={false} src={asset.src} />
+                    <img alt="" draggable={false} src={resolveAssetSrc(asset.src)} />
                   </span>
                   <strong>{asset.label}</strong>
                   <small>{asset.detail}</small>
@@ -11836,10 +12885,8 @@ function AdminScreen({
                 if (!isCharacterId(subjectId) || !CUSTOM_CHARACTER_IDS.includes(subjectId)) {
                   return true;
                 }
-                return normalizeCharacterAdminSettings(
-                  subjectId,
-                  characterSettings[subjectId],
-                ).enabled;
+                return normalizeCharacterAdminSettings(subjectId, characterSettings[subjectId])
+                  .enabled;
               }).map((subjectId) => {
                 const customer = getAdminSubjectCustomer(subjectId, characterSettings);
                 return (
@@ -12691,132 +13738,196 @@ function AdminScreen({
                   <div className="lamp lamp-b" />
                 </div>
                 <div className="floor-lines" />
-                {onionSeatSpots ? (
-                  <div
-                    className="admin-onion-seat-markers"
-                    aria-label="Onion reference markers"
-                    aria-hidden="true"
-                  >
-                    <span
-                      className="admin-seat-marker admin-onion-seat-marker active"
-                      style={seatMarkerStyle(selectedSeatSlot, onionSeatSpots)}
-                    >
-                      <span>{selectedSeatSlot + 1}</span>
-                    </span>
-                  </div>
+                {referenceEditMode ? (
+                  <>
+                    <div className="admin-empty-table-markers" aria-label="Empty table markers">
+                      <button
+                        aria-label={`Move empty table spot ${selectedSeatSlot + 1}`}
+                        className="admin-draggable admin-empty-table-prop active"
+                        onPointerDown={(event) =>
+                          beginSeatSpotDrag(
+                            selectedSeatSlot,
+                            event,
+                            'emptyTable',
+                            EMPTY_TABLE_SEAT_SPOTS_ID,
+                          )
+                        }
+                        style={emptyTableSpotStyle(selectedSeatSlot)}
+                        type="button"
+                      >
+                        <img
+                          alt=""
+                          draggable={false}
+                          src={resolveAssetSrc(EMPTY_TABLE_IMAGE_SRC)}
+                        />
+                        <span>Empty {selectedSeatSlot + 1}</span>
+                      </button>
+                    </div>
+                    <div className="admin-stage-scale-bars" aria-label="Empty table scale handle">
+                      <div className="admin-stage-scale-pair">
+                        <label
+                          className="admin-stage-scale-bar admin-empty-scale-bar active"
+                          style={emptyTableSpotStyle(selectedSeatSlot)}
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
+                          <span>Empty {selectedSeatSlot + 1}</span>
+                          <input
+                            min={55}
+                            max={300}
+                            type="range"
+                            value={selectedEmptyTableSpot.scale}
+                            onInput={(event) =>
+                              onSeatSpotScaleChange(
+                                EMPTY_TABLE_SEAT_SPOTS_ID,
+                                selectedSeatSlot,
+                                Number(event.currentTarget.value),
+                              )
+                            }
+                            onChange={(event) =>
+                              onSeatSpotScaleChange(
+                                EMPTY_TABLE_SEAT_SPOTS_ID,
+                                selectedSeatSlot,
+                                Number(event.target.value),
+                              )
+                            }
+                          />
+                          <small>{selectedEmptyTableSpot.scale}%</small>
+                        </label>
+                      </div>
+                    </div>
+                  </>
                 ) : null}
-                <div className="admin-spot-drink-markers" aria-label="Spot drink markers">
-                  <button
-                    aria-label={`Move spot ${selectedSeatSlot + 1} drink`}
-                    className="admin-draggable admin-drink-prop admin-spot-drink-prop active"
-                    onPointerDown={(event) => beginSeatSpotDrag(selectedSeatSlot, event, 'drink')}
-                    style={seatDrinkStyle(selectedSeatSlot)}
-                    type="button"
-                  >
-                    <ServiceIcon kind="blackTea" />
-                  </button>
-                </div>
-                <div className="admin-spot-order-markers" aria-label="Spot order bubble markers">
-                  <button
-                    aria-label={`Move spot ${selectedSeatSlot + 1} order bubble`}
-                    className="admin-draggable admin-order-prop service-request admin-spot-order-prop active"
-                    onPointerDown={(event) => beginSeatSpotDrag(selectedSeatSlot, event, 'order')}
-                    style={seatAnchorStyle(selectedSeatSlot, 'order')}
-                    type="button"
-                  >
-                    <span className="admin-order-patience-preview">
-                      <span style={{ width: '68%' }} />
-                    </span>
-                    <ServiceIcon kind="blackTea" />
-                    <span>Spot {selectedSeatSlot + 1}</span>
-                  </button>
-                </div>
-                <div className="admin-spot-mood-icon-markers" aria-label="Spot mood icon markers">
-                  <button
-                    aria-label={`Move spot ${selectedSeatSlot + 1} mood icon`}
-                    className="admin-draggable admin-spot-mood-icon-prop active"
-                    onPointerDown={(event) =>
-                      beginSeatSpotDrag(selectedSeatSlot, event, 'moodIcon')
-                    }
-                    style={seatAnchorStyle(selectedSeatSlot, 'moodIcon')}
-                    type="button"
-                  >
-                    <MoodIconBubble src={adminMoodIcons[0]?.src ?? DEFAULT_MOOD_ICON_SRC} />
-                  </button>
-                </div>
-                <div className="admin-seat-markers" aria-label="Table spot markers">
-                  <button
-                    aria-label={`Move spot ${selectedSeatSlot + 1}`}
-                    className="admin-draggable admin-seat-marker active"
-                    onPointerDown={(event) => beginSeatSpotDrag(selectedSeatSlot, event, 'marker')}
-                    style={seatMarkerStyle(selectedSeatSlot)}
-                    type="button"
-                  >
-                    <span>{selectedSeatSlot + 1}</span>
-                  </button>
-                </div>
-                <div className="admin-stage-scale-bars" aria-label="Stage scale handles">
-                  <div className="admin-stage-scale-pair">
-                    <label
-                      className="admin-stage-scale-bar admin-character-scale-bar active"
-                      style={seatScaleBarStyle(selectedSeatSlot, 'marker')}
-                      onPointerDown={(event) => event.stopPropagation()}
+                {storePlacementEditMode ? (
+                  <>
+                    <div className="admin-spot-drink-markers" aria-label="Spot drink markers">
+                      <button
+                        aria-label={`Move spot ${selectedSeatSlot + 1} drink`}
+                        className="admin-draggable admin-drink-prop admin-spot-drink-prop active"
+                        onPointerDown={(event) =>
+                          beginSeatSpotDrag(selectedSeatSlot, event, 'drink')
+                        }
+                        style={seatDrinkStyle(selectedSeatSlot)}
+                        type="button"
+                      >
+                        <ServiceIcon kind="blackTea" />
+                      </button>
+                    </div>
+                    <div
+                      className="admin-spot-order-markers"
+                      aria-label="Spot order bubble markers"
                     >
-                      <span>Spot {selectedSeatSlot + 1}</span>
-                      <input
-                        min={55}
-                        max={180}
-                        type="range"
-                        value={selectedSeatSpot.scale}
-                        onInput={(event) =>
-                          onSeatSpotScaleChange(
-                            selectedCharacterId,
-                            selectedSeatSlot,
-                            Number(event.currentTarget.value),
-                          )
+                      <button
+                        aria-label={`Move spot ${selectedSeatSlot + 1} order bubble`}
+                        className="admin-draggable admin-order-prop service-request admin-spot-order-prop active"
+                        onPointerDown={(event) =>
+                          beginSeatSpotDrag(selectedSeatSlot, event, 'order')
                         }
-                        onChange={(event) =>
-                          onSeatSpotScaleChange(
-                            selectedCharacterId,
-                            selectedSeatSlot,
-                            Number(event.target.value),
-                          )
-                        }
-                      />
-                      <small>{selectedSeatSpot.scale}%</small>
-                    </label>
-                    <label
-                      className="admin-stage-scale-bar admin-tea-scale-bar active"
-                      style={seatScaleBarStyle(selectedSeatSlot, 'drink')}
-                      onPointerDown={(event) => event.stopPropagation()}
+                        style={seatAnchorStyle(selectedSeatSlot, 'order')}
+                        type="button"
+                      >
+                        <span className="admin-order-patience-preview">
+                          <span style={{ width: '68%' }} />
+                        </span>
+                        <ServiceIcon kind="blackTea" />
+                        <span>Spot {selectedSeatSlot + 1}</span>
+                      </button>
+                    </div>
+                    <div
+                      className="admin-spot-mood-icon-markers"
+                      aria-label="Spot mood icon markers"
                     >
-                      <span>Tea {selectedSeatSlot + 1}</span>
-                      <input
-                        min={45}
-                        max={250}
-                        type="range"
-                        value={selectedSeatSpot.drinkScale}
-                        onInput={(event) =>
-                          onSeatSpotDrinkScaleChange(
-                            selectedCharacterId,
-                            selectedSeatSlot,
-                            Number(event.currentTarget.value),
-                          )
+                      <button
+                        aria-label={`Move spot ${selectedSeatSlot + 1} mood icon`}
+                        className="admin-draggable admin-spot-mood-icon-prop active"
+                        onPointerDown={(event) =>
+                          beginSeatSpotDrag(selectedSeatSlot, event, 'moodIcon')
                         }
-                        onChange={(event) =>
-                          onSeatSpotDrinkScaleChange(
-                            selectedCharacterId,
-                            selectedSeatSlot,
-                            Number(event.target.value),
-                          )
+                        style={seatAnchorStyle(selectedSeatSlot, 'moodIcon')}
+                        type="button"
+                      >
+                        <MoodIconBubble src={adminMoodIcons[0]?.src ?? DEFAULT_MOOD_ICON_SRC} />
+                      </button>
+                    </div>
+                    <div className="admin-seat-markers" aria-label="Table spot markers">
+                      <button
+                        aria-label={`Move spot ${selectedSeatSlot + 1}`}
+                        className="admin-draggable admin-seat-marker active"
+                        onPointerDown={(event) =>
+                          beginSeatSpotDrag(selectedSeatSlot, event, 'marker')
                         }
-                      />
-                      <small>{selectedSeatSpot.drinkScale}%</small>
-                    </label>
-                  </div>
-                </div>
+                        style={seatMarkerStyle(selectedSeatSlot)}
+                        type="button"
+                      >
+                        <span>{selectedSeatSlot + 1}</span>
+                      </button>
+                    </div>
+                    <div className="admin-stage-scale-bars" aria-label="Stage scale handles">
+                      <div className="admin-stage-scale-pair">
+                        <label
+                          className="admin-stage-scale-bar admin-character-scale-bar active"
+                          style={seatScaleBarStyle(selectedSeatSlot, 'marker')}
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
+                          <span>Spot {selectedSeatSlot + 1}</span>
+                          <input
+                            min={55}
+                            max={180}
+                            type="range"
+                            value={selectedSeatSpot.scale}
+                            onInput={(event) =>
+                              onSeatSpotScaleChange(
+                                selectedCharacterId,
+                                selectedSeatSlot,
+                                Number(event.currentTarget.value),
+                              )
+                            }
+                            onChange={(event) =>
+                              onSeatSpotScaleChange(
+                                selectedCharacterId,
+                                selectedSeatSlot,
+                                Number(event.target.value),
+                              )
+                            }
+                          />
+                          <small>{selectedSeatSpot.scale}%</small>
+                        </label>
+                        <label
+                          className="admin-stage-scale-bar admin-tea-scale-bar active"
+                          style={seatScaleBarStyle(selectedSeatSlot, 'drink')}
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
+                          <span>Tea {selectedSeatSlot + 1}</span>
+                          <input
+                            min={45}
+                            max={250}
+                            type="range"
+                            value={selectedSeatSpot.drinkScale}
+                            onInput={(event) =>
+                              onSeatSpotDrinkScaleChange(
+                                selectedCharacterId,
+                                selectedSeatSlot,
+                                Number(event.currentTarget.value),
+                              )
+                            }
+                            onChange={(event) =>
+                              onSeatSpotDrinkScaleChange(
+                                selectedCharacterId,
+                                selectedSeatSlot,
+                                Number(event.target.value),
+                              )
+                            }
+                          />
+                          <small>{selectedSeatSpot.drinkScale}%</small>
+                        </label>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
 
-                {onionCharacter && onionLayout && onionSeatSpots ? (
+                {(referenceEditMode || storePlacementEditMode) &&
+                onionCharacter &&
+                onionLayout &&
+                onionSeatSpots ? (
                   <div
                     className="admin-store-character-prop admin-onion-character-prop"
                     style={storeCharacterStyle(
@@ -12826,7 +13937,7 @@ function AdminScreen({
                     aria-hidden="true"
                   >
                     {onionTalkingImage ? (
-                      <img alt="" draggable={false} src={onionTalkingImage} />
+                      <img alt="" draggable={false} src={resolveAssetSrc(onionTalkingImage)} />
                     ) : onionCustomer && onionCustomer.members.length > 1 ? (
                       <AnimalAvatar customer={onionCustomer} size="table" />
                     ) : onionCharacter.imageSrc ? (
@@ -12834,7 +13945,7 @@ function AdminScreen({
                         alt=""
                         className="character-image"
                         draggable={false}
-                        src={onionCharacter.imageSrc}
+                        src={resolveAssetSrc(onionCharacter.imageSrc)}
                       />
                     ) : (
                       <CharacterBust member={onionCharacter} index={0} total={1} />
@@ -12842,32 +13953,56 @@ function AdminScreen({
                   </div>
                 ) : null}
 
-                <button
-                  aria-label={`Move ${selectedCustomer.name}`}
-                  className="admin-draggable admin-store-character-prop"
-                  style={storeCharacterStyle()}
-                  onPointerDown={(event) => beginSeatSpotDrag(selectedSeatSlot, event)}
-                  type="button"
-                >
-                  {activeDefaultImage ? (
-                    <img alt="" draggable={false} src={activeDefaultImage} />
-                  ) : selectedCustomer.members.length > 1 ? (
-                    <AnimalAvatar customer={selectedCustomer} size="table" />
-                  ) : selectedCharacter.imageSrc ? (
-                    <img
-                      alt=""
-                      className="character-image"
-                      draggable={false}
-                      src={selectedCharacter.imageSrc}
-                    />
-                  ) : (
-                    <CharacterBust member={selectedCharacter} index={0} total={1} />
-                  )}
-                </button>
+                {!referenceEditMode ? (
+                  <button
+                    aria-label={`Move ${selectedCustomer.name}`}
+                    className="admin-draggable admin-store-character-prop"
+                    style={storeCharacterStyle()}
+                    onPointerDown={(event) => beginSeatSpotDrag(selectedSeatSlot, event)}
+                    type="button"
+                  >
+                    {activeDefaultImage ? (
+                      <img alt="" draggable={false} src={resolveAssetSrc(activeDefaultImage)} />
+                    ) : selectedCustomer.members.length > 1 ? (
+                      <AnimalAvatar customer={selectedCustomer} size="table" />
+                    ) : selectedCharacter.imageSrc ? (
+                      <img
+                        alt=""
+                        className="character-image"
+                        draggable={false}
+                        src={resolveAssetSrc(selectedCharacter.imageSrc)}
+                      />
+                    ) : (
+                      <CharacterBust member={selectedCharacter} index={0} total={1} />
+                    )}
+                  </button>
+                ) : null}
               </>
             ) : previewMode === 'talking' ? (
               <>
                 <div className="visit-backdrop" />
+                {onionCharacter && onionLayout ? (
+                  <div
+                    className="admin-talking-character-prop admin-onion-character-prop"
+                    style={talkingCharacterStyle(onionLayout.talking)}
+                    aria-hidden="true"
+                  >
+                    {onionConversationImage ? (
+                      <img alt="" draggable={false} src={resolveAssetSrc(onionConversationImage)} />
+                    ) : onionCustomer && onionCustomer.members.length > 1 ? (
+                      <AnimalAvatar customer={onionCustomer} size="large" />
+                    ) : onionCharacter.imageSrc ? (
+                      <img
+                        alt=""
+                        className="character-image"
+                        draggable={false}
+                        src={resolveAssetSrc(onionCharacter.imageSrc)}
+                      />
+                    ) : (
+                      <CharacterBust member={onionCharacter} index={0} total={1} />
+                    )}
+                  </div>
+                ) : null}
                 <div
                   aria-label={`Move ${selectedCustomer.name} talking image`}
                   className="admin-draggable admin-talking-character-prop"
@@ -12877,11 +14012,26 @@ function AdminScreen({
                   onPointerDown={(event) => beginDrag('character', event)}
                 >
                   {activePreviewTalkingImage ? (
-                    <img alt="" draggable={false} src={activePreviewTalkingImage} />
+                    <img
+                      alt=""
+                      draggable={false}
+                      src={resolveAssetSrc(activePreviewTalkingImage)}
+                    />
                   ) : (
                     <AnimalAvatar customer={selectedCustomer} size="large" />
                   )}
                 </div>
+                {showChatFaceBlocker ? (
+                  <button
+                    aria-label="Move talking face blocker guide"
+                    className="admin-face-blocker admin-chat-face-blocker"
+                    onPointerDown={beginChatFaceBlockerDrag}
+                    style={openingBlockerStyle(chatFaceBlocker)}
+                    type="button"
+                  >
+                    <span>Keep Clear</span>
+                  </button>
+                ) : null}
                 <button
                   aria-label="Move talking view drink"
                   className="admin-draggable admin-drink-prop admin-talking-drink-prop"
@@ -12926,7 +14076,8 @@ function AdminScreen({
                   style={talkingDragStyle('patience')}
                   type="button"
                 >
-                  <span style={{ width: '68%' }} />
+                  <span className="patience-strip-fill" style={{ width: '68%' }} />
+                  <b className="patience-countdown">18s</b>
                 </button>
               </>
             ) : (
@@ -12937,7 +14088,7 @@ function AdminScreen({
                       alt=""
                       className="admin-portrait-image"
                       draggable={false}
-                      src={selectedPortrait.imageSrc}
+                      src={resolveAssetSrc(selectedPortrait.imageSrc)}
                       style={portraitImageStyle(selectedPortrait)}
                     />
                   ) : (
@@ -12946,6 +14097,21 @@ function AdminScreen({
                       size="portrait"
                     />
                   )}
+                  {onionCharacter && onionPortrait ? (
+                    onionPortrait.imageSrc ? (
+                      <img
+                        alt=""
+                        className="admin-portrait-image admin-onion-portrait-image"
+                        draggable={false}
+                        src={resolveAssetSrc(onionPortrait.imageSrc)}
+                        style={portraitImageStyle(onionPortrait)}
+                      />
+                    ) : onionCustomer ? (
+                      <div className="admin-onion-portrait-avatar">
+                        <AnimalAvatar customer={onionCustomer} size="portrait" />
+                      </div>
+                    ) : null
+                  ) : null}
                 </div>
                 <div>
                   <p className="eyebrow">Character Settings</p>
@@ -12972,7 +14138,7 @@ function AdminScreen({
               </div>
             ) : null}
 
-            {previewMode !== 'settings' ? (
+            {previewMode !== 'settings' && !referenceEditMode ? (
               <div
                 aria-label="Move cat"
                 className="admin-draggable admin-cat-prop"
@@ -13087,7 +14253,7 @@ function AdminScreen({
               Characters
             </button>
           </div>
-          {sidePanelMode === 'inspector' && previewMode === 'shop' ? (
+          {sidePanelMode === 'ref' ? (
             <section
               className="admin-edit-card admin-reference-card"
               aria-label={`${selectedCustomer.name} reference points`}
@@ -13105,42 +14271,54 @@ function AdminScreen({
                   </button>
                 ))}
               </div>
-              <label>
-                <span>Onion</span>
-                <select
-                  value={onionCharacterId}
-                  onChange={(event) => {
-                    const nextId = event.currentTarget.value;
-                    setOnionCharacterId(
-                      isAdminSubjectId(nextId) && nextId !== selectedCharacterId ? nextId : '',
-                    );
-                  }}
-                >
-                  <option value="">Off</option>
-                  {ADMIN_SUBJECT_IDS.filter(
-                    (characterId) => characterId !== selectedCharacterId,
-                  ).map((characterId) => (
-                    <option key={characterId} value={characterId}>
-                      {getAdminSubjectCustomer(characterId, characterSettings).name}
-                    </option>
-                  ))}
-                </select>
-                <small>{onionCharacter ? 'View only' : 'Off'}</small>
-              </label>
+              <div className="admin-reference-editor" aria-label="Reference point editor">
+                <h4>Empty Table Reference</h4>
+                {renderReferencePointControls(
+                  'Empty Table',
+                  EMPTY_TABLE_SEAT_SPOTS_ID,
+                  'emptyTable',
+                  selectedEmptyTableSpot.emptyTable,
+                )}
+                <fieldset className="admin-reference-point-editor admin-reference-scale-editor">
+                  <legend>Empty Table Scale</legend>
+                  <label>
+                    <span>Empty</span>
+                    <input
+                      max={300}
+                      min={55}
+                      type="range"
+                      value={selectedEmptyTableSpot.scale}
+                      onInput={(event) =>
+                        onSeatSpotScaleChange(
+                          EMPTY_TABLE_SEAT_SPOTS_ID,
+                          selectedSeatSlot,
+                          Number(event.currentTarget.value),
+                        )
+                      }
+                      onChange={(event) =>
+                        onSeatSpotScaleChange(
+                          EMPTY_TABLE_SEAT_SPOTS_ID,
+                          selectedSeatSlot,
+                          Number(event.target.value),
+                        )
+                      }
+                    />
+                    <small>{selectedEmptyTableSpot.scale}%</small>
+                  </label>
+                </fieldset>
+              </div>
+              {renderOnionSelector()}
               <button
                 className="paper-button admin-reset-spots"
                 type="button"
-                onClick={() => onResetSeatSpots(selectedCharacterId)}
+                onClick={() => onResetSeatSpots(EMPTY_TABLE_SEAT_SPOTS_ID)}
               >
-                Reset Points
+                Reset Empty Tables
               </button>
-              <button
-                className="paper-button admin-reset-spots"
-                type="button"
-                onClick={applyDefaultSeatSpotScales}
-              >
-                Depth Scales
-              </button>
+              <small>
+                Empty spot {selectedSeatSlot + 1}: {Math.round(selectedEmptyTableSpot.emptyTable.x)}
+                %, {Math.round(selectedEmptyTableSpot.emptyTable.y)}%
+              </small>
             </section>
           ) : null}
           {sidePanelMode === 'assets' ? (
@@ -13148,7 +14326,7 @@ function AdminScreen({
               {selectedAsset ? (
                 <>
                   <span className="admin-asset-large-preview">
-                    <img alt="" draggable={false} src={selectedAsset.src} />
+                    <img alt="" draggable={false} src={resolveAssetSrc(selectedAsset.src)} />
                   </span>
                   <h3>{selectedAsset.label}</h3>
                   <p className="admin-muted-copy">{selectedAsset.detail}</p>
@@ -13223,7 +14401,9 @@ function AdminScreen({
                     }`}
                   >
                     <span>{selectedSettings.enabled ? 'Enabled' : 'Disabled'}</span>
-                    <small>{selectedSettings.enabled ? 'Can appear in game' : 'Will not spawn'}</small>
+                    <small>
+                      {selectedSettings.enabled ? 'Can appear in game' : 'Will not spawn'}
+                    </small>
                   </div>
                   <label>
                     <span>Store image</span>
@@ -13260,6 +14440,90 @@ function AdminScreen({
                     />
                     <small>{selectedLayout.catScale}%</small>
                   </label>
+                  {renderOnionSelector()}
+                  <div
+                    className="admin-reference-editor admin-store-placement-editor"
+                    aria-label="Store placement editor"
+                  >
+                    <h4>Store Placement</h4>
+                    <div className="admin-spot-tabs" aria-label="Character store spots">
+                      {TABLE_SLOTS.map((slot) => (
+                        <button
+                          className={selectedSeatSlot === slot ? 'active' : ''}
+                          key={slot}
+                          onClick={() => setSelectedSeatSlot(slot)}
+                          type="button"
+                        >
+                          Spot {slot + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <fieldset className="admin-reference-point-editor admin-reference-scale-editor">
+                      <legend>Scale</legend>
+                      <label>
+                        <span>Guest</span>
+                        <input
+                          max={180}
+                          min={55}
+                          type="range"
+                          value={selectedSeatSpot.scale}
+                          onInput={(event) =>
+                            onSeatSpotScaleChange(
+                              selectedCharacterId,
+                              selectedSeatSlot,
+                              Number(event.currentTarget.value),
+                            )
+                          }
+                          onChange={(event) =>
+                            onSeatSpotScaleChange(
+                              selectedCharacterId,
+                              selectedSeatSlot,
+                              Number(event.target.value),
+                            )
+                          }
+                        />
+                        <small>{selectedSeatSpot.scale}%</small>
+                      </label>
+                      <label>
+                        <span>Drink</span>
+                        <input
+                          max={250}
+                          min={45}
+                          type="range"
+                          value={selectedSeatSpot.drinkScale}
+                          onInput={(event) =>
+                            onSeatSpotDrinkScaleChange(
+                              selectedCharacterId,
+                              selectedSeatSlot,
+                              Number(event.currentTarget.value),
+                            )
+                          }
+                          onChange={(event) =>
+                            onSeatSpotDrinkScaleChange(
+                              selectedCharacterId,
+                              selectedSeatSlot,
+                              Number(event.target.value),
+                            )
+                          }
+                        />
+                        <small>{selectedSeatSpot.drinkScale}%</small>
+                      </label>
+                    </fieldset>
+                  </div>
+                  <button
+                    className="paper-button admin-reset-spots"
+                    type="button"
+                    onClick={() => onResetSeatSpots(selectedCharacterId)}
+                  >
+                    Reset Character Points
+                  </button>
+                  <button
+                    className="paper-button admin-reset-spots"
+                    type="button"
+                    onClick={applyDefaultSeatSpotScales}
+                  >
+                    Depth Scales
+                  </button>
                 </>
               ) : null}
 
@@ -13314,6 +14578,56 @@ function AdminScreen({
                     />
                     <small>{selectedTalkingLayout.catScale}%</small>
                   </label>
+                  {renderOnionSelector()}
+                  <div className="admin-face-blocker-controls">
+                    <button
+                      className={`paper-button ${showChatFaceBlocker ? 'active' : ''}`}
+                      type="button"
+                      onClick={() => setShowChatFaceBlocker((visible) => !visible)}
+                    >
+                      Face Blocker
+                    </button>
+                    {showChatFaceBlocker ? (
+                      <>
+                        <label>
+                          <span>Block width</span>
+                          <input
+                            max={48}
+                            min={6}
+                            type="range"
+                            value={chatFaceBlocker.width}
+                            onInput={(event) =>
+                              updateChatFaceBlocker({
+                                width: Number(event.currentTarget.value),
+                              })
+                            }
+                            onChange={(event) =>
+                              updateChatFaceBlocker({ width: Number(event.target.value) })
+                            }
+                          />
+                          <small>{Math.round(chatFaceBlocker.width)}%</small>
+                        </label>
+                        <label>
+                          <span>Block height</span>
+                          <input
+                            max={48}
+                            min={6}
+                            type="range"
+                            value={chatFaceBlocker.height}
+                            onInput={(event) =>
+                              updateChatFaceBlocker({
+                                height: Number(event.currentTarget.value),
+                              })
+                            }
+                            onChange={(event) =>
+                              updateChatFaceBlocker({ height: Number(event.target.value) })
+                            }
+                          />
+                          <small>{Math.round(chatFaceBlocker.height)}%</small>
+                        </label>
+                      </>
+                    ) : null}
+                  </div>
                   <div className="admin-chat-preview-tester">
                     <h3>Test Dialogue</h3>
                     <div className="admin-spot-tabs" aria-label="Dialogue type to preview">
@@ -13371,11 +14685,10 @@ function AdminScreen({
                     <input
                       checked={selectedSettings.enabled}
                       type="checkbox"
-                      onChange={(event) =>
-                        updateSettings({ enabled: event.currentTarget.checked })
-                      }
+                      onChange={(event) => updateSettings({ enabled: event.currentTarget.checked })}
                     />
                   </label>
+                  {renderOnionSelector()}
                   <div className="admin-portrait-editor">
                     <span>Character picture</span>
                     <label className="admin-upload-field admin-portrait-upload-field">
@@ -13403,7 +14716,7 @@ function AdminScreen({
                               type="button"
                               onClick={() => updatePortrait({ imageSrc: pose.src })}
                             >
-                              <img alt="" draggable={false} src={pose.src} />
+                              <img alt="" draggable={false} src={resolveAssetSrc(pose.src)} />
                               <strong>{pose.label}</strong>
                             </button>
                           );
@@ -13529,7 +14842,9 @@ interface ShopScreenProps {
   activeService: ServiceItem;
   servedSlots: TableSlot[];
   servedOrdersBySlot: Partial<Record<TableSlot, number[]>>;
+  departingSlots: TableSlot[];
   patiencePercents: Partial<Record<TableSlot, number>>;
+  patienceRemainingBySlot: Partial<Record<TableSlot, number>>;
   clockProgress: number;
   catImageSrc: string;
   onServe: (slot?: TableSlot, orderIndex?: number) => void;
@@ -13542,6 +14857,23 @@ interface ShopScreenProps {
   tutorialPatienceExpired: boolean;
   tutorialStep: TutorialStep;
   onTutorialNext: () => void;
+}
+
+function ShopUpgradeDecor({ upgrades }: { upgrades: string[] }) {
+  const owned = new Set(upgrades);
+  const visibleUpgradeIds = ['cushion', 'cat-bed', 'tea-plant', 'lamp', 'window-seat', 'hearth'];
+
+  return (
+    <div className="shop-upgrade-decor" aria-hidden="true">
+      {visibleUpgradeIds.map((id) =>
+        owned.has(id) ? (
+          <span className={`shop-upgrade-prop shop-upgrade-${id}`} key={id}>
+            <UpgradeIcon id={id} />
+          </span>
+        ) : null,
+      )}
+    </div>
+  );
 }
 
 function ShopScreen({
@@ -13560,7 +14892,9 @@ function ShopScreen({
   activeService,
   servedSlots,
   servedOrdersBySlot,
+  departingSlots,
   patiencePercents,
+  patienceRemainingBySlot,
   clockProgress,
   catImageSrc,
   onServe,
@@ -13579,12 +14913,15 @@ function ShopScreen({
   const tutorialVisitActive = tutorialStep === 'visit';
   const tutorialClockActive = tutorialStep === 'clock';
   const tutorialOpenActive = tutorialStep === 'open';
+  const tutorialFirstDayStoryIntroActive = tutorialStep === 'firstDayStoryIntro';
   const tutorialShopActive =
     tutorialPatienceActive ||
     tutorialServeActive ||
     tutorialVisitActive ||
     tutorialClockActive ||
-    tutorialOpenActive;
+    tutorialOpenActive ||
+    tutorialFirstDayStoryIntroActive;
+  const emptyTableSeatSpots = getEmptyTableSeatSpots(adminSeatSpotLayouts);
   const tutorialMessage = tutorialPatienceActive
     ? TUTORIAL_PATIENCE_MESSAGE
     : tutorialServeActive
@@ -13595,7 +14932,9 @@ function ShopScreen({
           ? TUTORIAL_CLOCK_MESSAGE
           : tutorialOpenActive
             ? resolveGameTextVariables(TUTORIAL_OPEN_MESSAGE, game)
-            : '';
+            : tutorialFirstDayStoryIntroActive
+              ? FIRST_DAY_STORY_INTRO_MESSAGE
+              : '';
   const tutorialActionLabel = tutorialPatienceActive
     ? 'Next'
     : tutorialClockActive
@@ -13638,9 +14977,33 @@ function ShopScreen({
     return adminMoodIcons.find((icon) => icon.id === iconId)?.src ?? '';
   }
 
+  function getMoodIconSrcById(iconId: string): string {
+    return adminMoodIcons.find((icon) => icon.id === iconId)?.src ?? '';
+  }
+
+  function getStoryCueForCustomer(customer: Customer, customerSlot: number | null) {
+    if (
+      !tutorialFirstDayStoryIntroActive ||
+      !isFirstDayStoryTutorialFinalCustomerSlot(customerSlot)
+    ) {
+      return null;
+    }
+
+    const visitNumber = getCustomerVisitCount(game, customer.id) + 1;
+    const story = getStoryForVisit(customer, visitNumber, adminChats);
+
+    const moodIconSrc = getMoodIconSrcById(story.moodIconIds?.[0] ?? '');
+    if (!story.imageSrc && !moodIconSrc) return null;
+
+    return {
+      imageSrc: story.imageSrc ?? '',
+      moodIconSrc,
+    };
+  }
+
   return (
     <main className="shop-screen">
-      <section className="shop-stage" aria-label="Tea shop floor">
+      <section className="shop-stage" aria-label="Cat cafe floor">
         <div className="back-wall">
           <div className="window">
             <span />
@@ -13660,11 +15023,15 @@ function ShopScreen({
 
         <div className="floor-lines" />
         <WallClock progress={clockProgress} />
+        <ShopUpgradeDecor upgrades={game.upgrades} />
 
         {TABLE_SLOTS.map((slot) => {
+          if (slot >= tableCount) return null;
+
           const visualSlot = getVisualStoreSlot(slot, tableCount);
           const customer = customers[slot];
-          const isOccupied = Boolean(customer) && slot < tableCount;
+          const isOccupied = Boolean(customer);
+          const isDeparting = departingSlots.includes(slot);
           const isActive = isOccupied && slot === selectedSlot && arrivalState === 'ready';
           const customerSlot = seatCustomerSlots[slot] ?? null;
           const services =
@@ -13679,26 +15046,33 @@ function ShopScreen({
             getServedOrderIndexes(servedOrdersBySlot, slot),
           );
           const seatPatiencePercent = patiencePercents[slot] ?? 100;
+          const seatPatienceMs = getSeatPatience(patienceRemainingBySlot, seatCustomerSlots, slot);
+          const seatPatienceLabel = formatCooldown(seatPatienceMs);
           const adminLayout = customer ? getCustomerAdminLayout(customer, adminLayouts) : null;
           const adminSubjectId = customer ? getCustomerAdminSubjectId(customer) : null;
           const seatSpot = adminSubjectId
             ? getCharacterAdminSeatSpot(adminSeatSpotLayouts, adminSubjectId, visualSlot)
             : getAdminSeatSpot(DEFAULT_ADMIN_SEAT_SPOTS, visualSlot);
           const storeImageSrc =
-            customer && adminLayout ? getCustomerStoreImageSrc(customer, adminLayout) : '';
+            customer && adminLayout
+              ? getStoryCueForCustomer(customer, customerSlot)?.imageSrc ||
+                getCustomerStoreImageSrc(customer, adminLayout)
+              : '';
 
           if (isOccupied && customer && adminLayout) {
             const characterScale = (adminLayout.characterScale / 100) * (seatSpot.scale / 100);
             const orderPosition = seatSpot.order;
             const drinkPosition = seatSpot.drink;
             const moodIconPosition = seatSpot.moodIcon;
-            const moodIconSrc = getMoodIconSrcForCustomer(customer, 'order');
+            const storyCue = getStoryCueForCustomer(customer, customerSlot);
+            const moodIconSrc =
+              storyCue?.moodIconSrc || getMoodIconSrcForCustomer(customer, 'order');
 
             return (
               <div
                 className={`live-store-layout live-store-layout-${visualSlot + 1} ${
                   isActive ? 'active' : ''
-                }`}
+                } ${isDeparting ? 'departing' : ''}`}
                 key={slot}
               >
                 <button
@@ -13717,7 +15091,7 @@ function ShopScreen({
                   style={liveGroundStyle(seatSpot.marker, characterScale)}
                 >
                   {storeImageSrc ? (
-                    <img alt="" draggable={false} src={storeImageSrc} />
+                    <img alt="" draggable={false} src={resolveAssetSrc(storeImageSrc)} />
                   ) : (
                     <AnimalAvatar customer={customer} size="table" />
                   )}
@@ -13730,26 +15104,27 @@ function ShopScreen({
                     const orderServed = isOrderServed(servedOrdersBySlot, slot, orderIndex);
                     const member = customer.members[orderIndex];
                     const labelName = member?.name ?? customer.name;
+                    const serveLabel = `Serve ${tableService.label} to ${labelName}, ${seatPatienceLabel} left`;
+                    const tutorialServeTarget = tutorialServeActive && customer.id === 'matthew';
+                    const serveDisabled =
+                      arrivalState !== 'ready' ||
+                      orderServed ||
+                      tutorialPatienceActive ||
+                      tutorialClockActive ||
+                      tutorialOpenActive ||
+                      (tutorialServeActive && customer.id !== 'matthew') ||
+                      (tutorialVisitActive && customer.id === 'matthew');
 
                     return (
-                      <button
-                        className={`service-request ${
-                          tutorialServeActive && customer.id === 'matthew' ? 'tutorial-focus' : ''
-                        }`}
-                        disabled={
-                          arrivalState !== 'ready' ||
-                          orderServed ||
-                          tutorialPatienceActive ||
-                          tutorialClockActive ||
-                          tutorialOpenActive ||
-                          (tutorialServeActive && customer.id !== 'matthew') ||
-                          (tutorialVisitActive && customer.id === 'matthew')
-                        }
-                        onClick={() => onServe(slot, orderIndex)}
-                        type="button"
-                        aria-label={`Serve ${tableService.label} to ${labelName}`}
-                        title={`Serve ${tableService.label} to ${labelName}`}
+                      <div
+                        className={`service-request-wrap ${
+                          !seatServed && !orderServed ? 'with-patience' : ''
+                        } ${tutorialServeTarget ? 'tutorial-focus' : ''}`}
                         key={`${customer.id}-${orderIndex}`}
+                        onClick={(event) => {
+                          if ((event.target as HTMLElement).closest('button')) return;
+                          if (!serveDisabled) onServe(slot, orderIndex);
+                        }}
                       >
                         {!seatServed && !orderServed ? (
                           <span
@@ -13763,18 +15138,27 @@ function ShopScreen({
                             {tutorialPatienceActive && customer.id === 'matthew' ? (
                               <b className="tutorial-meter-arrow">Patience Meter</b>
                             ) : null}
-                            <span style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }} />
+                            <span
+                              className="patience-strip-fill"
+                              style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }}
+                            />
+                            <b className="patience-countdown">{seatPatienceLabel}</b>
                           </span>
                         ) : null}
-                        {orderServed ? <CheckIcon /> : <ServiceIcon kind={tableService.id} />}
-                        <span>
-                          {tutorialServeActive && customer.id === 'matthew'
-                            ? 'Serve'
-                            : orderServed
-                              ? 'Served'
-                              : ''}
-                        </span>
-                      </button>
+                        <button
+                          className="service-request"
+                          disabled={serveDisabled}
+                          onClick={() => onServe(slot, orderIndex)}
+                          type="button"
+                          aria-label={serveLabel}
+                          title={serveLabel}
+                        >
+                          {orderServed ? <CheckIcon /> : <ServiceIcon kind={tableService.id} />}
+                          <span className="service-request-label">
+                            {orderServed ? 'Served' : tableService.name}
+                          </span>
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -13798,14 +15182,32 @@ function ShopScreen({
             );
           }
 
+          if (!isOccupied) {
+            const emptySeatSpot = getAdminSeatSpot(emptyTableSeatSpots, visualSlot, 300);
+            return (
+              <span
+                className={`empty-table-slot empty-table-slot-${visualSlot + 1}`}
+                key={slot}
+                style={liveGroundStyle(emptySeatSpot.emptyTable, emptySeatSpot.scale / 100)}
+              >
+                <img
+                  alt=""
+                  className="empty-table-image"
+                  draggable={false}
+                  src={resolveAssetSrc(EMPTY_TABLE_IMAGE_SRC)}
+                />
+              </span>
+            );
+          }
+
           return (
             <div
               className={`customer-seat customer-seat-${visualSlot + 1} ${isActive ? 'active' : ''} ${
                 isOccupied ? 'occupied' : 'empty'
-              }`}
+              } ${isDeparting ? 'departing' : ''}`}
               key={slot}
             >
-              {isOccupied && customer ? (
+              {customer ? (
                 <>
                   <button
                     className={`customer-visit-button ${
@@ -13828,26 +15230,27 @@ function ShopScreen({
                       const orderServed = isOrderServed(servedOrdersBySlot, slot, orderIndex);
                       const member = customer.members[orderIndex];
                       const labelName = member?.name ?? customer.name;
+                      const serveLabel = `Serve ${tableService.label} to ${labelName}, ${seatPatienceLabel} left`;
+                      const tutorialServeTarget = tutorialServeActive && customer.id === 'matthew';
+                      const serveDisabled =
+                        arrivalState !== 'ready' ||
+                        orderServed ||
+                        tutorialPatienceActive ||
+                        tutorialClockActive ||
+                        tutorialOpenActive ||
+                        (tutorialServeActive && customer.id !== 'matthew') ||
+                        (tutorialVisitActive && customer.id === 'matthew');
 
                       return (
-                        <button
-                          className={`service-request ${
-                            tutorialServeActive && customer.id === 'matthew' ? 'tutorial-focus' : ''
-                          }`}
-                          disabled={
-                            arrivalState !== 'ready' ||
-                            orderServed ||
-                            tutorialPatienceActive ||
-                            tutorialClockActive ||
-                            tutorialOpenActive ||
-                            (tutorialServeActive && customer.id !== 'matthew') ||
-                            (tutorialVisitActive && customer.id === 'matthew')
-                          }
-                          onClick={() => onServe(slot, orderIndex)}
-                          type="button"
-                          aria-label={`Serve ${tableService.label} to ${labelName}`}
-                          title={`Serve ${tableService.label} to ${labelName}`}
+                        <div
+                          className={`service-request-wrap ${
+                            !seatServed && !orderServed ? 'with-patience' : ''
+                          } ${tutorialServeTarget ? 'tutorial-focus' : ''}`}
                           key={`${customer.id}-${orderIndex}`}
+                          onClick={(event) => {
+                            if ((event.target as HTMLElement).closest('button')) return;
+                            if (!serveDisabled) onServe(slot, orderIndex);
+                          }}
                         >
                           {!seatServed && !orderServed ? (
                             <span
@@ -13861,18 +15264,27 @@ function ShopScreen({
                               {tutorialPatienceActive && customer.id === 'matthew' ? (
                                 <b className="tutorial-meter-arrow">Patience Meter</b>
                               ) : null}
-                              <span style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }} />
+                              <span
+                                className="patience-strip-fill"
+                                style={{ width: `${clamp(seatPatiencePercent, 0, 100)}%` }}
+                              />
+                              <b className="patience-countdown">{seatPatienceLabel}</b>
                             </span>
                           ) : null}
-                          {orderServed ? <CheckIcon /> : <ServiceIcon kind={tableService.id} />}
-                          <span>
-                            {tutorialServeActive && customer.id === 'matthew'
-                              ? 'Serve'
-                              : orderServed
-                                ? 'Served'
-                                : ''}
-                          </span>
-                        </button>
+                          <button
+                            className="service-request"
+                            disabled={serveDisabled}
+                            onClick={() => onServe(slot, orderIndex)}
+                            type="button"
+                            aria-label={serveLabel}
+                            title={serveLabel}
+                          >
+                            {orderServed ? <CheckIcon /> : <ServiceIcon kind={tableService.id} />}
+                            <span className="service-request-label">
+                              {orderServed ? 'Served' : tableService.name}
+                            </span>
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -13889,7 +15301,7 @@ function ShopScreen({
         {arrivalState === 'waiting' ? (
           <div className="arrival-card" aria-live="polite">
             <BellIcon />
-            <strong>Quiet shop</strong>
+            <strong>Quiet cafe</strong>
             <span>A new customer will come in soon.</span>
           </div>
         ) : null}
@@ -13974,9 +15386,11 @@ interface VisitScreenProps {
   servedOrderIndexes: number[];
   serviceServed: boolean;
   patiencePercent: number;
+  patienceRemaining: number;
   mood: number;
   purrBeat: number;
   purrCooldownRemaining: number;
+  meowCooldownRemaining: number;
   quietCooldownRemaining: number;
   rollCooldownRemaining: number;
   cuteCooldownRemaining: number;
@@ -13988,7 +15402,6 @@ interface VisitScreenProps {
   nextStoryTitle: string;
   storyLine: string;
   storyImageSrc: string;
-  storyClosingLine: string;
   storyChoices: readonly [KittyChatOption, KittyChatOption] | null;
   storyChoiceReady: boolean;
   storyChoiceAnswer: 0 | 1 | 2;
@@ -14005,7 +15418,6 @@ interface VisitScreenProps {
   chatMenuSettings: AdminChatMenuSettings;
   catImageSrc: string;
   afterHoursComment: string;
-  birthdayStoryTutorialActive: boolean;
   tutorialStep: TutorialStep;
   tutorialCoachSrc: string;
   tutorialLine: string;
@@ -14030,9 +15442,11 @@ function VisitScreen({
   servedOrderIndexes,
   serviceServed,
   patiencePercent,
+  patienceRemaining,
   mood,
   purrBeat,
   purrCooldownRemaining,
+  meowCooldownRemaining,
   quietCooldownRemaining,
   rollCooldownRemaining,
   cuteCooldownRemaining,
@@ -14044,7 +15458,6 @@ function VisitScreen({
   nextStoryTitle,
   storyLine,
   storyImageSrc,
-  storyClosingLine,
   storyChoices,
   storyChoiceReady,
   storyChoiceAnswer,
@@ -14061,7 +15474,6 @@ function VisitScreen({
   chatMenuSettings,
   catImageSrc,
   afterHoursComment,
-  birthdayStoryTutorialActive,
   tutorialStep,
   tutorialCoachSrc,
   tutorialLine,
@@ -14081,36 +15493,48 @@ function VisitScreen({
 }: VisitScreenProps) {
   const tutorialMeowActive = tutorialStep === 'meow';
   const tutorialMoodActive = tutorialStep === 'mood';
-  const tutorialLeaveActive = tutorialStep === 'leave';
+  const tutorialBaseLeaveActive = tutorialStep === 'leave';
+  const tutorialFirstDayStoryOrderActive = tutorialStep === 'firstDayStoryOrder';
+  const tutorialFirstDayStoryLeaveActive = tutorialStep === 'firstDayStoryLeave';
+  const tutorialLeaveActive = tutorialBaseLeaveActive || tutorialFirstDayStoryLeaveActive;
   const tutorialActive = tutorialMeowActive || tutorialMoodActive || tutorialLeaveActive;
   const purrReady = purrCooldownRemaining <= 0;
+  const meowReady = tutorialMeowActive || meowCooldownRemaining <= 0;
   const quietReady = quietCooldownRemaining <= 0;
   const rollReady = fullMoodCareUnlocked && rollCooldownRemaining <= 0;
   const cuteReady = fullMoodCareUnlocked && cuteCooldownRemaining <= 0;
-  const storyBubbleText =
-    storyLine.length > 112 ? `${storyLine.slice(0, 109).trim()}...` : storyLine;
+  const storyBubbleText = storyLine;
+  const patienceLabel = formatCooldown(patienceRemaining);
   const kittyBubbleSource = kittyAnswer > 0 ? kittyReply : kittyQuestion;
-  const kittyBubbleText =
-    kittyBubbleSource.length > 112
-      ? `${kittyBubbleSource.slice(0, 109).trim()}...`
-      : kittyBubbleSource;
-  const orderBubbleText =
-    orderLine.length > 112 ? `${orderLine.slice(0, 109).trim()}...` : orderLine;
+  const kittyBubbleText = kittyBubbleSource;
+  const orderBubbleText = orderLine;
   const storyProgressLabel = `${storyProgress}/${storyLineCount}`;
   const storyChoiceAnswered = storyChoiceAnswer > 0;
-  const showAfterHoursBubble = shopDayEnded && afterHoursComment.trim().length > 0;
+  const showAfterHoursBubble =
+    shopDayEnded &&
+    afterHoursComment.trim().length > 0 &&
+    !tutorialFirstDayStoryOrderActive &&
+    !storyReady &&
+    !storyChoiceReady &&
+    !tutorialActive;
   const normalStoryReady = !tutorialActive && storyReady;
   const normalStoryChoiceReady = !tutorialActive && storyChoiceReady;
-  const normalKittyChatReady = !tutorialActive && (serviceServed || forceDialogueReady) && kittyChatReady;
+  const normalKittyChatReady =
+    !tutorialActive && (serviceServed || forceDialogueReady) && kittyChatReady;
+  const storyCompleteLeaveOnly = normalStoryReady && storyComplete;
+  const leaveOnlyMode = tutorialLeaveActive || storyCompleteLeaveOnly;
   const storyReplyPending = normalStoryChoiceReady && Boolean(storyChoices) && !storyChoiceAnswered;
   const kittyReplyPending = normalKittyChatReady && kittyOptions != null && kittyAnswer <= 0;
   const replyPromptActive = storyReplyPending || kittyReplyPending;
   const catMenuLockedForReply = replyPromptActive && !tutorialActive;
-  const catActionsUnlocked = serviceServed || tutorialActive;
-  const canMeow = catActionsUnlocked && (tutorialMeowActive || !catMenuLockedForReply);
+  const catActionsUnlocked = serviceServed || tutorialActive || storyCompleteLeaveOnly;
+  const canMeow =
+    catActionsUnlocked &&
+    !storyCompleteLeaveOnly &&
+    meowReady &&
+    (tutorialMeowActive || tutorialMoodActive || (!tutorialActive && !catMenuLockedForReply));
   const showKittyReplyPanel = kittyReplyPending;
-  const hasDialoguePanel =
-    tutorialActive || birthdayStoryTutorialActive || normalStoryChoiceReady || showKittyReplyPanel;
+  const hasDialoguePanel = tutorialActive || normalStoryChoiceReady || showKittyReplyPanel;
   const nextUnservedOrderIndex = services.findIndex(
     (_, orderIndex) => !servedOrderIndexes.includes(orderIndex),
   );
@@ -14146,12 +15570,16 @@ function VisitScreen({
     : tutorialMoodActive
       ? TUTORIAL_MOOD_MESSAGE
       : tutorialLeaveActive
-        ? TUTORIAL_LEAVE_MESSAGE
+        ? tutorialFirstDayStoryLeaveActive
+          ? FIRST_DAY_STORY_COLLECTED_MESSAGE
+          : TUTORIAL_LEAVE_MESSAGE
         : '';
-  const showInteractionHint = !tutorialActive && !hasDialoguePanel;
-  const interactionHint = catActionsUnlocked
-    ? `Select an action to interact with ${customer.name}`
-    : `Serve ${customer.name}'s order to unlock cat actions`;
+  const showInteractionHint = storyCompleteLeaveOnly || (!tutorialActive && !hasDialoguePanel);
+  const interactionHint = storyCompleteLeaveOnly
+    ? `Leave to finish ${customer.name}'s visit`
+    : catActionsUnlocked
+      ? `Select an action to interact with ${customer.name}`
+      : `Serve ${customer.name}'s order to unlock cat actions`;
 
   function chatMenuButtonStyle(
     actionId: CatActionId,
@@ -14159,7 +15587,7 @@ function VisitScreen({
   ): CSSProperties {
     const item = safeChatMenuSettings.items[actionId];
     return {
-      backgroundImage: imageSrc ? `url("${imageSrc}")` : undefined,
+      backgroundImage: cssAssetUrl(imageSrc),
       backgroundPosition: `${item.imagePosition.x}% ${item.imagePosition.y}%`,
       backgroundSize: `${item.imageScale}% ${item.imageScale}%`,
       left: `${item.position.x}%`,
@@ -14183,7 +15611,7 @@ function VisitScreen({
 
   function visitChatMenuBackgroundStyle(): CSSProperties {
     return {
-      backgroundImage: `url("${safeChatMenuSettings.backgroundImageSrc}")`,
+      backgroundImage: cssAssetUrl(safeChatMenuSettings.backgroundImageSrc),
       width: `${44 * (safeChatMenuSettings.backgroundScale / 100)}%`,
       zIndex: safeChatMenuSettings.backgroundLayer,
     };
@@ -14248,6 +15676,20 @@ function VisitScreen({
     ? talkingPositionStyle('patience')
     : visitPositionStyle('patience');
   const serveMenuImage = chatMenuImage('serve', !canServeNext);
+  const meowCooldownLabel = actionCooldownLabel(meowCooldownRemaining, meowReady);
+  const purrCooldownLabel = actionCooldownLabel(purrCooldownRemaining, purrReady);
+  const listenCooldownLabel = actionCooldownLabel(quietCooldownRemaining, quietReady);
+  const cuteCooldownLabel = fullMoodCareUnlocked
+    ? actionCooldownLabel(cuteCooldownRemaining, cuteReady)
+    : 'Locked';
+  const rollCooldownLabel = fullMoodCareUnlocked
+    ? actionCooldownLabel(rollCooldownRemaining, rollReady)
+    : 'Locked';
+
+  function actionCooldownLabel(remainingMs: number, ready: boolean): string {
+    if (!catActionsUnlocked) return 'Serve first';
+    return ready ? 'Ready' : formatCooldown(remainingMs);
+  }
 
   function meowAction() {
     if (!canMeow) return;
@@ -14267,7 +15709,7 @@ function VisitScreen({
     <main className="visit-screen">
       <section className="visit-stage" aria-label={`Sitting with ${customer.name}`}>
         <div className="visit-backdrop" />
-        {tutorialMeowActive || tutorialLeaveActive ? (
+        {tutorialMeowActive || tutorialBaseLeaveActive ? (
           <div
             className="customer-story-bubble visit-floating-bubble tutorial-dialogue-bubble"
             style={bubbleStyle}
@@ -14282,7 +15724,7 @@ function VisitScreen({
               <strong>{customer.name}</strong>
             </div>
             <span className="story-bubble-line">
-              {tutorialLeaveActive ? tutorialThanksLine : tutorialLine}
+              {tutorialBaseLeaveActive ? tutorialThanksLine : tutorialLine}
             </span>
           </div>
         ) : showAfterHoursBubble ? (
@@ -14331,7 +15773,6 @@ function VisitScreen({
               <strong>{nextStoryTitle}</strong>
             </div>
             <span className="story-bubble-line">{storyBubbleText}</span>
-            {storyComplete ? <em className="story-bubble-finish">{storyClosingLine}</em> : null}
           </div>
         ) : null}
         {useTalkingImage ? (
@@ -14339,7 +15780,7 @@ function VisitScreen({
             className="customer-close customer-close-image"
             style={talkingPositionStyle('character', visitLayout.talking.characterScale / 100)}
           >
-            <img alt="" draggable={false} src={talkingImageSrc} />
+            <img alt="" draggable={false} src={resolveAssetSrc(talkingImageSrc)} />
           </div>
         ) : (
           <div className="customer-close" style={visitPositionStyle('character')}>
@@ -14371,11 +15812,15 @@ function VisitScreen({
         {!serviceServed ? (
           <div
             className="patience-strip visit-floating-patience"
-            aria-label={`${customer.name} patience`}
-            title={`${customer.name} patience`}
+            aria-label={`${customer.name} patience, ${patienceLabel} left`}
+            title={`${customer.name} patience, ${patienceLabel} left`}
             style={patienceStyle}
           >
-            <span style={{ width: `${clamp(patiencePercent, 0, 100)}%` }} />
+            <span
+              className="patience-strip-fill"
+              style={{ width: `${clamp(patiencePercent, 0, 100)}%` }}
+            />
+            <b className="patience-countdown">{patienceLabel}</b>
           </div>
         ) : null}
         <aside
@@ -14389,7 +15834,7 @@ function VisitScreen({
         </aside>
 
         <div
-          className={`visit-action-wheel ${tutorialLeaveActive ? 'tutorial-leave-mode' : ''} ${
+          className={`visit-action-wheel ${leaveOnlyMode ? 'tutorial-leave-mode' : ''} ${
             catMenuLockedForReply ? 'visit-action-wheel-locked' : ''
           }`}
           aria-label="Cat actions"
@@ -14419,12 +15864,14 @@ function VisitScreen({
           >
             {chatMenuImage('meow') ? null : <CatHeadIcon />}
             <strong>Meow</strong>
+            <small>{meowCooldownLabel}</small>
           </button>
           <button
             className={`visit-hex-button visit-hex-purr ${
               chatMenuImage('purr') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('purr')}`}
             disabled={
+              storyCompleteLeaveOnly ||
               catMenuLockedForReply ||
               !catActionsUnlocked ||
               (tutorialActive && !tutorialMoodActive) ||
@@ -14436,12 +15883,14 @@ function VisitScreen({
           >
             {chatMenuImage('purr') ? null : <PawIcon />}
             <strong>Purr</strong>
+            <small>{purrCooldownLabel}</small>
           </button>
           <button
             className={`visit-hex-button visit-hex-listen ${
               chatMenuImage('listen') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('listen')}`}
             disabled={
+              storyCompleteLeaveOnly ||
               catMenuLockedForReply ||
               !catActionsUnlocked ||
               (tutorialActive && !tutorialMoodActive) ||
@@ -14453,11 +15902,12 @@ function VisitScreen({
           >
             {chatMenuImage('listen') ? null : <CupIcon />}
             <strong>Listen</strong>
+            <small>{listenCooldownLabel}</small>
           </button>
           <button
             className={`visit-hex-button visit-hex-leave ${
               chatMenuImage('leave') ? 'visit-hex-custom-bg' : ''
-            } ${tutorialLeaveActive ? 'tutorial-leave-target tutorial-focus' : ''} ${chatMenuTextClass(
+            } ${leaveOnlyMode ? 'tutorial-leave-target tutorial-focus' : ''} ${chatMenuTextClass(
               'leave',
             )}`}
             onClick={onBack}
@@ -14476,12 +15926,14 @@ function VisitScreen({
           >
             {chatMenuImage('leave') ? null : <ShopIcon />}
             <strong>Leave</strong>
+            <small>{leaveOnlyMode ? 'Ready' : 'Back'}</small>
           </button>
           <button
             className={`visit-hex-button visit-hex-cute ${
               chatMenuImage('cute') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('cute')}`}
             disabled={
+              storyCompleteLeaveOnly ||
               catMenuLockedForReply ||
               !catActionsUnlocked ||
               (tutorialActive && !tutorialMoodActive) ||
@@ -14494,12 +15946,14 @@ function VisitScreen({
           >
             {chatMenuImage('cute') ? null : <StarIcon />}
             <strong>Be Cute</strong>
+            <small>{cuteCooldownLabel}</small>
           </button>
           <button
             className={`visit-hex-button visit-hex-roll ${
               chatMenuImage('roll') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('roll')}`}
             disabled={
+              storyCompleteLeaveOnly ||
               catMenuLockedForReply ||
               !catActionsUnlocked ||
               (tutorialActive && !tutorialMoodActive) ||
@@ -14512,12 +15966,15 @@ function VisitScreen({
           >
             {chatMenuImage('roll') ? null : <CatHeadIcon />}
             <strong>Roll</strong>
+            <small>{rollCooldownLabel}</small>
           </button>
           <button
             className={`visit-hex-button visit-hex-center ${
               canServeNext ? 'visit-hex-serve' : 'visit-hex-face'
             } ${serveMenuImage ? 'visit-hex-custom-bg' : ''} ${chatMenuTextClass('serve')}`}
-            disabled={catMenuLockedForReply || tutorialActive || !canServeNext}
+            disabled={
+              storyCompleteLeaveOnly || catMenuLockedForReply || tutorialActive || !canServeNext
+            }
             onClick={serveNextOrder}
             style={chatMenuButtonStyle('serve', serveMenuImage)}
             type="button"
@@ -14532,7 +15989,8 @@ function VisitScreen({
             ) : (
               <CatHeadIcon />
             )}
-            <strong>{nextUnservedService ? 'Serve' : ''}</strong>
+            <strong>{nextUnservedService ? 'Serve' : 'Served'}</strong>
+            <small>{nextUnservedService?.name ?? 'All set'}</small>
           </button>
         </div>
 
@@ -14552,15 +16010,6 @@ function VisitScreen({
                   key={tutorialCoachMessage}
                   imageSrc={tutorialCoachSrc}
                   message={tutorialCoachMessage}
-                />
-              </div>
-            ) : null}
-            {birthdayStoryTutorialActive ? (
-              <div className="tutorial-visit-panel">
-                <TutorialCoachCard
-                  key={BIRTHDAY_STORY_TUTORIAL_MESSAGE}
-                  imageSrc={tutorialCoachSrc}
-                  message={BIRTHDAY_STORY_TUTORIAL_MESSAGE}
                 />
               </div>
             ) : null}
@@ -14635,6 +16084,8 @@ function StoryScreen({
   chapterTotal,
   onCollect,
 }: StoryScreenProps) {
+  const storyImageSrc = story.imageSrc?.trim() ?? '';
+
   return (
     <main className="story-screen">
       <div className="soft-shop-bg" />
@@ -14644,8 +16095,12 @@ function StoryScreen({
           <h2>New Story</h2>
           <LeafIcon />
         </div>
-        <div className="story-portrait">
-          <AnimalAvatar customer={customer} size="portrait" />
+        <div className={`story-portrait ${storyImageSrc ? 'story-portrait-image' : ''}`}>
+          {storyImageSrc ? (
+            <img alt="" draggable={false} src={resolveAssetSrc(storyImageSrc)} />
+          ) : (
+            <AnimalAvatar customer={customer} size="portrait" />
+          )}
         </div>
         <span className="chapter-marker">
           Chapter {chapterNumber} of {chapterTotal}
@@ -14683,7 +16138,7 @@ function SummaryScreen({ game, shopQuality, shopRank, onEndDay }: SummaryScreenP
           <div>
             <dt>
               <StarIcon />
-              Shop Rank
+              Cafe Rank
             </dt>
             <dd className={rankUnderPressure ? 'summary-bad-value' : undefined}>
               {shopRank.name} {shopQuality}%
@@ -15128,7 +16583,11 @@ function GuestLogCard({ customer, game, nameUnlocked, onSelect }: GuestLogCardPr
           className="relationship-heart-row"
           aria-label={`Relationship ${relationshipScore}/100`}
         >
-          <img alt="" draggable={false} src={getRelationshipHeartSrc(relationshipScore)} />
+          <img
+            alt=""
+            draggable={false}
+            src={resolveAssetSrc(getRelationshipHeartSrc(relationshipScore))}
+          />
         </span>
       </span>
     </button>
@@ -15166,7 +16625,11 @@ function StoryEntry({ customer, game, nameUnlocked }: StoryEntryProps) {
           <span>Visits {stats.visits}</span>
           <span>Served {stats.served}</span>
           <span className="relationship-stat" aria-label={`Relationship ${stats.bond}/100`}>
-            <img alt="" draggable={false} src={getRelationshipHeartSrc(stats.bond)} />
+            <img
+              alt=""
+              draggable={false}
+              src={resolveAssetSrc(getRelationshipHeartSrc(stats.bond))}
+            />
             <strong>{stats.bond}/100</strong>
           </span>
           <span className={stats.missed > 0 ? 'missed' : ''}>Missed {stats.missed}</span>
@@ -15192,6 +16655,45 @@ function StoryEntry({ customer, game, nameUnlocked }: StoryEntryProps) {
         </span>
       </div>
     </article>
+  );
+}
+
+interface LoadingScreenProps {
+  adminReady: boolean;
+  catImageSrc: string;
+  poseLabel: string;
+  state: AssetPreloadState;
+}
+
+function LoadingScreen({ adminReady, catImageSrc, poseLabel, state }: LoadingScreenProps) {
+  const total = Math.max(1, state.total);
+  const loaded = clamp(state.loaded, 0, total);
+  const percent = adminReady ? Math.round((loaded / total) * 100) : 0;
+  const status = adminReady ? `Preloading assets ${loaded}/${total}` : 'Gathering cafe assets';
+
+  return (
+    <main className="loading-screen" aria-label="Loading Cat Cafe">
+      <section className="loading-card" aria-live="polite">
+        <div className="loading-cat-frame">
+          <CatSprite imageSrc={catImageSrc} resting={poseLabel === 'Idle'} />
+        </div>
+        <div className="loading-copy">
+          <p className="eyebrow">Cat Cafe</p>
+          <h1>Loading</h1>
+          <span className="loading-pose">{poseLabel}</span>
+          <div
+            className={`loading-meter ${adminReady && loaded <= 0 ? 'loading-meter-pending' : ''}`}
+            role="meter"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={percent}
+          >
+            <span style={{ width: `${percent}%` }} />
+          </div>
+          <strong>{status}</strong>
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -15222,7 +16724,7 @@ interface UiImageIconProps {
 }
 
 function UiImageIcon({ alt, src }: UiImageIconProps) {
-  return <img className="ui-image-icon" alt={alt} draggable={false} src={src} />;
+  return <img className="ui-image-icon" alt={alt} draggable={false} src={resolveAssetSrc(src)} />;
 }
 
 interface MeterProps {
@@ -15268,7 +16770,7 @@ function AnimalAvatar({ customer, size }: AnimalAvatarProps) {
             }`}
             key={member.id}
             draggable={false}
-            src={member.portraitImageSrc || member.imageSrc || ''}
+            src={resolveAssetSrc(member.portraitImageSrc || member.imageSrc || '')}
             style={
               {
                 '--bust-offset': `${customer.members.length === 1 ? 0 : index === 0 ? -18 : 18}%`,
@@ -15385,7 +16887,7 @@ function CatSprite({ imageSrc = '', resting = false }: CatSpriteProps) {
         alt="Shop cat"
         className={`cat-sprite cat-sprite-image ${resting ? 'cat-resting' : ''}`}
         draggable={false}
-        src={imageSrc}
+        src={resolveAssetSrc(imageSrc)}
       />
     );
   }
@@ -15503,7 +17005,7 @@ function ServiceIcon({ kind }: ServiceIconProps) {
       aria-hidden="true"
       className="service-icon-img"
       draggable={false}
-      src={service.imageSrc}
+      src={resolveAssetSrc(service.imageSrc)}
     />
   );
 }
@@ -15516,7 +17018,7 @@ interface MoodIconBubbleProps {
 function MoodIconBubble({ src = DEFAULT_MOOD_ICON_SRC, className = '' }: MoodIconBubbleProps) {
   return (
     <span className={`mood-icon-bubble ${className}`} aria-hidden="true">
-      <img alt="" draggable={false} src={src} />
+      <img alt="" draggable={false} src={resolveAssetSrc(src)} />
     </span>
   );
 }
