@@ -57,6 +57,7 @@ type AdminDragItem =
   | 'moodIcon';
 type AdminLayoutDragItem = Exclude<AdminDragItem, 'moodIcon'>;
 type AdminPreviewMode = 'shop' | 'talking' | 'settings';
+type AdminMobileSize = 'small' | 'medium' | 'large';
 type AdminCharacterManagerView = 'list' | 'detail';
 type AdminCharacterDetailTab = 'settings' | 'uploads' | 'portrait';
 type AdminSidePanelMode =
@@ -95,10 +96,78 @@ type OpeningSide = 'none' | 'left' | 'right';
 type CatActionId = 'meow' | 'purr' | 'listen' | 'leave' | 'cute' | 'roll' | 'serve';
 type CatPoseKey = 'idle' | CatActionId;
 
+const ADMIN_MOBILE_SIZE_OPTIONS = [
+  { id: 'small', label: 'Small', width: 667, height: 375 },
+  { id: 'medium', label: 'Medium', width: 844, height: 390 },
+  { id: 'large', label: 'Large', width: 932, height: 430 },
+] as const satisfies readonly {
+  id: AdminMobileSize;
+  label: string;
+  width: number;
+  height: number;
+}[];
+
 interface AdminPosition {
   x: number;
   y: number;
 }
+
+const ADMIN_TALKING_CHARACTER_BOUNDS = {
+  minX: -250,
+  maxX: 350,
+  minY: -180,
+  maxY: 320,
+} as const;
+
+const TALKING_BUBBLE_GUARDS = {
+  desktop: {
+    halfWidth: 15,
+    halfHeight: 8,
+    padding: 4,
+    safeMinX: 6,
+    safeMaxX: 44,
+    safeMinY: 18,
+    safeMaxY: 64,
+  },
+  small: {
+    halfWidth: 16,
+    halfHeight: 12,
+    padding: 4,
+    safeMinX: 6,
+    safeMaxX: 44,
+    safeMinY: 18,
+    safeMaxY: 66,
+  },
+  medium: {
+    halfWidth: 16,
+    halfHeight: 11,
+    padding: 4,
+    safeMinX: 6,
+    safeMaxX: 44,
+    safeMinY: 18,
+    safeMaxY: 66,
+  },
+  large: {
+    halfWidth: 16,
+    halfHeight: 10,
+    padding: 4,
+    safeMinX: 6,
+    safeMaxX: 44,
+    safeMinY: 18,
+    safeMaxY: 66,
+  },
+} as const satisfies Record<
+  AdminMobileSize | 'desktop',
+  {
+    halfWidth: number;
+    halfHeight: number;
+    padding: number;
+    safeMinX: number;
+    safeMaxX: number;
+    safeMinY: number;
+    safeMaxY: number;
+  }
+>;
 
 interface AdminSeatSpot {
   marker: AdminPosition;
@@ -111,8 +180,7 @@ interface AdminSeatSpot {
   drinkScale: number;
 }
 
-interface AdminLayout {
-  enabled: boolean;
+interface AdminLayoutVariant {
   character: AdminPosition;
   table: AdminPosition;
   drink: AdminPosition;
@@ -126,6 +194,11 @@ interface AdminLayout {
   talking: AdminTalkingLayout;
 }
 
+interface AdminLayout extends AdminLayoutVariant {
+  enabled: boolean;
+  mobile: Record<AdminMobileSize, AdminLayoutVariant>;
+}
+
 interface AdminTalkingLayout {
   character: AdminPosition;
   cat: AdminPosition;
@@ -133,6 +206,7 @@ interface AdminTalkingLayout {
   drink: AdminPosition;
   patience: AdminPosition;
   faceBlocker: AdminFaceBlocker;
+  safeZone: AdminFaceBlocker;
   characterScale: number;
   drinkScale: number;
   catScale: number;
@@ -193,6 +267,11 @@ interface AdminChatMenuItem {
   layer: number;
 }
 
+interface AdminChatMenuViewportSettings {
+  position: AdminPosition;
+  scale: number;
+}
+
 interface AdminChatMenuSettings {
   position: AdminPosition;
   scale: number;
@@ -200,6 +279,7 @@ interface AdminChatMenuSettings {
   backgroundScale: number;
   backgroundLayer: number;
   items: Record<CatActionId, AdminChatMenuItem>;
+  mobile: Record<AdminMobileSize, AdminChatMenuViewportSettings>;
 }
 
 type AdminCatSettings = Record<CatPoseKey, string>;
@@ -579,6 +659,7 @@ interface ShopRank {
 const SAVE_KEY = 'tea-shop-cat-save-v1';
 const SESSION_KEY = 'tea-shop-cat-session-v1';
 const SESSION_VERSION = 1;
+const PLATFORM_SAVE_RETRY_DELAY_MS = 15 * 60 * 1000;
 const ARRIVAL_DELAY_MS = 3600;
 const PATIENCE_TICK_MS = 250;
 const SHOP_CLOCK_TICK_MS = 250;
@@ -660,6 +741,8 @@ const RELATIONSHIP_HEART_SRC = {
   pink: '/icons/pink_heart.png',
   red: '/icons/red_heart.png',
 } as const;
+
+let platformSaveRetryPausedUntil = 0;
 type TableSlot = (typeof TABLE_SLOTS)[number];
 
 const DEFAULT_OPENING_LILA_PLACEMENT: AdminOpeningPlacement = { x: 22, y: 84, scale: 100 };
@@ -917,6 +1000,11 @@ const DEFAULT_CHAT_MENU_SETTINGS: AdminChatMenuSettings = {
     roll: defaultChatMenuItem(50, 84, 2),
     serve: defaultChatMenuItem(50, 50, 3, 84),
   },
+  mobile: {
+    small: { position: { x: 78, y: 50 }, scale: 100 },
+    medium: { position: { x: 78, y: 50 }, scale: 100 },
+    large: { position: { x: 78, y: 50 }, scale: 100 },
+  },
 };
 
 const DEFAULT_CAT_SETTINGS: AdminCatSettings = {
@@ -974,8 +1062,7 @@ const DEFAULT_ADMIN_SEAT_SPOTS: AdminSeatSpots = {
   },
 };
 
-const DEFAULT_ADMIN_LAYOUT: AdminLayout = {
-  enabled: true,
+const DEFAULT_ADMIN_LAYOUT_VARIANT: AdminLayoutVariant = {
   character: { x: 30, y: 58 },
   table: { x: 30, y: 76 },
   drink: { x: 30, y: 73 },
@@ -993,6 +1080,7 @@ const DEFAULT_ADMIN_LAYOUT: AdminLayout = {
     drink: { x: 39, y: 72 },
     patience: { x: 43, y: 79 },
     faceBlocker: { x: 52, y: 27, width: 18, height: 24 },
+    safeZone: { x: 24, y: 42, width: 36, height: 48 },
     characterScale: 100,
     drinkScale: 100,
     catScale: 82,
@@ -1000,6 +1088,16 @@ const DEFAULT_ADMIN_LAYOUT: AdminLayout = {
     imageSrc: '',
     enabledImageSrcs: [],
     hiddenImageSrcs: [],
+  },
+};
+
+const DEFAULT_ADMIN_LAYOUT: AdminLayout = {
+  enabled: true,
+  ...DEFAULT_ADMIN_LAYOUT_VARIANT,
+  mobile: {
+    small: DEFAULT_ADMIN_LAYOUT_VARIANT,
+    medium: DEFAULT_ADMIN_LAYOUT_VARIANT,
+    large: DEFAULT_ADMIN_LAYOUT_VARIANT,
   },
 };
 
@@ -1300,32 +1398,66 @@ function getDefaultPortraitSettings(characterId: CharacterId): CharacterPortrait
   };
 }
 
+function cloneAdminTalkingLayout(layout: AdminTalkingLayout): AdminTalkingLayout {
+  return {
+    ...layout,
+    character: { ...layout.character },
+    cat: { ...layout.cat },
+    bubble: { ...layout.bubble },
+    drink: { ...layout.drink },
+    patience: { ...layout.patience },
+    faceBlocker: { ...layout.faceBlocker },
+    safeZone: { ...layout.safeZone },
+    enabledImageSrcs: [...layout.enabledImageSrcs],
+    hiddenImageSrcs: [...layout.hiddenImageSrcs],
+  };
+}
+
+function cloneAdminLayoutVariant(layout: AdminLayoutVariant): AdminLayoutVariant {
+  return {
+    character: { ...layout.character },
+    table: { ...layout.table },
+    drink: { ...layout.drink },
+    cat: { ...layout.cat },
+    bubble: { ...layout.bubble },
+    order: { ...layout.order },
+    patience: { ...layout.patience },
+    characterScale: layout.characterScale,
+    drinkScale: layout.drinkScale,
+    catScale: layout.catScale,
+    talking: cloneAdminTalkingLayout(layout.talking),
+  };
+}
+
+function createAdminMobileLayoutVariants(
+  fallback: AdminLayoutVariant,
+): Record<AdminMobileSize, AdminLayoutVariant> {
+  return ADMIN_MOBILE_SIZE_OPTIONS.reduce(
+    (layouts, option) => ({
+      ...layouts,
+      [option.id]: cloneAdminLayoutVariant(fallback),
+    }),
+    {} as Record<AdminMobileSize, AdminLayoutVariant>,
+  );
+}
+
 function getDefaultAdminLayout(subjectId?: AdminSubjectId): AdminLayout {
   const imageSrc = getDefaultTalkingImageSrc(subjectId);
-  return {
-    ...DEFAULT_ADMIN_LAYOUT,
-    character: { ...DEFAULT_ADMIN_LAYOUT.character },
-    table: { ...DEFAULT_ADMIN_LAYOUT.table },
-    drink: { ...DEFAULT_ADMIN_LAYOUT.drink },
-    cat: { ...DEFAULT_ADMIN_LAYOUT.cat },
-    bubble: { ...DEFAULT_ADMIN_LAYOUT.bubble },
-    order: { ...DEFAULT_ADMIN_LAYOUT.order },
-    patience: { ...DEFAULT_ADMIN_LAYOUT.patience },
-    characterScale: DEFAULT_ADMIN_LAYOUT.characterScale,
-    drinkScale: DEFAULT_ADMIN_LAYOUT.drinkScale,
-    catScale: DEFAULT_ADMIN_LAYOUT.catScale,
+  const variant: AdminLayoutVariant = {
+    ...cloneAdminLayoutVariant(DEFAULT_ADMIN_LAYOUT_VARIANT),
     talking: {
-      ...DEFAULT_ADMIN_LAYOUT.talking,
-      character: { ...DEFAULT_ADMIN_LAYOUT.talking.character },
-      cat: { ...DEFAULT_ADMIN_LAYOUT.talking.cat },
-      bubble: { ...DEFAULT_ADMIN_LAYOUT.talking.bubble },
-      drink: { ...DEFAULT_ADMIN_LAYOUT.talking.drink },
-      patience: { ...DEFAULT_ADMIN_LAYOUT.talking.patience },
-      drinkScale: DEFAULT_ADMIN_LAYOUT.talking.drinkScale,
+      ...cloneAdminTalkingLayout(DEFAULT_ADMIN_LAYOUT_VARIANT.talking),
+      drinkScale: DEFAULT_ADMIN_LAYOUT_VARIANT.talking.drinkScale,
       defaultImageSrc: imageSrc,
       imageSrc,
       enabledImageSrcs: imageSrc ? [imageSrc] : [],
     },
+  };
+
+  return {
+    enabled: true,
+    ...variant,
+    mobile: createAdminMobileLayoutVariants(variant),
   };
 }
 
@@ -1339,6 +1471,21 @@ function normalizeAdminPosition(
   return {
     x: clamp(Math.floor(numericValue(parsed.x, fallback.x)), bounds.minX, bounds.maxX),
     y: clamp(Math.floor(numericValue(parsed.y, fallback.y)), bounds.minY, bounds.maxY),
+  };
+}
+
+function clampAdminTalkingCharacterPosition(position: AdminPosition): AdminPosition {
+  return {
+    x: clamp(
+      position.x,
+      ADMIN_TALKING_CHARACTER_BOUNDS.minX,
+      ADMIN_TALKING_CHARACTER_BOUNDS.maxX,
+    ),
+    y: clamp(
+      position.y,
+      ADMIN_TALKING_CHARACTER_BOUNDS.minY,
+      ADMIN_TALKING_CHARACTER_BOUNDS.maxY,
+    ),
   };
 }
 
@@ -1450,7 +1597,7 @@ function normalizeAdminSeatSpotLayouts(value: unknown): AdminSeatSpotLayouts {
 
 function loadAdminSeatSpotLayouts(): AdminSeatSpotLayouts {
   try {
-    const raw = window.localStorage.getItem(ADMIN_SEAT_SPOTS_KEY);
+    const raw = readBrowserStorage(ADMIN_SEAT_SPOTS_KEY);
     return normalizeAdminSeatSpotLayouts(raw ? JSON.parse(raw) : {});
   } catch {
     return normalizeAdminSeatSpotLayouts({});
@@ -1459,7 +1606,7 @@ function loadAdminSeatSpotLayouts(): AdminSeatSpotLayouts {
 
 function saveAdminSeatSpotLayouts(layouts: AdminSeatSpotLayouts) {
   try {
-    window.localStorage.setItem(
+    writeBrowserStorage(
       ADMIN_SEAT_SPOTS_KEY,
       JSON.stringify({
         ...layouts,
@@ -1511,11 +1658,23 @@ function normalizeAdminFaceBlocker(value: unknown, fallback: AdminFaceBlocker): 
   };
 }
 
+function normalizeAdminSafeZone(value: unknown, fallback: AdminFaceBlocker): AdminFaceBlocker {
+  const parsed =
+    value != null && typeof value === 'object' ? (value as Partial<AdminFaceBlocker>) : {};
+  return {
+    x: clamp(numericValue(parsed.x, fallback.x), -20, 120),
+    y: clamp(numericValue(parsed.y, fallback.y), -20, 120),
+    width: clamp(numericValue(parsed.width, fallback.width), 12, 92),
+    height: clamp(numericValue(parsed.height, fallback.height), 12, 92),
+  };
+}
+
 function normalizeAdminTalkingLayout(
   value: unknown,
   subjectId?: AdminSubjectId,
+  fallbackOverride?: AdminTalkingLayout,
 ): AdminTalkingLayout {
-  const fallback = getDefaultAdminLayout(subjectId).talking;
+  const fallback = fallbackOverride ?? getDefaultAdminLayout(subjectId).talking;
   const parsed =
     value != null && typeof value === 'object' ? (value as Partial<AdminTalkingLayout>) : {};
   const poseSrcs = subjectId ? getCharacterTalkingPoses(subjectId).map((pose) => pose.src) : [];
@@ -1557,17 +1716,13 @@ function normalizeAdminTalkingLayout(
   );
 
   return {
-    character: normalizeAdminPosition(parsed.character, fallback.character, {
-      minX: -40,
-      maxX: 140,
-      minY: -30,
-      maxY: 165,
-    }),
+    character: normalizeAdminPosition(parsed.character, fallback.character, ADMIN_TALKING_CHARACTER_BOUNDS),
     cat: normalizeAdminPosition(parsed.cat, fallback.cat),
     bubble: normalizeAdminPosition(parsed.bubble, fallback.bubble),
     drink: normalizeAdminPosition(parsed.drink, fallback.drink),
     patience: normalizeAdminPosition(parsed.patience, fallback.patience),
     faceBlocker: normalizeAdminFaceBlocker(parsed.faceBlocker, fallback.faceBlocker),
+    safeZone: normalizeAdminSafeZone(parsed.safeZone, fallback.safeZone),
     characterScale: clamp(
       Math.floor(numericValue(parsed.characterScale, fallback.characterScale)),
       45,
@@ -1582,11 +1737,15 @@ function normalizeAdminTalkingLayout(
   };
 }
 
-function normalizeAdminLayout(value: unknown, subjectId?: AdminSubjectId): AdminLayout {
-  const fallback = getDefaultAdminLayout(subjectId);
-  const parsed = value != null && typeof value === 'object' ? (value as Partial<AdminLayout>) : {};
+function normalizeAdminLayoutVariant(
+  value: unknown,
+  fallback: AdminLayoutVariant,
+  subjectId?: AdminSubjectId,
+): AdminLayoutVariant {
+  const parsed =
+    value != null && typeof value === 'object' ? (value as Partial<AdminLayoutVariant>) : {};
+
   return {
-    enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : fallback.enabled,
     character: normalizeAdminPosition(parsed.character, fallback.character),
     table: normalizeAdminPosition(parsed.table, fallback.table),
     drink: normalizeAdminPosition(parsed.drink, fallback.drink),
@@ -1601,8 +1760,307 @@ function normalizeAdminLayout(value: unknown, subjectId?: AdminSubjectId): Admin
     ),
     drinkScale: clamp(Math.floor(numericValue(parsed.drinkScale, fallback.drinkScale)), 45, 250),
     catScale: clamp(Math.floor(numericValue(parsed.catScale, fallback.catScale)), 45, 250),
-    talking: normalizeAdminTalkingLayout(parsed.talking, subjectId),
+    talking: normalizeAdminTalkingLayout(parsed.talking, subjectId, fallback.talking),
   };
+}
+
+function normalizeAdminMobileLayouts(
+  value: unknown,
+  fallback: AdminLayoutVariant,
+  subjectId?: AdminSubjectId,
+): Record<AdminMobileSize, AdminLayoutVariant> {
+  const parsed =
+    value != null && typeof value === 'object'
+      ? (value as Partial<Record<AdminMobileSize, AdminLayoutVariant>>)
+      : {};
+
+  return ADMIN_MOBILE_SIZE_OPTIONS.reduce(
+    (layouts, option) => ({
+      ...layouts,
+      [option.id]: normalizeAdminLayoutVariant(parsed[option.id], fallback, subjectId),
+    }),
+    {} as Record<AdminMobileSize, AdminLayoutVariant>,
+  );
+}
+
+function normalizeAdminLayout(value: unknown, subjectId?: AdminSubjectId): AdminLayout {
+  const fallback = getDefaultAdminLayout(subjectId);
+  const parsed = value != null && typeof value === 'object' ? (value as Partial<AdminLayout>) : {};
+  const desktop = normalizeAdminLayoutVariant(parsed, fallback, subjectId);
+
+  return {
+    enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : fallback.enabled,
+    ...desktop,
+    mobile: normalizeAdminMobileLayouts(parsed.mobile, desktop, subjectId),
+  };
+}
+
+function getAdminLayoutVariant(
+  layout: AdminLayout,
+  mobileSize: AdminMobileSize | null,
+): AdminLayoutVariant {
+  return mobileSize ? layout.mobile[mobileSize] : layout;
+}
+
+function mergeAdminLayoutVariant(layout: AdminLayout, variant: AdminLayoutVariant): AdminLayout {
+  return {
+    ...layout,
+    ...cloneAdminLayoutVariant(variant),
+    enabled: layout.enabled,
+    mobile: layout.mobile,
+  };
+}
+
+function getRuntimeAdminMobileSize(): AdminMobileSize | null {
+  if (typeof window === 'undefined') return null;
+  const isLandscapeMobile = window.matchMedia(
+    '(orientation: landscape) and (max-height: 560px)',
+  ).matches;
+  if (!isLandscapeMobile) return null;
+
+  const width = Math.max(window.innerWidth, window.innerHeight);
+  if (width <= 700) return 'small';
+  if (width <= 860) return 'medium';
+  return 'large';
+}
+
+function talkingBubbleRect(position: AdminPosition, mobileSize: AdminMobileSize | null) {
+  const guard = TALKING_BUBBLE_GUARDS[mobileSize ?? 'desktop'];
+  return {
+    left: position.x - guard.halfWidth,
+    right: position.x + guard.halfWidth,
+    top: position.y - guard.halfHeight,
+    bottom: position.y + guard.halfHeight,
+  };
+}
+
+function faceBlockerRect(blocker: AdminFaceBlocker) {
+  return {
+    left: blocker.x - blocker.width / 2,
+    right: blocker.x + blocker.width / 2,
+    top: blocker.y - blocker.height / 2,
+    bottom: blocker.y + blocker.height / 2,
+  };
+}
+
+function rectsOverlap(
+  first: ReturnType<typeof talkingBubbleRect>,
+  second: ReturnType<typeof faceBlockerRect>,
+): boolean {
+  return (
+    first.left < second.right &&
+    first.right > second.left &&
+    first.top < second.bottom &&
+    first.bottom > second.top
+  );
+}
+
+function overlapArea(
+  first: ReturnType<typeof talkingBubbleRect>,
+  second: ReturnType<typeof faceBlockerRect>,
+): number {
+  const width = Math.max(0, Math.min(first.right, second.right) - Math.max(first.left, second.left));
+  const height = Math.max(
+    0,
+    Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top),
+  );
+  return width * height;
+}
+
+function rectInsideRect(
+  first: ReturnType<typeof talkingBubbleRect>,
+  second: ReturnType<typeof talkingBubbleSafeZoneRect>,
+): boolean {
+  return (
+    first.left >= second.left &&
+    first.right <= second.right &&
+    first.top >= second.top &&
+    first.bottom <= second.bottom
+  );
+}
+
+function rectOutsideAmount(
+  first: ReturnType<typeof talkingBubbleRect>,
+  second: ReturnType<typeof talkingBubbleSafeZoneRect>,
+): number {
+  return (
+    Math.max(0, second.left - first.left) +
+    Math.max(0, first.right - second.right) +
+    Math.max(0, second.top - first.top) +
+    Math.max(0, first.bottom - second.bottom)
+  );
+}
+
+function talkingBubbleSafeZoneRect(layout: AdminTalkingLayout) {
+  const safeZone = normalizeAdminSafeZone(layout.safeZone, DEFAULT_ADMIN_LAYOUT.talking.safeZone);
+  const left = safeZone.x - safeZone.width / 2;
+  const right = safeZone.x + safeZone.width / 2;
+  const top = safeZone.y - safeZone.height / 2;
+  const bottom = safeZone.y + safeZone.height / 2;
+
+  return {
+    left,
+    right,
+    top,
+    bottom,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
+function talkingSafeZoneStyle(layout: AdminTalkingLayout): CSSProperties {
+  const zone = talkingBubbleSafeZoneRect(layout);
+  return {
+    left: `${zone.left}%`,
+    top: `${zone.top}%`,
+    width: `${zone.width}%`,
+    height: `${zone.height}%`,
+  };
+}
+
+function getProtectedTalkingBubblePosition(
+  layout: AdminTalkingLayout,
+  mobileSize: AdminMobileSize | null,
+): AdminPosition {
+  const guard = TALKING_BUBBLE_GUARDS[mobileSize ?? 'desktop'];
+  const preferred = normalizeAdminPosition(layout.bubble, DEFAULT_ADMIN_LAYOUT.talking.bubble);
+  const blocker = normalizeAdminFaceBlocker(
+    layout.faceBlocker,
+    DEFAULT_ADMIN_LAYOUT.talking.faceBlocker,
+  );
+  const blockerRect = faceBlockerRect(blocker);
+
+  const minX = guard.halfWidth + guard.padding;
+  const maxX = 100 - guard.halfWidth - guard.padding;
+  const minY = guard.halfHeight + guard.padding;
+  const maxY = 100 - guard.halfHeight - guard.padding;
+  const safeZone = talkingBubbleSafeZoneRect(layout);
+  const safeLeftMin = Math.max(safeZone.left + guard.halfWidth, minX);
+  const safeLeftMax = Math.min(safeZone.right - guard.halfWidth, maxX);
+  const safeTop = Math.max(safeZone.top + guard.halfHeight, minY);
+  const safeBottom = Math.min(safeZone.bottom - guard.halfHeight, maxY);
+  const safeCenterX =
+    safeLeftMax >= safeLeftMin
+      ? clamp(preferred.x, safeLeftMin, safeLeftMax)
+      : clamp(safeZone.right - guard.halfWidth, minX, maxX);
+  const safeCenterY =
+    safeBottom >= safeTop
+      ? clamp(preferred.y, safeTop, safeBottom)
+      : clamp((safeZone.top + safeZone.bottom) / 2, minY, maxY);
+  const preferredRect = talkingBubbleRect(preferred, mobileSize);
+
+  if (!rectsOverlap(preferredRect, blockerRect) && rectInsideRect(preferredRect, safeZone)) {
+    return preferred;
+  }
+
+  const safeLeftCandidates =
+    safeLeftMax >= safeLeftMin || safeBottom >= safeTop
+      ? [
+          {
+            x: safeCenterX,
+            y: safeCenterY,
+          },
+          {
+            x:
+              safeLeftMax >= safeLeftMin
+                ? clamp((safeLeftMin + safeLeftMax) / 2, safeLeftMin, safeLeftMax)
+                : safeCenterX,
+            y: safeCenterY,
+          },
+          {
+            x:
+              safeLeftMax >= safeLeftMin
+                ? clamp((safeLeftMin + safeLeftMax) / 2, safeLeftMin, safeLeftMax)
+                : safeCenterX,
+            y:
+              safeBottom >= safeTop
+                ? clamp(blockerRect.bottom + guard.padding + guard.halfHeight, safeTop, safeBottom)
+                : safeCenterY,
+          },
+          {
+            x: safeCenterX,
+            y:
+              safeBottom >= safeTop
+                ? clamp(blockerRect.top - guard.padding - guard.halfHeight, safeTop, safeBottom)
+                : safeCenterY,
+          },
+        ]
+      : [{ x: safeCenterX, y: safeCenterY }];
+  const clearSafeLeftCandidate = safeLeftCandidates.find(
+    (candidate) => {
+      const rect = talkingBubbleRect(candidate, mobileSize);
+      return !rectsOverlap(rect, blockerRect) && rectInsideRect(rect, safeZone);
+    },
+  );
+
+  if (clearSafeLeftCandidate) {
+    return clearSafeLeftCandidate;
+  }
+
+  const centerY = clamp(
+    preferred.y,
+    minY,
+    maxY,
+  );
+  const centerX = clamp(
+    preferred.x,
+    minX,
+    maxX,
+  );
+  const candidates = [
+    ...safeLeftCandidates,
+    {
+      x: clamp(
+        blockerRect.left - guard.padding - guard.halfWidth,
+        minX,
+        maxX,
+      ),
+      y: centerY,
+    },
+    {
+      x: clamp(
+        blockerRect.right + guard.padding + guard.halfWidth,
+        minX,
+        maxX,
+      ),
+      y: centerY,
+    },
+    {
+      x: centerX,
+      y: clamp(
+        blockerRect.top - guard.padding - guard.halfHeight,
+        minY,
+        maxY,
+      ),
+    },
+    {
+      x: centerX,
+      y: clamp(
+        blockerRect.bottom + guard.padding + guard.halfHeight,
+        minY,
+        maxY,
+      ),
+    },
+  ];
+
+  const [bestCandidate] = candidates
+    .map((candidate) => ({
+      candidate,
+      overlap: overlapArea(talkingBubbleRect(candidate, mobileSize), blockerRect),
+      outside: rectOutsideAmount(talkingBubbleRect(candidate, mobileSize), safeZone),
+      distance: Math.abs(candidate.x - preferred.x) + Math.abs(candidate.y - preferred.y),
+      rightPenalty: candidate.x > blockerRect.right ? 18 : 0,
+      leftPreference: candidate.x < blockerRect.left ? -5 : 0,
+    }))
+    .sort(
+      (a, b) =>
+        a.overlap - b.overlap ||
+        a.outside - b.outside ||
+        a.distance + a.rightPenalty + a.leftPreference -
+          (b.distance + b.rightPenalty + b.leftPreference),
+    );
+
+  return bestCandidate?.candidate ?? preferred;
 }
 
 function normalizeAdminLayouts(value: unknown): AdminLayouts {
@@ -1616,7 +2074,7 @@ function normalizeAdminLayouts(value: unknown): AdminLayouts {
 
 function loadAdminLayouts(): AdminLayouts {
   try {
-    const raw = window.localStorage.getItem(ADMIN_LAYOUT_KEY);
+    const raw = readBrowserStorage(ADMIN_LAYOUT_KEY);
     return normalizeAdminLayouts(raw ? JSON.parse(raw) : {});
   } catch {
     return {};
@@ -1625,7 +2083,7 @@ function loadAdminLayouts(): AdminLayouts {
 
 function saveAdminLayouts(layouts: AdminLayouts) {
   try {
-    window.localStorage.setItem(ADMIN_LAYOUT_KEY, JSON.stringify(layouts));
+    writeBrowserStorage(ADMIN_LAYOUT_KEY, JSON.stringify(layouts));
   } catch {
     // Admin staging layouts are local-only; the editor still works without storage.
   }
@@ -1727,7 +2185,7 @@ function normalizeAdminCharacterSettings(value: unknown): AdminCharacterSettings
 
 function loadAdminCharacterSettings(): AdminCharacterSettings {
   try {
-    const raw = window.localStorage.getItem(ADMIN_CHARACTER_SETTINGS_KEY);
+    const raw = readBrowserStorage(ADMIN_CHARACTER_SETTINGS_KEY);
     return normalizeAdminCharacterSettings(raw ? JSON.parse(raw) : {});
   } catch {
     return normalizeAdminCharacterSettings({});
@@ -1736,7 +2194,7 @@ function loadAdminCharacterSettings(): AdminCharacterSettings {
 
 function saveAdminCharacterSettings(settings: AdminCharacterSettings) {
   try {
-    window.localStorage.setItem(ADMIN_CHARACTER_SETTINGS_KEY, JSON.stringify(settings));
+    writeBrowserStorage(ADMIN_CHARACTER_SETTINGS_KEY, JSON.stringify(settings));
   } catch {
     // Character tuning is local-only; defaults are still available without storage.
   }
@@ -2127,7 +2585,7 @@ function normalizeAdminChats(value: unknown): AdminChats {
 
 function loadAdminChats(): AdminChats {
   try {
-    const raw = window.localStorage.getItem(ADMIN_CHATS_KEY);
+    const raw = readBrowserStorage(ADMIN_CHATS_KEY);
     return normalizeAdminChats(raw ? JSON.parse(raw) : {});
   } catch {
     return normalizeAdminChats({});
@@ -2136,7 +2594,7 @@ function loadAdminChats(): AdminChats {
 
 function saveAdminChats(chats: AdminChats) {
   try {
-    window.localStorage.setItem(
+    writeBrowserStorage(
       ADMIN_CHATS_KEY,
       JSON.stringify({
         ...chats,
@@ -2542,7 +3000,7 @@ function normalizeAdminMoodIcons(value: unknown): AdminMoodIcon[] {
 
 function loadAdminMoodIcons(): AdminMoodIcon[] {
   try {
-    const raw = window.localStorage.getItem(ADMIN_MOOD_ICONS_KEY);
+    const raw = readBrowserStorage(ADMIN_MOOD_ICONS_KEY);
     return normalizeAdminMoodIcons(raw ? JSON.parse(raw) : DEFAULT_ADMIN_MOOD_ICONS);
   } catch {
     return DEFAULT_ADMIN_MOOD_ICONS;
@@ -2551,7 +3009,7 @@ function loadAdminMoodIcons(): AdminMoodIcon[] {
 
 function saveAdminMoodIcons(icons: AdminMoodIcon[]) {
   try {
-    window.localStorage.setItem(
+    writeBrowserStorage(
       ADMIN_MOOD_ICONS_KEY,
       JSON.stringify(normalizeAdminMoodIcons(icons)),
     );
@@ -2586,6 +3044,42 @@ function normalizeAdminChatMenuItem(
   };
 }
 
+function normalizeAdminChatMenuViewportSettings(
+  value: unknown,
+  fallback: AdminChatMenuViewportSettings,
+): AdminChatMenuViewportSettings {
+  const parsed =
+    value != null && typeof value === 'object'
+      ? (value as Partial<AdminChatMenuViewportSettings>)
+      : {};
+  return {
+    position: normalizeAdminPosition(parsed.position, fallback.position, {
+      minX: -30,
+      maxX: 130,
+      minY: -30,
+      maxY: 130,
+    }),
+    scale: clamp(Math.floor(numericValue(parsed.scale, fallback.scale)), 40, 220),
+  };
+}
+
+function normalizeAdminChatMenuMobileSettings(
+  value: unknown,
+  fallback: AdminChatMenuViewportSettings,
+): Record<AdminMobileSize, AdminChatMenuViewportSettings> {
+  const parsed =
+    value != null && typeof value === 'object'
+      ? (value as Partial<Record<AdminMobileSize, AdminChatMenuViewportSettings>>)
+      : {};
+  return ADMIN_MOBILE_SIZE_OPTIONS.reduce(
+    (settings, option) => ({
+      ...settings,
+      [option.id]: normalizeAdminChatMenuViewportSettings(parsed[option.id], fallback),
+    }),
+    {} as Record<AdminMobileSize, AdminChatMenuViewportSettings>,
+  );
+}
+
 function normalizeAdminChatMenuSettings(value: unknown): AdminChatMenuSettings {
   const parsed =
     value != null && typeof value === 'object' ? (value as Partial<AdminChatMenuSettings>) : {};
@@ -2593,10 +3087,11 @@ function normalizeAdminChatMenuSettings(value: unknown): AdminChatMenuSettings {
     parsed.items != null && typeof parsed.items === 'object'
       ? (parsed.items as Partial<Record<CatActionId, unknown>>)
       : {};
+  const baseViewport = normalizeAdminChatMenuViewportSettings(parsed, DEFAULT_CHAT_MENU_SETTINGS);
 
   return {
-    position: normalizeAdminPosition(parsed.position, DEFAULT_CHAT_MENU_SETTINGS.position),
-    scale: clamp(Math.floor(numericValue(parsed.scale, DEFAULT_CHAT_MENU_SETTINGS.scale)), 50, 220),
+    position: baseViewport.position,
+    scale: baseViewport.scale,
     backgroundImageSrc:
       typeof parsed.backgroundImageSrc === 'string' ? parsed.backgroundImageSrc : '',
     backgroundScale: clamp(
@@ -2619,12 +3114,26 @@ function normalizeAdminChatMenuSettings(value: unknown): AdminChatMenuSettings {
       },
       {} as Record<CatActionId, AdminChatMenuItem>,
     ),
+    mobile: normalizeAdminChatMenuMobileSettings(parsed.mobile, baseViewport),
+  };
+}
+
+function getAdminChatMenuSettingsForViewport(
+  settings: AdminChatMenuSettings,
+  mobileSize: AdminMobileSize | null,
+): AdminChatMenuSettings {
+  const normalized = normalizeAdminChatMenuSettings(settings);
+  if (!mobileSize) return normalized;
+  return {
+    ...normalized,
+    position: normalized.mobile[mobileSize].position,
+    scale: normalized.mobile[mobileSize].scale,
   };
 }
 
 function loadAdminChatMenuSettings(): AdminChatMenuSettings {
   try {
-    const raw = window.localStorage.getItem(ADMIN_CHAT_MENU_KEY);
+    const raw = readBrowserStorage(ADMIN_CHAT_MENU_KEY);
     return normalizeAdminChatMenuSettings(raw ? JSON.parse(raw) : DEFAULT_CHAT_MENU_SETTINGS);
   } catch {
     return DEFAULT_CHAT_MENU_SETTINGS;
@@ -2633,7 +3142,7 @@ function loadAdminChatMenuSettings(): AdminChatMenuSettings {
 
 function saveAdminChatMenuSettings(settings: AdminChatMenuSettings) {
   try {
-    window.localStorage.setItem(
+    writeBrowserStorage(
       ADMIN_CHAT_MENU_KEY,
       JSON.stringify(normalizeAdminChatMenuSettings(settings)),
     );
@@ -2656,7 +3165,7 @@ function normalizeAdminCatSettings(value: unknown): AdminCatSettings {
 
 function loadAdminCatSettings(): AdminCatSettings {
   try {
-    const raw = window.localStorage.getItem(ADMIN_CAT_SETTINGS_KEY);
+    const raw = readBrowserStorage(ADMIN_CAT_SETTINGS_KEY);
     return normalizeAdminCatSettings(raw ? JSON.parse(raw) : DEFAULT_CAT_SETTINGS);
   } catch {
     return DEFAULT_CAT_SETTINGS;
@@ -2665,7 +3174,7 @@ function loadAdminCatSettings(): AdminCatSettings {
 
 function saveAdminCatSettings(settings: AdminCatSettings) {
   try {
-    window.localStorage.setItem(
+    writeBrowserStorage(
       ADMIN_CAT_SETTINGS_KEY,
       JSON.stringify(normalizeAdminCatSettings(settings)),
     );
@@ -2968,7 +3477,7 @@ function normalizeOpeningSettings(value: unknown): AdminOpeningSettings {
 
 function loadOpeningSettings(): AdminOpeningSettings {
   try {
-    const raw = window.localStorage.getItem(ADMIN_OPENING_KEY);
+    const raw = readBrowserStorage(ADMIN_OPENING_KEY);
     return normalizeOpeningSettings(raw ? JSON.parse(raw) : DEFAULT_OPENING_SETTINGS);
   } catch {
     return DEFAULT_OPENING_SETTINGS;
@@ -2977,11 +3486,10 @@ function loadOpeningSettings(): AdminOpeningSettings {
 
 function saveOpeningSettings(settings: AdminOpeningSettings): boolean {
   try {
-    window.localStorage.setItem(
+    return writeBrowserStorage(
       ADMIN_OPENING_KEY,
       JSON.stringify(normalizeOpeningSettings(settings)),
     );
-    return true;
   } catch {
     // Opening authoring is local-only; defaults keep the intro playable.
     return false;
@@ -3154,7 +3662,9 @@ function isAdminSubjectId(value: string): value is AdminSubjectId {
 
 function getCustomerAdminLayout(customer: Customer, layouts: AdminLayouts): AdminLayout {
   const subjectId = getCustomerAdminSubjectId(customer);
-  return subjectId ? normalizeAdminLayout(layouts[subjectId], subjectId) : getDefaultAdminLayout();
+  const layout = subjectId ? normalizeAdminLayout(layouts[subjectId], subjectId) : getDefaultAdminLayout();
+  const mobileSize = getRuntimeAdminMobileSize();
+  return mobileSize ? mergeAdminLayoutVariant(layout, layout.mobile[mobileSize]) : layout;
 }
 
 function getCustomerAdminSubjectId(customer: Customer): AdminSubjectId | null {
@@ -3980,7 +4490,8 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function loadMusicVolume(): number {
-  const savedVolume = Number(window.localStorage.getItem(MUSIC_VOLUME_KEY));
+  const raw = readBrowserStorage(MUSIC_VOLUME_KEY);
+  const savedVolume = raw == null ? Number.NaN : Number(raw);
   return Number.isFinite(savedVolume)
     ? clamp(Math.round(savedVolume), 0, 100)
     : DEFAULT_MUSIC_VOLUME;
@@ -5251,6 +5762,49 @@ function isLocalAdminMode(): boolean {
   return localHosts.has(window.location.hostname);
 }
 
+function canUseLocalBrowserStorage(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (import.meta.env.DEV) return true;
+  const localHosts = new Set(['localhost', '127.0.0.1', '::1']);
+  return localHosts.has(window.location.hostname);
+}
+
+function readBrowserStorage(key: string): string | null {
+  if (!canUseLocalBrowserStorage()) return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeBrowserStorage(key: string, value: string): boolean {
+  if (!canUseLocalBrowserStorage()) return false;
+  try {
+    window.localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function removeBrowserStorage(key: string): boolean {
+  if (!canUseLocalBrowserStorage()) return false;
+  try {
+    window.localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function shouldUsePlatformCloudSave(): boolean {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('cloudSave') === '1') return true;
+  return canUseLocalBrowserStorage();
+}
+
 function normalizeGame(value: unknown, fallback = DEFAULT_GAME): GameState {
   const parsed = value != null && typeof value === 'object' ? (value as Partial<GameState>) : {};
   const stories = stringList(parsed.stories);
@@ -5316,7 +5870,7 @@ function normalizeGame(value: unknown, fallback = DEFAULT_GAME): GameState {
 
 function loadGame(): GameState {
   try {
-    const raw = window.localStorage.getItem(SAVE_KEY);
+    const raw = readBrowserStorage(SAVE_KEY);
     if (!raw) return DEFAULT_GAME;
     const parsed = JSON.parse(raw);
     const migrationFallback =
@@ -5329,6 +5883,18 @@ function loadGame(): GameState {
   } catch {
     return DEFAULT_GAME;
   }
+}
+
+function shouldAttemptPlatformSave(): boolean {
+  return platformSaveRetryPausedUntil <= Date.now();
+}
+
+function pausePlatformSaveRetries() {
+  platformSaveRetryPausedUntil = Date.now() + PLATFORM_SAVE_RETRY_DELAY_MS;
+}
+
+function clearPlatformSaveRetryPause() {
+  platformSaveRetryPausedUntil = 0;
 }
 
 function gameSaveData(game: GameState): Record<string, unknown> {
@@ -5497,7 +6063,7 @@ function loadSession(savedGame: GameState): InitialAppState {
   try {
     if (!savedGame.setupComplete) return defaultInitialState(savedGame);
     if (!savedGame.openingComplete) return defaultInitialState(savedGame);
-    const raw = window.localStorage.getItem(SESSION_KEY);
+    const raw = readBrowserStorage(SESSION_KEY);
     if (!raw) return defaultInitialState(savedGame);
 
     const parsed = JSON.parse(raw) as Partial<SessionSnapshot>;
@@ -5870,12 +6436,15 @@ function TeaShopCat() {
   );
   const [tutorialOpenPopup, setTutorialOpenPopup] = useState(initialState.tutorialOpenPopup);
   const [musicMuted, setMusicMuted] = useState(
-    () => window.localStorage.getItem(MUSIC_MUTED_KEY) === 'true',
+    () => readBrowserStorage(MUSIC_MUTED_KEY) === 'true',
   );
   const [musicVolume, setMusicVolume] = useState(loadMusicVolume);
   const [musicUnlocked, setMusicUnlocked] = useState(false);
   const [saveWarning, setSaveWarning] = useState('');
+  const [debugBlockersVisible, setDebugBlockersVisible] = useState(false);
+  const [platformSaveEnabled] = useState(shouldUsePlatformCloudSave);
   const [platformSaveReady, setPlatformSaveReady] = useState(false);
+  const [platformSaveAvailable, setPlatformSaveAvailable] = useState(() => platformSaveEnabled);
   const [adminAssetsReady, setAdminAssetsReady] = useState(false);
   const [assetPreloadReady, setAssetPreloadReady] = useState(false);
   const [assetPreloadState, setAssetPreloadState] = useState<AssetPreloadState>({
@@ -5931,21 +6500,13 @@ function TeaShopCat() {
 
   function updateMusicMuted(nextMuted: boolean) {
     setMusicMuted(nextMuted);
-    try {
-      window.localStorage.setItem(MUSIC_MUTED_KEY, String(nextMuted));
-    } catch {
-      // Music mute is a local preference; ignore storage failures in preview.
-    }
+    writeBrowserStorage(MUSIC_MUTED_KEY, String(nextMuted));
   }
 
   function updateMusicVolume(nextVolume: number) {
     const safeVolume = clamp(Math.round(nextVolume), 0, 100);
     setMusicVolume(safeVolume);
-    try {
-      window.localStorage.setItem(MUSIC_VOLUME_KEY, String(safeVolume));
-    } catch {
-      // Music volume is a local preference; ignore storage failures in preview.
-    }
+    writeBrowserStorage(MUSIC_VOLUME_KEY, String(safeVolume));
   }
 
   function scheduleAdminLargeSave(key: string, value: unknown) {
@@ -6378,6 +6939,22 @@ function TeaShopCat() {
   useEffect(() => {
     let cancelled = false;
 
+    if (!platformSaveEnabled) {
+      setPlatformSaveReady(true);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!shouldAttemptPlatformSave()) {
+      setPlatformSaveAvailable(false);
+      setPlatformSaveReady(true);
+      setSaveWarning('Cloud save unavailable. Progress is saved on this device.');
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void loadPlatformSave()
       .then((save) => {
         if (cancelled) return;
@@ -6385,11 +6962,15 @@ function TeaShopCat() {
         if (savedGame && !initialState.restoredSession) {
           hydrateSavedGame(savedGame);
         }
+        clearPlatformSaveRetryPause();
+        setPlatformSaveAvailable(true);
         setSaveWarning('');
         setPlatformSaveReady(true);
       })
       .catch((error) => {
         if (cancelled) return;
+        pausePlatformSaveRetries();
+        setPlatformSaveAvailable(false);
         setSaveWarning('Cloud save unavailable. Progress is saved on this device.');
         setPlatformSaveReady(true);
         console.warn('Cat Cafe cloud save load failed', error);
@@ -6398,16 +6979,12 @@ function TeaShopCat() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [platformSaveEnabled]);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(SAVE_KEY, JSON.stringify(game));
-    } catch {
-      // Local saves are a convenience in browser preview; the game still runs without them.
-    }
+    writeBrowserStorage(SAVE_KEY, JSON.stringify(game));
 
-    if (!platformSaveReady) return undefined;
+    if (!platformSaveEnabled || !platformSaveReady || !platformSaveAvailable) return undefined;
     if (platformSaveTimerRef.current != null) window.clearTimeout(platformSaveTimerRef.current);
 
     platformSaveTimerRef.current = window.setTimeout(() => {
@@ -6419,6 +6996,8 @@ function TeaShopCat() {
       })
         .then(() => setSaveWarning(''))
         .catch((error) => {
+          pausePlatformSaveRetries();
+          setPlatformSaveAvailable(false);
           setSaveWarning('Cloud save unavailable. Progress is saved on this device.');
           console.warn('Cat Cafe cloud save failed', error);
         });
@@ -6430,7 +7009,7 @@ function TeaShopCat() {
         platformSaveTimerRef.current = null;
       }
     };
-  }, [game, platformSaveReady]);
+  }, [game, platformSaveAvailable, platformSaveEnabled, platformSaveReady]);
 
   useEffect(() => {
     persistSessionSnapshot();
@@ -6846,18 +7425,14 @@ function TeaShopCat() {
   function persistSessionSnapshot() {
     try {
       const snapshot = createSessionSnapshot();
-      if (snapshot) window.localStorage.setItem(SESSION_KEY, JSON.stringify(snapshot));
+      if (snapshot) writeBrowserStorage(SESSION_KEY, JSON.stringify(snapshot));
     } catch {
       // Local session restore is a browser convenience; storage can be unavailable in preview.
     }
   }
 
   function clearSessionSnapshot() {
-    try {
-      window.localStorage.removeItem(SESSION_KEY);
-    } catch {
-      // Local session restore is a browser convenience; storage can be unavailable in preview.
-    }
+    removeBrowserStorage(SESSION_KEY);
   }
 
   function hydrateSavedGame(nextGame: GameState) {
@@ -8194,17 +8769,20 @@ function TeaShopCat() {
       window.clearTimeout(platformSaveTimerRef.current);
       platformSaveTimerRef.current = null;
     }
-    try {
-      window.localStorage.removeItem(SAVE_KEY);
-    } catch {
-      // Local saves are a browser-preview convenience; reset still works without them.
+    removeBrowserStorage(SAVE_KEY);
+    if (platformSaveEnabled && platformSaveAvailable) {
+      void clearPlatformSave()
+        .then(() => {
+          clearPlatformSaveRetryPause();
+          setSaveWarning('');
+        })
+        .catch((error) => {
+          pausePlatformSaveRetries();
+          setPlatformSaveAvailable(false);
+          setSaveWarning('Cloud save unavailable. Progress is saved on this device.');
+          console.warn('Cat Cafe cloud save reset failed', error);
+        });
     }
-    void clearPlatformSave()
-      .then(() => setSaveWarning(''))
-      .catch((error) => {
-        setSaveWarning('Cloud save unavailable. Progress is saved on this device.');
-        console.warn('Cat Cafe cloud save reset failed', error);
-      });
     const resetTableCount = getTableCount(DEFAULT_GAME);
     const resetSeats = createSeatSlots(DEFAULT_GAME.customerSlot, resetTableCount, DEFAULT_GAME);
     nextCustomerSlotRef.current = DEFAULT_GAME.customerSlot + resetTableCount;
@@ -8243,17 +8821,39 @@ function TeaShopCat() {
     characterId: AdminSubjectId,
     item: AdminLayoutDragItem,
     position: AdminPosition,
+    mobileSize: AdminMobileSize | null = null,
   ) {
-    setAdminLayouts((prev) => ({
-      ...prev,
-      [characterId]: {
-        ...normalizeAdminLayout(prev[characterId], characterId),
-        [item]: {
-          x: clamp(position.x, 0, 100),
-          y: clamp(position.y, 0, 100),
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      const nextPosition = {
+        x: clamp(position.x, 0, 100),
+        y: clamp(position.y, 0, 100),
+      };
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                [item]: nextPosition,
+              },
+            },
+          },
+        };
+      }
+
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          [item]: nextPosition,
         },
-      },
-    }));
+      };
+    });
     setAdminSaveMessage('');
   }
 
@@ -8373,37 +8973,110 @@ function TeaShopCat() {
     setAdminSaveMessage('');
   }
 
-  function resetAdminLayout(characterId: AdminSubjectId) {
-    setAdminLayouts((prev) => ({
-      ...prev,
-      [characterId]: {
-        ...normalizeAdminLayout(prev[characterId], characterId),
-        ...getDefaultAdminLayout(characterId),
-        talking: normalizeAdminLayout(prev[characterId], characterId).talking,
-      },
-    }));
+  function resetAdminLayout(characterId: AdminSubjectId, mobileSize: AdminMobileSize | null = null) {
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      const defaultLayout = getDefaultAdminLayout(characterId);
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        const defaultMobileLayout = defaultLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...defaultMobileLayout,
+                talking: currentMobileLayout.talking,
+              },
+            },
+          },
+        };
+      }
+
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          ...defaultLayout,
+          talking: currentLayout.talking,
+          mobile: currentLayout.mobile,
+        },
+      };
+    });
     setAdminSaveMessage('');
   }
 
-  function updateAdminCatScale(characterId: AdminSubjectId, scale: number) {
-    setAdminLayouts((prev) => ({
-      ...prev,
-      [characterId]: {
-        ...normalizeAdminLayout(prev[characterId], characterId),
-        catScale: clamp(Math.floor(scale), 45, 250),
-      },
-    }));
+  function updateAdminCatScale(
+    characterId: AdminSubjectId,
+    scale: number,
+    mobileSize: AdminMobileSize | null = null,
+  ) {
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      const nextScale = clamp(Math.floor(scale), 45, 250);
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                catScale: nextScale,
+              },
+            },
+          },
+        };
+      }
+
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          catScale: nextScale,
+        },
+      };
+    });
     setAdminSaveMessage('');
   }
 
-  function updateAdminCharacterScale(characterId: AdminSubjectId, scale: number) {
-    setAdminLayouts((prev) => ({
-      ...prev,
-      [characterId]: {
-        ...normalizeAdminLayout(prev[characterId], characterId),
-        characterScale: clamp(Math.floor(scale), 45, 250),
-      },
-    }));
+  function updateAdminCharacterScale(
+    characterId: AdminSubjectId,
+    scale: number,
+    mobileSize: AdminMobileSize | null = null,
+  ) {
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      const nextScale = clamp(Math.floor(scale), 45, 250);
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                characterScale: nextScale,
+              },
+            },
+          },
+        };
+      }
+
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          characterScale: nextScale,
+        },
+      };
+    });
     setAdminSaveMessage('');
   }
 
@@ -8411,19 +9084,44 @@ function TeaShopCat() {
     characterId: AdminSubjectId,
     item: 'character' | 'cat' | 'bubble' | 'drink' | 'patience',
     position: AdminPosition,
+    mobileSize: AdminMobileSize | null = null,
   ) {
     setAdminLayouts((prev) => {
       const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      const nextPosition =
+        item === 'character'
+          ? clampAdminTalkingCharacterPosition(position)
+          : {
+              x: clamp(position.x, 0, 100),
+              y: clamp(position.y, 0, 100),
+            };
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                talking: {
+                  ...currentMobileLayout.talking,
+                  [item]: nextPosition,
+                },
+              },
+            },
+          },
+        };
+      }
+
       return {
         ...prev,
         [characterId]: {
           ...currentLayout,
           talking: {
             ...currentLayout.talking,
-            [item]: {
-              x: item === 'character' ? clamp(position.x, -40, 140) : clamp(position.x, 0, 100),
-              y: item === 'character' ? clamp(position.y, -30, 165) : clamp(position.y, 0, 100),
-            },
+            [item]: nextPosition,
           },
         },
       };
@@ -8434,9 +9132,33 @@ function TeaShopCat() {
   function updateAdminTalkingFaceBlocker(
     characterId: AdminSubjectId,
     faceBlocker: AdminFaceBlocker,
+    mobileSize: AdminMobileSize | null = null,
   ) {
     setAdminLayouts((prev) => {
       const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                talking: {
+                  ...currentMobileLayout.talking,
+                  faceBlocker: normalizeAdminFaceBlocker(
+                    faceBlocker,
+                    currentMobileLayout.talking.faceBlocker,
+                  ),
+                },
+              },
+            },
+          },
+        };
+      }
+
       return {
         ...prev,
         [characterId]: {
@@ -8454,14 +9176,76 @@ function TeaShopCat() {
     setAdminSaveMessage('');
   }
 
-  function resetAdminTalkingLayout(characterId: AdminSubjectId) {
+  function updateAdminTalkingSafeZone(
+    characterId: AdminSubjectId,
+    safeZone: AdminFaceBlocker,
+    mobileSize: AdminMobileSize | null = null,
+  ) {
     setAdminLayouts((prev) => {
       const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                talking: {
+                  ...currentMobileLayout.talking,
+                  safeZone: normalizeAdminSafeZone(safeZone, currentMobileLayout.talking.safeZone),
+                },
+              },
+            },
+          },
+        };
+      }
+
       return {
         ...prev,
         [characterId]: {
           ...currentLayout,
-          talking: getDefaultAdminLayout(characterId).talking,
+          talking: {
+            ...currentLayout.talking,
+            safeZone: normalizeAdminSafeZone(safeZone, currentLayout.talking.safeZone),
+          },
+        },
+      };
+    });
+    setAdminSaveMessage('');
+  }
+
+  function resetAdminTalkingLayout(
+    characterId: AdminSubjectId,
+    mobileSize: AdminMobileSize | null = null,
+  ) {
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      const defaultLayout = getDefaultAdminLayout(characterId);
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                talking: defaultLayout.mobile[mobileSize].talking,
+              },
+            },
+          },
+        };
+      }
+
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          talking: defaultLayout.talking,
         },
       };
     });
@@ -8472,16 +9256,38 @@ function TeaShopCat() {
     characterId: AdminSubjectId,
     scaleKind: 'characterScale' | 'catScale' | 'drinkScale',
     scale: number,
+    mobileSize: AdminMobileSize | null = null,
   ) {
     setAdminLayouts((prev) => {
       const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      const nextScale = clamp(Math.floor(scale), scaleKind === 'catScale' ? 35 : 45, 250);
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                talking: {
+                  ...currentMobileLayout.talking,
+                  [scaleKind]: nextScale,
+                },
+              },
+            },
+          },
+        };
+      }
+
       return {
         ...prev,
         [characterId]: {
           ...currentLayout,
           talking: {
             ...currentLayout.talking,
-            [scaleKind]: clamp(Math.floor(scale), scaleKind === 'catScale' ? 35 : 45, 250),
+            [scaleKind]: nextScale,
           },
         },
       };
@@ -8778,6 +9584,7 @@ function TeaShopCat() {
             tutorialStep={tutorialStep}
             musicMuted={musicMuted}
             musicVolume={musicVolume}
+            debugBlockersVisible={debugBlockersVisible}
             onMusicMutedChange={updateMusicMuted}
             onMusicVolumeChange={updateMusicVolume}
             onReset={resetSave}
@@ -8786,6 +9593,7 @@ function TeaShopCat() {
             onUpgrades={() => setScene('upgrades')}
             onMenu={() => setScene('menu')}
             onPause={pauseGame}
+            onToggleDebugBlockers={() => setDebugBlockersVisible((visible) => !visible)}
           />
         ) : null}
 
@@ -8917,6 +9725,7 @@ function TeaShopCat() {
             onTutorialMeow={advanceTutorialMeow}
             onBack={leaveVisit}
             shopDayEnded={shopDayEnded}
+            debugBlockersVisible={debugBlockersVisible}
           />
         ) : null}
 
@@ -9015,6 +9824,7 @@ function TeaShopCat() {
             onTalkingImageDelete={deleteAdminTalkingImage}
             onTalkingImagesAdd={addAdminTalkingImages}
             onTalkingFaceBlockerChange={updateAdminTalkingFaceBlocker}
+            onTalkingSafeZoneChange={updateAdminTalkingSafeZone}
             onTalkingLayoutChange={updateAdminTalkingLayout}
             onTalkingScaleChange={updateAdminTalkingScale}
           />
@@ -9048,6 +9858,7 @@ interface TopBarProps {
   tutorialStep: TutorialStep;
   musicMuted: boolean;
   musicVolume: number;
+  debugBlockersVisible: boolean;
   onMusicMutedChange: (muted: boolean) => void;
   onMusicVolumeChange: (volume: number) => void;
   onReset: () => void;
@@ -9056,6 +9867,28 @@ interface TopBarProps {
   onUpgrades: () => void;
   onMenu: () => void;
   onPause: () => void;
+  onToggleDebugBlockers: () => void;
+}
+
+function BugIcon() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path
+        d="M10 12h12l2 5v5a8 8 0 0 1-16 0v-5l2-5Z"
+        fill="#f2dfbf"
+        stroke="#6b432e"
+        strokeLinejoin="round"
+        strokeWidth="2.3"
+      />
+      <path
+        d="M11 12 8 7M21 12l3-5M8 17H4M24 17h4M8 22H4M24 22h4M16 13v15M12 20h8"
+        fill="none"
+        stroke="#6b432e"
+        strokeLinecap="round"
+        strokeWidth="2.3"
+      />
+    </svg>
+  );
 }
 
 function TopBar({
@@ -9066,6 +9899,7 @@ function TopBar({
   tutorialStep,
   musicMuted,
   musicVolume,
+  debugBlockersVisible,
   onMusicMutedChange,
   onMusicVolumeChange,
   onReset,
@@ -9074,6 +9908,7 @@ function TopBar({
   onUpgrades,
   onMenu,
   onPause,
+  onToggleDebugBlockers,
 }: TopBarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const tutorialClockActive = tutorialStep === 'clock';
@@ -9131,6 +9966,13 @@ function TopBar({
             />
           ) : null}
         </div>
+        <IconButton
+          className={debugBlockersVisible ? 'debug-button active' : 'debug-button'}
+          label={debugBlockersVisible ? 'Hide blocker debug' : 'Show blocker debug'}
+          onClick={onToggleDebugBlockers}
+        >
+          <BugIcon />
+        </IconButton>
       </nav>
     </header>
   );
@@ -10195,17 +11037,29 @@ interface AdminScreenProps {
   onAdminMoodIconsChange: (icons: AdminMoodIcon[]) => void;
   onOpeningSettingsChange: (settings: AdminOpeningSettings) => void;
   onBack: () => void;
-  onCatScaleChange: (characterId: AdminSubjectId, scale: number) => void;
-  onCharacterScaleChange: (characterId: AdminSubjectId, scale: number) => void;
+  onCatScaleChange: (
+    characterId: AdminSubjectId,
+    scale: number,
+    mobileSize?: AdminMobileSize | null,
+  ) => void;
+  onCharacterScaleChange: (
+    characterId: AdminSubjectId,
+    scale: number,
+    mobileSize?: AdminMobileSize | null,
+  ) => void;
   onCharacterSettingsChange: (characterId: CharacterId, settings: CharacterAdminSettings) => void;
   onLayoutChange: (
     characterId: AdminSubjectId,
     item: AdminLayoutDragItem,
     position: AdminPosition,
+    mobileSize?: AdminMobileSize | null,
   ) => void;
-  onResetLayout: (characterId: AdminSubjectId) => void;
+  onResetLayout: (characterId: AdminSubjectId, mobileSize?: AdminMobileSize | null) => void;
   onResetSeatSpots: (ownerId: AdminSeatSpotOwnerId) => void;
-  onResetTalkingLayout: (characterId: AdminSubjectId) => void;
+  onResetTalkingLayout: (
+    characterId: AdminSubjectId,
+    mobileSize?: AdminMobileSize | null,
+  ) => void;
   onSave: () => void;
   onSeatSpotAnchorChange: (
     ownerId: AdminSeatSpotOwnerId,
@@ -10224,16 +11078,24 @@ interface AdminScreenProps {
   onTalkingFaceBlockerChange: (
     characterId: AdminSubjectId,
     faceBlocker: AdminFaceBlocker,
+    mobileSize?: AdminMobileSize | null,
+  ) => void;
+  onTalkingSafeZoneChange: (
+    characterId: AdminSubjectId,
+    safeZone: AdminFaceBlocker,
+    mobileSize?: AdminMobileSize | null,
   ) => void;
   onTalkingLayoutChange: (
     characterId: AdminSubjectId,
     item: 'character' | 'cat' | 'bubble' | 'drink' | 'patience',
     position: AdminPosition,
+    mobileSize?: AdminMobileSize | null,
   ) => void;
   onTalkingScaleChange: (
     characterId: AdminSubjectId,
     scaleKind: 'characterScale' | 'catScale' | 'drinkScale',
     scale: number,
+    mobileSize?: AdminMobileSize | null,
   ) => void;
 }
 
@@ -10273,6 +11135,7 @@ function AdminScreen({
   onTalkingImageDelete,
   onTalkingImagesAdd,
   onTalkingFaceBlockerChange,
+  onTalkingSafeZoneChange,
   onTalkingLayoutChange,
   onTalkingScaleChange,
 }: AdminScreenProps) {
@@ -10292,11 +11155,15 @@ function AdminScreen({
   const dragChatBlockIdRef = useRef('');
   const dragFaceBlockerRef = useRef(false);
   const dragFaceBlockerOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
+  const dragSafeZoneRef = useRef(false);
+  const dragSafeZoneOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const [sidePanelMode, setSidePanelMode] = useState<AdminSidePanelMode>('inspector');
   const [sidePanelCollapsed, setSidePanelCollapsed] = useState(false);
   const [mobilePreview, setMobilePreview] = useState(false);
+  const [mobilePreviewSize, setMobilePreviewSize] = useState<AdminMobileSize>('medium');
   const [previewMode, setPreviewMode] = useState<AdminPreviewMode>('shop');
   const [showChatFaceBlocker, setShowChatFaceBlocker] = useState(false);
+  const [showChatSafeZone, setShowChatSafeZone] = useState(false);
   const [characterManagerView, setCharacterManagerView] =
     useState<AdminCharacterManagerView>('list');
   const [characterDetailTab, setCharacterDetailTab] = useState<AdminCharacterDetailTab>('settings');
@@ -10325,11 +11192,19 @@ function AdminScreen({
     characterSettings[selectedPrimaryCharacterId] ??
       defaultCharacterAdminSettings(selectedCharacter),
   );
-  const selectedLayout = normalizeAdminLayout(layouts[selectedCharacterId], selectedCharacterId);
+  const selectedBaseLayout = normalizeAdminLayout(layouts[selectedCharacterId], selectedCharacterId);
+  const activeMobileSize = mobilePreview ? mobilePreviewSize : null;
+  const selectedLayout = getAdminLayoutVariant(selectedBaseLayout, activeMobileSize);
   const selectedTalkingLayout = selectedLayout.talking;
+  const safeAdminChatMenuSettings = normalizeAdminChatMenuSettings(adminChatMenuSettings);
+  const activeChatMenuSettings = getAdminChatMenuSettingsForViewport(
+    safeAdminChatMenuSettings,
+    activeMobileSize,
+  );
   const chatFaceBlocker = selectedTalkingLayout.faceBlocker;
+  const chatSafeZone = selectedTalkingLayout.safeZone;
   const selectedSubjectEnabled = selectedSubjectIsParty
-    ? selectedLayout.enabled
+    ? selectedBaseLayout.enabled
     : selectedSettings.enabled;
   const talkingPoses = useMemo<CharacterPose[]>(() => {
     const hiddenSrcs = new Set(selectedTalkingLayout.hiddenImageSrcs);
@@ -10388,9 +11263,10 @@ function AdminScreen({
             defaultCharacterAdminSettings(CHARACTER_PROFILES[onionPrimaryCharacterId]),
         ).portrait
       : null;
-  const onionLayout = activeOnionCharacterId
+  const onionBaseLayout = activeOnionCharacterId
     ? normalizeAdminLayout(layouts[activeOnionCharacterId], activeOnionCharacterId)
     : null;
+  const onionLayout = onionBaseLayout ? getAdminLayoutVariant(onionBaseLayout, activeMobileSize) : null;
   const onionSeatSpots =
     activeOnionCharacterId != null
       ? getAdminSeatSpots(seatSpotLayouts, activeOnionCharacterId)
@@ -10733,7 +11609,7 @@ function AdminScreen({
   }
 
   function storeCharacterStyle(
-    layout: AdminLayout = selectedLayout,
+    layout: AdminLayoutVariant = selectedLayout,
     spot: AdminSeatSpot = selectedSeatSpot,
   ): CSSProperties {
     return {
@@ -10805,7 +11681,10 @@ function AdminScreen({
     item: 'character' | 'cat' | 'bubble' | 'drink' | 'patience',
     layout: AdminTalkingLayout = selectedTalkingLayout,
   ): CSSProperties {
-    const position = layout[item] ?? DEFAULT_ADMIN_LAYOUT.talking[item];
+    const position =
+      item === 'bubble'
+        ? getProtectedTalkingBubblePosition(layout, activeMobileSize)
+        : layout[item] ?? DEFAULT_ADMIN_LAYOUT.talking[item];
     return {
       bottom: 'auto',
       left: `${position.x}%`,
@@ -10942,13 +11821,16 @@ function AdminScreen({
     const rect = stage.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
 
-    return clampAdminStagePosition(
-      {
-        x: ((event.clientX - rect.left) / rect.width) * 100,
-        y: ((event.clientY - rect.top) / rect.height) * 100,
-      },
-      item,
-    );
+    const position = {
+      x: ((event.clientX - rect.left) / rect.width) * 100,
+      y: ((event.clientY - rect.top) / rect.height) * 100,
+    };
+
+    if (previewMode === 'talking' && item === 'character') {
+      return clampAdminTalkingCharacterPosition(position);
+    }
+
+    return clampAdminStagePosition(position, item);
   }
 
   function getStagePercent(event: ReactPointerEvent<HTMLElement>): AdminPosition | null {
@@ -10971,7 +11853,18 @@ function AdminScreen({
       },
       selectedTalkingLayout.faceBlocker,
     );
-    onTalkingFaceBlockerChange(selectedCharacterId, nextFaceBlocker);
+    onTalkingFaceBlockerChange(selectedCharacterId, nextFaceBlocker, activeMobileSize);
+  }
+
+  function updateChatSafeZone(patch: Partial<AdminFaceBlocker>) {
+    const nextSafeZone = normalizeAdminSafeZone(
+      {
+        ...selectedTalkingLayout.safeZone,
+        ...patch,
+      },
+      selectedTalkingLayout.safeZone,
+    );
+    onTalkingSafeZoneChange(selectedCharacterId, nextSafeZone, activeMobileSize);
   }
 
   function beginChatFaceBlockerDrag(event: ReactPointerEvent<HTMLElement>) {
@@ -10986,18 +11879,33 @@ function AdminScreen({
     };
   }
 
+  function beginChatSafeZoneDrag(event: ReactPointerEvent<HTMLElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const position = getStagePercent(event);
+    if (!position) return;
+    dragSafeZoneRef.current = true;
+    dragSafeZoneOffsetRef.current = {
+      x: position.x - chatSafeZone.x,
+      y: position.y - chatSafeZone.y,
+    };
+  }
+
   function offsetStagePosition(
     position: AdminPosition,
     offset: AdminPosition,
     item: AdminDragItem,
   ): AdminPosition {
-    return clampAdminStagePosition(
-      {
-        x: position.x - offset.x,
-        y: position.y - offset.y,
-      },
-      item,
-    );
+    const nextPosition = {
+      x: position.x - offset.x,
+      y: position.y - offset.y,
+    };
+
+    if (previewMode === 'talking' && item === 'character') {
+      return clampAdminTalkingCharacterPosition(nextPosition);
+    }
+
+    return clampAdminStagePosition(nextPosition, item);
   }
 
   function currentDragPosition(item: AdminLayoutDragItem): AdminPosition {
@@ -11009,7 +11917,9 @@ function AdminScreen({
         item === 'drink' ||
         item === 'patience')
     ) {
-      return selectedTalkingLayout[item];
+      return item === 'bubble'
+        ? getProtectedTalkingBubblePosition(selectedTalkingLayout, activeMobileSize)
+        : selectedTalkingLayout[item];
     }
 
     return selectedLayout[item] ?? DEFAULT_ADMIN_LAYOUT[item];
@@ -11031,6 +11941,16 @@ function AdminScreen({
   }
 
   function moveDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if (dragSafeZoneRef.current) {
+      const position = getStagePercent(event);
+      if (!position) return;
+      updateChatSafeZone({
+        x: position.x - dragSafeZoneOffsetRef.current.x,
+        y: position.y - dragSafeZoneOffsetRef.current.y,
+      });
+      return;
+    }
+
     if (dragFaceBlockerRef.current) {
       const position = getStagePercent(event);
       if (!position) return;
@@ -11069,10 +11989,10 @@ function AdminScreen({
         dragItem === 'drink' ||
         dragItem === 'patience')
     ) {
-      onTalkingLayoutChange(selectedCharacterId, dragItem, nextPosition);
+      onTalkingLayoutChange(selectedCharacterId, dragItem, nextPosition, activeMobileSize);
       return;
     }
-    onLayoutChange(selectedCharacterId, dragItem, nextPosition);
+    onLayoutChange(selectedCharacterId, dragItem, nextPosition, activeMobileSize);
   }
 
   function stopDrag() {
@@ -11084,6 +12004,8 @@ function AdminScreen({
     dragSeatOffsetRef.current = { x: 0, y: 0 };
     dragFaceBlockerRef.current = false;
     dragFaceBlockerOffsetRef.current = { x: 0, y: 0 };
+    dragSafeZoneRef.current = false;
+    dragSafeZoneOffsetRef.current = { x: 0, y: 0 };
   }
 
   function beginSeatSpotDrag(
@@ -11635,6 +12557,52 @@ function AdminScreen({
     });
   }
 
+  function updateActiveChatMenuViewportPatch(patch: Partial<AdminChatMenuViewportSettings>) {
+    const normalized = normalizeAdminChatMenuSettings(adminChatMenuSettings);
+    const currentViewport = activeMobileSize
+      ? normalized.mobile[activeMobileSize]
+      : { position: normalized.position, scale: normalized.scale };
+    const nextViewport = normalizeAdminChatMenuViewportSettings(
+      {
+        ...currentViewport,
+        ...patch,
+      },
+      currentViewport,
+    );
+
+    if (activeMobileSize) {
+      updateChatMenuSettings({
+        ...normalized,
+        mobile: {
+          ...normalized.mobile,
+          [activeMobileSize]: nextViewport,
+        },
+      });
+      return;
+    }
+
+    updateChatMenuSettings({
+      ...normalized,
+      ...nextViewport,
+    });
+  }
+
+  function updateTalkingPosition(
+    item: 'character' | 'bubble',
+    axis: keyof AdminPosition,
+    value: number,
+  ) {
+    onTalkingLayoutChange(
+      selectedCharacterId,
+      item,
+      {
+        ...selectedTalkingLayout[item],
+        [axis]: value,
+      },
+      activeMobileSize,
+    );
+  }
+
   function updateChatMenuItem(actionId: CatActionId, patch: Partial<AdminChatMenuItem>) {
     updateChatMenuPatch({
       items: {
@@ -11817,12 +12785,13 @@ function AdminScreen({
     openSidePanel('characters');
   }
 
-  function toggleMobilePreview() {
-    const nextMobilePreview = !mobilePreview;
+  function selectAdminViewport(nextMobileSize: AdminMobileSize | null) {
+    const nextMobilePreview = nextMobileSize != null;
     setMobilePreview(nextMobilePreview);
-    if (nextMobilePreview) {
+    if (nextMobileSize) {
+      setMobilePreviewSize(nextMobileSize);
       setSidePanelMode('inspector');
-      setSidePanelCollapsed(true);
+      setSidePanelCollapsed(false);
     }
   }
 
@@ -11891,7 +12860,7 @@ function AdminScreen({
     <main
       className={`admin-screen admin-side-${sidePanelMode} ${
         sidePanelCollapsed ? 'admin-panel-collapsed' : ''
-      } ${mobilePreview ? 'admin-mobile-preview' : ''} ${
+      } ${mobilePreview ? `admin-mobile-preview admin-mobile-size-${mobilePreviewSize}` : ''} ${
         openingMode ? 'admin-opening-mode' : ''
       } ${charactersMode ? 'admin-character-browser-mode' : ''} ${
         fullWorkbenchMode ? 'admin-full-workbench-mode' : ''
@@ -11933,18 +12902,31 @@ function AdminScreen({
             <button
               className="paper-button"
               type="button"
-              onClick={() => onResetTalkingLayout(selectedCharacterId)}
+              onClick={() => onResetTalkingLayout(selectedCharacterId, activeMobileSize)}
             >
               Reset Talking
             </button>
           ) : null}
-          <button
-            className={`paper-button ${mobilePreview ? 'active' : ''}`}
-            type="button"
-            onClick={toggleMobilePreview}
-          >
-            {mobilePreview ? 'Desktop View' : 'Mobile View'}
-          </button>
+          <div className="admin-mobile-size-control" aria-label="Preview viewport" role="group">
+            <button
+              className={!mobilePreview ? 'active' : ''}
+              type="button"
+              onClick={() => selectAdminViewport(null)}
+            >
+              Desktop
+            </button>
+            {ADMIN_MOBILE_SIZE_OPTIONS.map((option) => (
+              <button
+                className={mobilePreview && mobilePreviewSize === option.id ? 'active' : ''}
+                key={option.id}
+                type="button"
+                onClick={() => selectAdminViewport(option.id)}
+                title={`${option.width} x ${option.height}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
           {!openingMode ? (
             <>
               {!fullWorkbenchMode ? (
@@ -13392,18 +14374,20 @@ function AdminScreen({
                   type="range"
                   value={selectedTalkingLayout.catScale}
                   onInput={(event) =>
-                    onTalkingScaleChange(
-                      selectedCharacterId,
-                      'catScale',
-                      Number(event.currentTarget.value),
-                    )
+                      onTalkingScaleChange(
+                        selectedCharacterId,
+                        'catScale',
+                        Number(event.currentTarget.value),
+                        activeMobileSize,
+                      )
                   }
                   onChange={(event) =>
-                    onTalkingScaleChange(
-                      selectedCharacterId,
-                      'catScale',
-                      Number(event.currentTarget.value),
-                    )
+                      onTalkingScaleChange(
+                        selectedCharacterId,
+                        'catScale',
+                        Number(event.currentTarget.value),
+                        activeMobileSize,
+                      )
                   }
                 />
                 <small>{selectedTalkingLayout.catScale}%</small>
@@ -14061,6 +15045,17 @@ function AdminScreen({
                     <span>Keep Clear</span>
                   </button>
                 ) : null}
+                {showChatSafeZone ? (
+                  <button
+                    aria-label="Move talking safe chat zone"
+                    className="admin-face-blocker admin-chat-safe-zone"
+                    onPointerDown={beginChatSafeZoneDrag}
+                    style={openingBlockerStyle(chatSafeZone)}
+                    type="button"
+                  >
+                    <span>Safe Chat</span>
+                  </button>
+                ) : null}
                 <button
                   aria-label="Move talking view drink"
                   className="admin-draggable admin-drink-prop admin-talking-drink-prop"
@@ -14086,6 +15081,7 @@ function AdminScreen({
                         selectedCharacterId,
                         'drinkScale',
                         Number(event.currentTarget.value),
+                        activeMobileSize,
                       )
                     }
                     onChange={(event) =>
@@ -14093,6 +15089,7 @@ function AdminScreen({
                         selectedCharacterId,
                         'drinkScale',
                         Number(event.target.value),
+                        activeMobileSize,
                       )
                     }
                   />
@@ -14194,7 +15191,7 @@ function AdminScreen({
                 <div
                   className="visit-action-wheel admin-reference-action-wheel"
                   aria-label="Cat action menu reference"
-                  style={chatMenuWheelStyle(adminChatMenuSettings)}
+                  style={chatMenuWheelStyle(activeChatMenuSettings)}
                 >
                   {adminChatMenuSettings.backgroundImageSrc ? (
                     <span className="visit-action-menu-bg" style={chatMenuBackgroundStyle()} />
@@ -14445,10 +15442,15 @@ function AdminScreen({
                         onCharacterScaleChange(
                           selectedCharacterId,
                           Number(event.currentTarget.value),
+                          activeMobileSize,
                         )
                       }
                       onChange={(event) =>
-                        onCharacterScaleChange(selectedCharacterId, Number(event.target.value))
+                        onCharacterScaleChange(
+                          selectedCharacterId,
+                          Number(event.target.value),
+                          activeMobileSize,
+                        )
                       }
                     />
                     <small>{selectedLayout.characterScale}%</small>
@@ -14461,10 +15463,18 @@ function AdminScreen({
                       type="range"
                       value={selectedLayout.catScale}
                       onInput={(event) =>
-                        onCatScaleChange(selectedCharacterId, Number(event.currentTarget.value))
+                        onCatScaleChange(
+                          selectedCharacterId,
+                          Number(event.currentTarget.value),
+                          activeMobileSize,
+                        )
                       }
                       onChange={(event) =>
-                        onCatScaleChange(selectedCharacterId, Number(event.target.value))
+                        onCatScaleChange(
+                          selectedCharacterId,
+                          Number(event.target.value),
+                          activeMobileSize,
+                        )
                       }
                     />
                     <small>{selectedLayout.catScale}%</small>
@@ -14559,30 +15569,110 @@ function AdminScreen({
               {previewMode === 'talking' ? (
                 <>
                   <h3>Talking Options</h3>
-                  <label>
-                    <span>Talking scale</span>
-                    <input
-                      min={45}
-                      max={250}
-                      type="range"
-                      value={selectedTalkingLayout.characterScale}
-                      onInput={(event) =>
-                        onTalkingScaleChange(
-                          selectedCharacterId,
-                          'characterScale',
-                          Number(event.currentTarget.value),
-                        )
-                      }
-                      onChange={(event) =>
-                        onTalkingScaleChange(
-                          selectedCharacterId,
-                          'characterScale',
-                          Number(event.target.value),
-                        )
-                      }
-                    />
-                    <small>{selectedTalkingLayout.characterScale}%</small>
-                  </label>
+                  <fieldset className="admin-reference-point-editor admin-reference-scale-editor">
+                    <legend>Character Image</legend>
+                    <label>
+                      <span>Image scale</span>
+                      <input
+                        min={45}
+                        max={250}
+                        type="range"
+                        value={selectedTalkingLayout.characterScale}
+                        onInput={(event) =>
+                          onTalkingScaleChange(
+                            selectedCharacterId,
+                            'characterScale',
+                            Number(event.currentTarget.value),
+                            activeMobileSize,
+                          )
+                        }
+                        onChange={(event) =>
+                          onTalkingScaleChange(
+                            selectedCharacterId,
+                            'characterScale',
+                            Number(event.target.value),
+                            activeMobileSize,
+                          )
+                        }
+                      />
+                      <small>{selectedTalkingLayout.characterScale}%</small>
+                    </label>
+                    <label>
+                      <span>Image X</span>
+                      <input
+                        min={ADMIN_TALKING_CHARACTER_BOUNDS.minX}
+                        max={ADMIN_TALKING_CHARACTER_BOUNDS.maxX}
+                        type="range"
+                        value={selectedTalkingLayout.character.x}
+                        onInput={(event) =>
+                          updateTalkingPosition(
+                            'character',
+                            'x',
+                            Number(event.currentTarget.value),
+                          )
+                        }
+                        onChange={(event) =>
+                          updateTalkingPosition('character', 'x', Number(event.target.value))
+                        }
+                      />
+                      <small>{Math.round(selectedTalkingLayout.character.x)}%</small>
+                    </label>
+                    <label>
+                      <span>Image Y</span>
+                      <input
+                        min={ADMIN_TALKING_CHARACTER_BOUNDS.minY}
+                        max={ADMIN_TALKING_CHARACTER_BOUNDS.maxY}
+                        type="range"
+                        value={selectedTalkingLayout.character.y}
+                        onInput={(event) =>
+                          updateTalkingPosition(
+                            'character',
+                            'y',
+                            Number(event.currentTarget.value),
+                          )
+                        }
+                        onChange={(event) =>
+                          updateTalkingPosition('character', 'y', Number(event.target.value))
+                        }
+                      />
+                      <small>{Math.round(selectedTalkingLayout.character.y)}%</small>
+                    </label>
+                  </fieldset>
+                  <fieldset className="admin-reference-point-editor admin-reference-scale-editor">
+                    <legend>Speech Bubble</legend>
+                    <label>
+                      <span>Bubble X</span>
+                      <input
+                        min={0}
+                        max={100}
+                        type="range"
+                        value={selectedTalkingLayout.bubble.x}
+                        onInput={(event) =>
+                          updateTalkingPosition('bubble', 'x', Number(event.currentTarget.value))
+                        }
+                        onChange={(event) =>
+                          updateTalkingPosition('bubble', 'x', Number(event.target.value))
+                        }
+                      />
+                      <small>{Math.round(selectedTalkingLayout.bubble.x)}%</small>
+                    </label>
+                    <label>
+                      <span>Bubble Y</span>
+                      <input
+                        min={0}
+                        max={100}
+                        type="range"
+                        value={selectedTalkingLayout.bubble.y}
+                        onInput={(event) =>
+                          updateTalkingPosition('bubble', 'y', Number(event.currentTarget.value))
+                        }
+                        onChange={(event) =>
+                          updateTalkingPosition('bubble', 'y', Number(event.target.value))
+                        }
+                      />
+                      <small>{Math.round(selectedTalkingLayout.bubble.y)}%</small>
+                    </label>
+                  </fieldset>
                   <label>
                     <span>Talk cat</span>
                     <input
@@ -14595,6 +15685,7 @@ function AdminScreen({
                           selectedCharacterId,
                           'catScale',
                           Number(event.currentTarget.value),
+                          activeMobileSize,
                         )
                       }
                       onChange={(event) =>
@@ -14602,13 +15693,172 @@ function AdminScreen({
                           selectedCharacterId,
                           'catScale',
                           Number(event.target.value),
+                          activeMobileSize,
                         )
                       }
                     />
                     <small>{selectedTalkingLayout.catScale}%</small>
                   </label>
+                  <fieldset className="admin-reference-point-editor admin-reference-scale-editor">
+                    <legend>Cat Menu</legend>
+                    <label>
+                      <span>Menu scale</span>
+                      <input
+                        min={40}
+                        max={220}
+                        type="range"
+                        value={activeChatMenuSettings.scale}
+                        onInput={(event) =>
+                          updateActiveChatMenuViewportPatch({
+                            scale: Number(event.currentTarget.value),
+                          })
+                        }
+                        onChange={(event) =>
+                          updateActiveChatMenuViewportPatch({
+                            scale: Number(event.target.value),
+                          })
+                        }
+                      />
+                      <small>{activeChatMenuSettings.scale}%</small>
+                    </label>
+                    <label>
+                      <span>Menu X</span>
+                      <input
+                        min={-30}
+                        max={130}
+                        type="range"
+                        value={activeChatMenuSettings.position.x}
+                        onInput={(event) =>
+                          updateActiveChatMenuViewportPatch({
+                            position: {
+                              ...activeChatMenuSettings.position,
+                              x: Number(event.currentTarget.value),
+                            },
+                          })
+                        }
+                        onChange={(event) =>
+                          updateActiveChatMenuViewportPatch({
+                            position: {
+                              ...activeChatMenuSettings.position,
+                              x: Number(event.target.value),
+                            },
+                          })
+                        }
+                      />
+                      <small>{Math.round(activeChatMenuSettings.position.x)}%</small>
+                    </label>
+                    <label>
+                      <span>Menu Y</span>
+                      <input
+                        min={-30}
+                        max={130}
+                        type="range"
+                        value={activeChatMenuSettings.position.y}
+                        onInput={(event) =>
+                          updateActiveChatMenuViewportPatch({
+                            position: {
+                              ...activeChatMenuSettings.position,
+                              y: Number(event.currentTarget.value),
+                            },
+                          })
+                        }
+                        onChange={(event) =>
+                          updateActiveChatMenuViewportPatch({
+                            position: {
+                              ...activeChatMenuSettings.position,
+                              y: Number(event.target.value),
+                            },
+                          })
+                        }
+                      />
+                      <small>{Math.round(activeChatMenuSettings.position.y)}%</small>
+                    </label>
+                  </fieldset>
                   {renderOnionSelector()}
                   <div className="admin-face-blocker-controls">
+                    <button
+                      className={`paper-button ${showChatSafeZone ? 'active' : ''}`}
+                      type="button"
+                      onClick={() => setShowChatSafeZone((visible) => !visible)}
+                    >
+                      Safe Zone
+                    </button>
+                    {showChatSafeZone ? (
+                      <>
+                        <label>
+                          <span>Safe X</span>
+                          <input
+                            max={120}
+                            min={-20}
+                            type="range"
+                            value={chatSafeZone.x}
+                            onInput={(event) =>
+                              updateChatSafeZone({
+                                x: Number(event.currentTarget.value),
+                              })
+                            }
+                            onChange={(event) =>
+                              updateChatSafeZone({ x: Number(event.target.value) })
+                            }
+                          />
+                          <small>{Math.round(chatSafeZone.x)}%</small>
+                        </label>
+                        <label>
+                          <span>Safe Y</span>
+                          <input
+                            max={120}
+                            min={-20}
+                            type="range"
+                            value={chatSafeZone.y}
+                            onInput={(event) =>
+                              updateChatSafeZone({
+                                y: Number(event.currentTarget.value),
+                              })
+                            }
+                            onChange={(event) =>
+                              updateChatSafeZone({ y: Number(event.target.value) })
+                            }
+                          />
+                          <small>{Math.round(chatSafeZone.y)}%</small>
+                        </label>
+                        <label>
+                          <span>Safe width</span>
+                          <input
+                            max={92}
+                            min={12}
+                            type="range"
+                            value={chatSafeZone.width}
+                            onInput={(event) =>
+                              updateChatSafeZone({
+                                width: Number(event.currentTarget.value),
+                              })
+                            }
+                            onChange={(event) =>
+                              updateChatSafeZone({ width: Number(event.target.value) })
+                            }
+                          />
+                          <small>{Math.round(chatSafeZone.width)}%</small>
+                        </label>
+                        <label>
+                          <span>Safe height</span>
+                          <input
+                            max={92}
+                            min={12}
+                            type="range"
+                            value={chatSafeZone.height}
+                            onInput={(event) =>
+                              updateChatSafeZone({
+                                height: Number(event.currentTarget.value),
+                              })
+                            }
+                            onChange={(event) =>
+                              updateChatSafeZone({ height: Number(event.target.value) })
+                            }
+                          />
+                          <small>{Math.round(chatSafeZone.height)}%</small>
+                        </label>
+                      </>
+                    ) : null}
                     <button
                       className={`paper-button ${showChatFaceBlocker ? 'active' : ''}`}
                       type="button"
@@ -15463,6 +16713,7 @@ interface VisitScreenProps {
   onTutorialMeow: () => void;
   onBack: () => void;
   shopDayEnded: boolean;
+  debugBlockersVisible: boolean;
 }
 
 function VisitScreen({
@@ -15519,6 +16770,7 @@ function VisitScreen({
   onTutorialMeow,
   onBack,
   shopDayEnded,
+  debugBlockersVisible,
 }: VisitScreenProps) {
   const tutorialMeowActive = tutorialStep === 'meow';
   const tutorialMoodActive = tutorialStep === 'mood';
@@ -15568,8 +16820,12 @@ function VisitScreen({
   );
   const nextUnservedService = nextUnservedOrderIndex >= 0 ? services[nextUnservedOrderIndex] : null;
   const canServeNext = nextUnservedOrderIndex >= 0 && Boolean(nextUnservedService);
+  const runtimeMobileSize = getRuntimeAdminMobileSize();
   const visitLayout = normalizeAdminLayout(layout);
-  const safeChatMenuSettings = normalizeAdminChatMenuSettings(chatMenuSettings);
+  const safeChatMenuSettings = getAdminChatMenuSettingsForViewport(
+    chatMenuSettings,
+    runtimeMobileSize,
+  );
   const visitSubjectId = getCustomerAdminSubjectId(customer);
   const primaryCharacterId = getCustomerPrimaryCharacterId(customer);
   const dialogueImageSrc = normalStoryReady
@@ -15666,7 +16922,7 @@ function VisitScreen({
   }
 
   function visitScaleTransform(scale = 1): string {
-    return ` scale(${scale}) scale(var(--visit-mobile-scale, 1))`;
+    return ` scale(${scale})`;
   }
 
   function visitPositionStyle(item: AdminLayoutDragItem, scale = 1): CSSProperties {
@@ -15684,7 +16940,10 @@ function VisitScreen({
     item: 'character' | 'cat' | 'bubble' | 'drink' | 'patience',
     scale = 1,
   ): CSSProperties {
-    const position = visitLayout.talking[item] ?? DEFAULT_ADMIN_LAYOUT.talking[item];
+    const position =
+      item === 'bubble'
+        ? getProtectedTalkingBubblePosition(visitLayout.talking, runtimeMobileSize)
+        : visitLayout.talking[item] ?? DEFAULT_ADMIN_LAYOUT.talking[item];
     return {
       bottom: 'auto',
       left: `${position.x}%`,
@@ -15694,66 +16953,8 @@ function VisitScreen({
     };
   }
 
-  function talkingBubbleStyle(): CSSProperties {
-    const faceBlocker = normalizeAdminFaceBlocker(
-      visitLayout.talking.faceBlocker,
-      DEFAULT_ADMIN_LAYOUT.talking.faceBlocker,
-    );
-    const menuScale = safeChatMenuSettings.scale / 100;
-    const menuLeftEdge = safeChatMenuSettings.position.x - 21 * menuScale;
-    const safeRight = clamp(menuLeftEdge - 3, 48, 86);
-    const compactVisit =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(orientation: landscape) and (max-height: 520px)').matches;
-    const estimatedBubbleWidth = compactVisit ? 24 : 20;
-    const centerX = clamp(faceBlocker.x + faceBlocker.width / 2, 18, safeRight - 8);
-    const middleY = clamp(faceBlocker.y + faceBlocker.height / 2, 18, 42);
-    const rightX = faceBlocker.x + faceBlocker.width + 2;
-    const leftX = faceBlocker.x - 2;
-
-    if (rightX + estimatedBubbleWidth <= safeRight) {
-      return {
-        bottom: 'auto',
-        left: `${clamp(rightX, 16, safeRight - estimatedBubbleWidth)}%`,
-        right: 'auto',
-        top: `${middleY}%`,
-        transform: 'translate(0, -50%)',
-      };
-    }
-
-    if (leftX - estimatedBubbleWidth >= 12) {
-      return {
-        bottom: 'auto',
-        left: `${clamp(leftX, estimatedBubbleWidth + 12, 70)}%`,
-        right: 'auto',
-        top: `${middleY}%`,
-        transform: 'translate(-100%, -50%)',
-      };
-    }
-
-    const aboveTop = faceBlocker.y - 4;
-
-    if (aboveTop >= 20) {
-      return {
-        bottom: 'auto',
-        left: `${centerX}%`,
-        right: 'auto',
-        top: `${aboveTop}%`,
-        transform: 'translate(-50%, -100%)',
-      };
-    }
-
-    return {
-      bottom: 'auto',
-      left: `${clamp(safeRight - estimatedBubbleWidth, 28, 62)}%`,
-      right: 'auto',
-      top: `${clamp(faceBlocker.y + faceBlocker.height + 5, 28, 46)}%`,
-      transform: 'translate(0, -50%)',
-    };
-  }
-
   const bubbleStyle = useTalkingImage
-    ? talkingBubbleStyle()
+    ? talkingPositionStyle('bubble')
     : visitPositionStyle('bubble');
   const catStyle = useTalkingImage
     ? talkingPositionStyle('cat', visitLayout.talking.catScale / 100)
@@ -15873,6 +17074,29 @@ function VisitScreen({
             <AnimalAvatar customer={customer} size="large" />
           </div>
         )}
+        {debugBlockersVisible && useTalkingImage ? (
+          <>
+            <div
+              className="visit-debug-safe-zone"
+              style={talkingSafeZoneStyle(visitLayout.talking)}
+              aria-hidden="true"
+            >
+              <span>Safe chat</span>
+            </div>
+            <div
+              className="visit-debug-face-blocker"
+              style={openingBlockerStyle(
+                normalizeAdminFaceBlocker(
+                  visitLayout.talking.faceBlocker,
+                  DEFAULT_ADMIN_LAYOUT.talking.faceBlocker,
+                ),
+              )}
+              aria-hidden="true"
+            >
+              <span>Blocker</span>
+            </div>
+          </>
+        ) : null}
         <div className="cat-close" style={catStyle}>
           {purrBeat > 0 ? (
             <div className="purr-words" key={purrBeat}>

@@ -449,6 +449,15 @@ button {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
+.debug-button.active {
+  color: #fff8eb;
+  background: #8b4545;
+}
+
+.debug-button.active:hover {
+  background: #a95454;
+}
+
 .settings-anchor {
   position: relative;
   display: inline-flex;
@@ -1310,32 +1319,79 @@ h3 {
 }
 
 .admin-screen.admin-mobile-preview {
-  grid-template-columns: minmax(0, 1fr);
+  --admin-mobile-width: 844px;
+  --admin-mobile-aspect: 844 / 390;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   grid-template-rows: 58px minmax(0, 1fr);
+  grid-template-areas:
+    'topbar topbar'
+    'workbench inspector';
+}
+
+.admin-screen.admin-mobile-preview.admin-panel-collapsed {
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     'topbar'
     'workbench';
 }
 
+.admin-screen.admin-mobile-size-small {
+  --admin-mobile-width: 667px;
+  --admin-mobile-aspect: 667 / 375;
+}
+
+.admin-screen.admin-mobile-size-medium {
+  --admin-mobile-width: 844px;
+  --admin-mobile-aspect: 844 / 390;
+}
+
+.admin-screen.admin-mobile-size-large {
+  --admin-mobile-width: 932px;
+  --admin-mobile-aspect: 932 / 430;
+}
+
 .admin-mobile-preview .admin-rail,
-.admin-mobile-preview .admin-gallery,
 .admin-mobile-preview .admin-view-tabs,
 .admin-mobile-preview .admin-panel-pull-tab {
   display: none;
 }
 
 .admin-mobile-preview .admin-workbench {
-  padding: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
   background: #0e1110;
 }
 
 .admin-mobile-preview .admin-stage {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
+  width: min(calc(100% - 24px), var(--admin-mobile-width));
+  height: auto;
+  max-height: calc(100dvh - 96px);
+  aspect-ratio: var(--admin-mobile-aspect);
+  border: 8px solid #050706;
+  border-radius: 22px;
+  box-shadow:
+    0 0 0 1px rgba(255, 248, 235, 0.14),
+    0 22px 54px rgba(0, 0, 0, 0.42);
+}
+
+.admin-mobile-preview .admin-gallery {
+  display: flex;
+  min-height: 0;
+}
+
+.admin-mobile-preview .customer-story-bubble {
+  width: min(220px, 30cqw);
+  max-width: calc(100% - 24px);
+  padding: 8px 10px;
+}
+
+.admin-mobile-preview .story-bubble-line {
+  font-size: 0.7rem;
+}
+
+.admin-mobile-size-small .customer-story-bubble {
+  width: min(190px, 28cqw);
 }
 
 .admin-editor-topbar {
@@ -1446,6 +1502,34 @@ h3 {
 .admin-topbar-actions .primary-button {
   color: #fffaf1;
   border-color: rgba(127, 152, 77, 0.64);
+  background: #536b34;
+}
+
+.admin-mobile-size-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid rgba(255, 248, 235, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.admin-mobile-size-control button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  color: #f8efe3;
+  background: transparent;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-mobile-size-control button.active {
+  color: #fffaf1;
   background: #536b34;
 }
 
@@ -2421,6 +2505,18 @@ h3 {
 
 .admin-chat-face-blocker {
   z-index: 6;
+}
+
+.admin-chat-safe-zone {
+  z-index: 5;
+  border-color: rgba(84, 255, 42, 0.95);
+  background:
+    linear-gradient(135deg, rgba(84, 255, 42, 0.16), rgba(255, 248, 235, 0.05)),
+    rgba(40, 91, 26, 0.18);
+}
+
+.admin-chat-safe-zone span {
+  background: rgba(31, 92, 20, 0.88);
 }
 
 .admin-opening-preview-dialogue {
@@ -4392,6 +4488,13 @@ h3 {
   overflow: hidden;
 }
 
+.visit-screen {
+  align-items: stretch;
+  justify-content: stretch;
+  container-type: size;
+  background: #2b1a10;
+}
+
 .shop-screen {
   position: relative;
   align-items: flex-start;
@@ -5455,7 +5558,11 @@ h3 {
 .visit-stage {
   --visit-mobile-scale: 1;
   position: relative;
-  flex: 1;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
   container-type: size;
   overflow: hidden;
   background:
@@ -5892,6 +5999,61 @@ h3 {
   pointer-events: none;
 }
 
+.visit-debug-safe-zone {
+  position: absolute;
+  z-index: 29;
+  display: grid;
+  align-items: start;
+  justify-items: start;
+  border: 3px dashed rgba(84, 255, 42, 0.95);
+  border-radius: 10px;
+  background: rgba(60, 255, 50, 0.08);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 248, 235, 0.16),
+    0 8px 20px rgba(12, 42, 10, 0.22);
+  pointer-events: none;
+}
+
+.visit-debug-safe-zone span {
+  margin: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #fff8eb;
+  background: rgba(31, 92, 20, 0.88);
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.visit-debug-face-blocker {
+  position: absolute;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  border: 3px dashed rgba(255, 66, 66, 0.98);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 66, 66, 0.2), rgba(255, 248, 235, 0.04)),
+    rgba(64, 8, 8, 0.16);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 248, 235, 0.25),
+    0 8px 20px rgba(35, 10, 10, 0.28);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.visit-debug-face-blocker span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #fff8eb;
+  background: rgba(80, 19, 19, 0.88);
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .customer-story-bubble {
   position: absolute;
   left: -150px;
@@ -5995,6 +6157,8 @@ h3 {
 
 .visit-floating-bubble {
   z-index: 8;
+  transform: translate(-50%, -50%);
+  animation: none;
 }
 
 .visit-interaction-hint {
@@ -7757,6 +7921,14 @@ h3 {
 
   .admin-screen.admin-mobile-preview {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) minmax(220px, 34vh);
+    grid-template-areas:
+      'topbar'
+      'workbench'
+      'inspector';
+  }
+
+  .admin-screen.admin-mobile-preview.admin-panel-collapsed {
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
       'topbar'
@@ -8170,6 +8342,7 @@ h3 {
     width: 100%;
     height: 100%;
     min-height: 0;
+    aspect-ratio: auto;
     background-size: 100% 100%;
   }
 
@@ -8258,8 +8431,8 @@ h3 {
   }
 
   .customer-story-bubble {
-    width: min(210px, 24vw);
-    max-width: calc(100% - 340px);
+    width: min(220px, 30cqw);
+    max-width: calc(100% - 24px);
     padding: 8px 10px;
   }
 

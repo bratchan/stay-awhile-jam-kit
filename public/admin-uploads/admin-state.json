@@ -37,29 +37,35 @@
       "talking": {
         "character": {
           "x": 47,
-          "y": 96
+          "y": 119
         },
         "cat": {
-          "x": 36,
-          "y": 69
+          "x": 62,
+          "y": 79
         },
         "bubble": {
           "x": 20,
           "y": 26
         },
         "drink": {
-          "x": 51,
-          "y": 69
+          "x": 50,
+          "y": 83
         },
         "patience": {
           "x": 18,
           "y": 18
         },
         "faceBlocker": {
-          "x": 49.24058637539523,
-          "y": 16.433962264150946,
+          "x": 49.18350700795356,
+          "y": 23.43548433416617,
           "width": 18,
           "height": 24
+        },
+        "safeZone": {
+          "x": 23.486301369863014,
+          "y": 38.54997153550704,
+          "width": 36,
+          "height": 48
         },
         "characterScale": 247,
         "drinkScale": 115,
@@ -77,6 +83,239 @@
           "/characters/shadow/ShadowTest_03.png",
           "/characters/shadow/ShadowTest_04.png"
         ]
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 27,
+            "y": 63
+          },
+          "table": {
+            "x": 54,
+            "y": 72
+          },
+          "drink": {
+            "x": 54,
+            "y": 65
+          },
+          "cat": {
+            "x": 51,
+            "y": 91
+          },
+          "bubble": {
+            "x": 46,
+            "y": 23
+          },
+          "order": {
+            "x": 32,
+            "y": 38
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 126,
+          "drinkScale": 100,
+          "catScale": 89,
+          "talking": {
+            "character": {
+              "x": 48,
+              "y": 105
+            },
+            "cat": {
+              "x": 36,
+              "y": 69
+            },
+            "bubble": {
+              "x": 20,
+              "y": 26
+            },
+            "drink": {
+              "x": 51,
+              "y": 69
+            },
+            "patience": {
+              "x": 18,
+              "y": 18
+            },
+            "faceBlocker": {
+              "x": 49.24058637539523,
+              "y": 16.433962264150946,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 247,
+            "drinkScale": 115,
+            "catScale": 55,
+            "defaultImageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
+            "imageSrc": "/admin-uploads/shadow/1782154679051-shadowtalking.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/shadow/1782154679068-shadowthinking.png",
+              "/admin-uploads/shadow/1782154679051-shadowtalking.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 27,
+            "y": 63
+          },
+          "table": {
+            "x": 54,
+            "y": 72
+          },
+          "drink": {
+            "x": 54,
+            "y": 65
+          },
+          "cat": {
+            "x": 51,
+            "y": 91
+          },
+          "bubble": {
+            "x": 46,
+            "y": 23
+          },
+          "order": {
+            "x": 32,
+            "y": 38
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 126,
+          "drinkScale": 100,
+          "catScale": 89,
+          "talking": {
+            "character": {
+              "x": 49,
+              "y": 97
+            },
+            "cat": {
+              "x": 42,
+              "y": 64
+            },
+            "bubble": {
+              "x": 23,
+              "y": 37
+            },
+            "drink": {
+              "x": 51,
+              "y": 80
+            },
+            "patience": {
+              "x": 18,
+              "y": 26
+            },
+            "faceBlocker": {
+              "x": 52.24217097532859,
+              "y": 29.254475084663763,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 120,
+            "drinkScale": 107,
+            "catScale": 49,
+            "defaultImageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
+            "imageSrc": "/admin-uploads/shadow/1782154679051-shadowtalking.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/shadow/1782154679068-shadowthinking.png",
+              "/admin-uploads/shadow/1782154679051-shadowtalking.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 27,
+            "y": 63
+          },
+          "table": {
+            "x": 54,
+            "y": 72
+          },
+          "drink": {
+            "x": 54,
+            "y": 65
+          },
+          "cat": {
+            "x": 51,
+            "y": 91
+          },
+          "bubble": {
+            "x": 46,
+            "y": 23
+          },
+          "order": {
+            "x": 32,
+            "y": 38
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 126,
+          "drinkScale": 100,
+          "catScale": 89,
+          "talking": {
+            "character": {
+              "x": 51,
+              "y": 107
+            },
+            "cat": {
+              "x": 60,
+              "y": 68
+            },
+            "bubble": {
+              "x": 21,
+              "y": 41
+            },
+            "drink": {
+              "x": 50,
+              "y": 84
+            },
+            "patience": {
+              "x": 18,
+              "y": 18
+            },
+            "faceBlocker": {
+              "x": 51.81569367153257,
+              "y": 31.472719588369696,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 25.359080040403704,
+              "y": 40.4496218659157,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 144,
+            "drinkScale": 115,
+            "catScale": 46,
+            "defaultImageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
+            "imageSrc": "/admin-uploads/shadow/1782154679051-shadowtalking.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/shadow/1782154679068-shadowthinking.png",
+              "/admin-uploads/shadow/1782154679051-shadowtalking.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "matthew": {
@@ -114,8 +353,8 @@
       "catScale": 100,
       "talking": {
         "character": {
-          "x": 48,
-          "y": 98
+          "x": 52,
+          "y": 105
         },
         "cat": {
           "x": 29,
@@ -126,22 +365,28 @@
           "y": 28
         },
         "drink": {
-          "x": 40,
-          "y": 75
+          "x": 43,
+          "y": 90
         },
         "patience": {
-          "x": 43,
-          "y": 79
+          "x": 19,
+          "y": 17
         },
         "faceBlocker": {
-          "x": 46.481172750790456,
-          "y": 19.57861635220126,
+          "x": 49.56336453161237,
+          "y": 25.36248241003992,
           "width": 18,
           "height": 24
         },
-        "characterScale": 250,
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
+        "characterScale": 209,
         "drinkScale": 124,
-        "catScale": 82,
+        "catScale": 60,
         "defaultImageSrc": "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
         "imageSrc": "/admin-uploads/matthew/1782178624777-matthewtalking.png",
         "enabledImageSrcs": [
@@ -150,6 +395,239 @@
           "/admin-uploads/matthew/1782178624777-matthewtalking.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 58,
+              "y": 91
+            },
+            "cat": {
+              "x": 47,
+              "y": 66
+            },
+            "bubble": {
+              "x": 22,
+              "y": 31
+            },
+            "drink": {
+              "x": 49,
+              "y": 81
+            },
+            "patience": {
+              "x": 16,
+              "y": 17
+            },
+            "faceBlocker": {
+              "x": 56.476169149075695,
+              "y": 30.600849425117925,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 104,
+            "drinkScale": 124,
+            "catScale": 35,
+            "defaultImageSrc": "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
+            "imageSrc": "/admin-uploads/matthew/1782178624777-matthewtalking.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
+              "/admin-uploads/matthew/1782178624777-matthewtalking.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 51,
+              "y": 97
+            },
+            "cat": {
+              "x": 44,
+              "y": 71
+            },
+            "bubble": {
+              "x": 19,
+              "y": 34
+            },
+            "drink": {
+              "x": 44,
+              "y": 85
+            },
+            "patience": {
+              "x": 17,
+              "y": 19
+            },
+            "faceBlocker": {
+              "x": 51.220509243681455,
+              "y": 30.005971996231708,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 118,
+            "drinkScale": 102,
+            "catScale": 57,
+            "defaultImageSrc": "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
+            "imageSrc": "/admin-uploads/matthew/1782178624777-matthewtalking.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
+              "/admin-uploads/matthew/1782178624777-matthewtalking.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 51,
+              "y": 98
+            },
+            "cat": {
+              "x": 36,
+              "y": 66
+            },
+            "bubble": {
+              "x": 21,
+              "y": 33
+            },
+            "drink": {
+              "x": 44,
+              "y": 78
+            },
+            "patience": {
+              "x": 13,
+              "y": 15
+            },
+            "faceBlocker": {
+              "x": 49.556997537455565,
+              "y": 28.415825654526834,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 131,
+            "drinkScale": 99,
+            "catScale": 39,
+            "defaultImageSrc": "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
+            "imageSrc": "/admin-uploads/matthew/1782178624777-matthewtalking.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
+              "/admin-uploads/matthew/1782178624777-matthewtalking.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "liam": {
@@ -212,6 +690,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 218,
         "drinkScale": 75,
         "catScale": 76,
@@ -223,6 +707,239 @@
           "/admin-uploads/liam/1782178719634-chatgpt-image-jun-21-2026-10-48-38-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 44,
+            "y": 84
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 41,
+              "y": 93
+            },
+            "cat": {
+              "x": 52,
+              "y": 72
+            },
+            "bubble": {
+              "x": 49,
+              "y": 20
+            },
+            "drink": {
+              "x": 37,
+              "y": 78
+            },
+            "patience": {
+              "x": 49,
+              "y": 13
+            },
+            "faceBlocker": {
+              "x": 28.792623875118842,
+              "y": 28.257861635220124,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 218,
+            "drinkScale": 75,
+            "catScale": 76,
+            "defaultImageSrc": "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
+            "imageSrc": "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
+              "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 44,
+            "y": 84
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 41,
+              "y": 93
+            },
+            "cat": {
+              "x": 52,
+              "y": 72
+            },
+            "bubble": {
+              "x": 49,
+              "y": 20
+            },
+            "drink": {
+              "x": 37,
+              "y": 78
+            },
+            "patience": {
+              "x": 49,
+              "y": 13
+            },
+            "faceBlocker": {
+              "x": 28.792623875118842,
+              "y": 28.257861635220124,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 218,
+            "drinkScale": 75,
+            "catScale": 76,
+            "defaultImageSrc": "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
+            "imageSrc": "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
+              "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 44,
+            "y": 84
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 41,
+              "y": 93
+            },
+            "cat": {
+              "x": 52,
+              "y": 72
+            },
+            "bubble": {
+              "x": 49,
+              "y": 20
+            },
+            "drink": {
+              "x": 37,
+              "y": 78
+            },
+            "patience": {
+              "x": 49,
+              "y": 13
+            },
+            "faceBlocker": {
+              "x": 28.792623875118842,
+              "y": 28.257861635220124,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 218,
+            "drinkScale": 75,
+            "catScale": 76,
+            "defaultImageSrc": "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
+            "imageSrc": "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
+              "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "alfrin": {
@@ -285,6 +1002,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 231,
         "drinkScale": 100,
         "catScale": 67,
@@ -295,6 +1018,239 @@
           "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 41,
+              "y": 91
+            },
+            "cat": {
+              "x": 55,
+              "y": 64
+            },
+            "bubble": {
+              "x": 48,
+              "y": 26
+            },
+            "drink": {
+              "x": 36,
+              "y": 81
+            },
+            "patience": {
+              "x": 49,
+              "y": 20
+            },
+            "faceBlocker": {
+              "x": 25.042651513476464,
+              "y": 20.58490566037736,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 231,
+            "drinkScale": 100,
+            "catScale": 67,
+            "defaultImageSrc": "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
+            "imageSrc": "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
+              "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 41,
+              "y": 91
+            },
+            "cat": {
+              "x": 55,
+              "y": 64
+            },
+            "bubble": {
+              "x": 48,
+              "y": 26
+            },
+            "drink": {
+              "x": 36,
+              "y": 81
+            },
+            "patience": {
+              "x": 49,
+              "y": 20
+            },
+            "faceBlocker": {
+              "x": 25.042651513476464,
+              "y": 20.58490566037736,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 231,
+            "drinkScale": 100,
+            "catScale": 67,
+            "defaultImageSrc": "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
+            "imageSrc": "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
+              "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 41,
+              "y": 91
+            },
+            "cat": {
+              "x": 55,
+              "y": 64
+            },
+            "bubble": {
+              "x": 48,
+              "y": 26
+            },
+            "drink": {
+              "x": 36,
+              "y": 81
+            },
+            "patience": {
+              "x": 49,
+              "y": 20
+            },
+            "faceBlocker": {
+              "x": 25.042651513476464,
+              "y": 20.58490566037736,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 231,
+            "drinkScale": 100,
+            "catScale": 67,
+            "defaultImageSrc": "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
+            "imageSrc": "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
+              "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "alaric": {
@@ -357,6 +1313,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 224,
         "drinkScale": 95,
         "catScale": 71,
@@ -368,6 +1330,239 @@
           "/admin-uploads/alaric/1782178802530-chatgpt-image-jun-21-2026-10-13-23-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 51,
+              "y": 89
+            },
+            "cat": {
+              "x": 62,
+              "y": 68
+            },
+            "bubble": {
+              "x": 60,
+              "y": 21
+            },
+            "drink": {
+              "x": 39,
+              "y": 77
+            },
+            "patience": {
+              "x": 59,
+              "y": 15
+            },
+            "faceBlocker": {
+              "x": 37.63689831295465,
+              "y": 21.9685534591195,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 224,
+            "drinkScale": 95,
+            "catScale": 71,
+            "defaultImageSrc": "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
+            "imageSrc": "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
+              "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 51,
+              "y": 89
+            },
+            "cat": {
+              "x": 62,
+              "y": 68
+            },
+            "bubble": {
+              "x": 60,
+              "y": 21
+            },
+            "drink": {
+              "x": 39,
+              "y": 77
+            },
+            "patience": {
+              "x": 59,
+              "y": 15
+            },
+            "faceBlocker": {
+              "x": 37.63689831295465,
+              "y": 21.9685534591195,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 224,
+            "drinkScale": 95,
+            "catScale": 71,
+            "defaultImageSrc": "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
+            "imageSrc": "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
+              "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 51,
+              "y": 89
+            },
+            "cat": {
+              "x": 62,
+              "y": 68
+            },
+            "bubble": {
+              "x": 60,
+              "y": 21
+            },
+            "drink": {
+              "x": 39,
+              "y": 77
+            },
+            "patience": {
+              "x": 59,
+              "y": 15
+            },
+            "faceBlocker": {
+              "x": 37.63689831295465,
+              "y": 21.9685534591195,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 224,
+            "drinkScale": 95,
+            "catScale": 71,
+            "defaultImageSrc": "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
+            "imageSrc": "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
+              "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "eli": {
@@ -430,6 +1625,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 204,
         "drinkScale": 100,
         "catScale": 76,
@@ -441,6 +1642,239 @@
           "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 58,
+              "y": 88
+            },
+            "cat": {
+              "x": 57,
+              "y": 68
+            },
+            "bubble": {
+              "x": 34,
+              "y": 20
+            },
+            "drink": {
+              "x": 43,
+              "y": 70
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 58.7924027682579,
+              "y": 25.867924528301888,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 204,
+            "drinkScale": 100,
+            "catScale": 76,
+            "defaultImageSrc": "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
+            "imageSrc": "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
+              "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 58,
+              "y": 88
+            },
+            "cat": {
+              "x": 57,
+              "y": 68
+            },
+            "bubble": {
+              "x": 34,
+              "y": 20
+            },
+            "drink": {
+              "x": 43,
+              "y": 70
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 58.7924027682579,
+              "y": 25.867924528301888,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 204,
+            "drinkScale": 100,
+            "catScale": 76,
+            "defaultImageSrc": "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
+            "imageSrc": "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
+              "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 58,
+              "y": 88
+            },
+            "cat": {
+              "x": 57,
+              "y": 68
+            },
+            "bubble": {
+              "x": 34,
+              "y": 20
+            },
+            "drink": {
+              "x": 43,
+              "y": 70
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 58.7924027682579,
+              "y": 25.867924528301888,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 204,
+            "drinkScale": 100,
+            "catScale": 76,
+            "defaultImageSrc": "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
+            "imageSrc": "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
+              "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "miles": {
@@ -503,6 +1937,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 226,
         "drinkScale": 100,
         "catScale": 74,
@@ -514,6 +1954,239 @@
           "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 89
+            },
+            "cat": {
+              "x": 27,
+              "y": 64
+            },
+            "bubble": {
+              "x": 25,
+              "y": 21
+            },
+            "drink": {
+              "x": 49,
+              "y": 74
+            },
+            "patience": {
+              "x": 26,
+              "y": 15
+            },
+            "faceBlocker": {
+              "x": 47.188714705817326,
+              "y": 23.981132075471695,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 226,
+            "drinkScale": 100,
+            "catScale": 74,
+            "defaultImageSrc": "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
+            "imageSrc": "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
+              "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 89
+            },
+            "cat": {
+              "x": 27,
+              "y": 64
+            },
+            "bubble": {
+              "x": 25,
+              "y": 21
+            },
+            "drink": {
+              "x": 49,
+              "y": 74
+            },
+            "patience": {
+              "x": 26,
+              "y": 15
+            },
+            "faceBlocker": {
+              "x": 47.188714705817326,
+              "y": 23.981132075471695,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 226,
+            "drinkScale": 100,
+            "catScale": 74,
+            "defaultImageSrc": "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
+            "imageSrc": "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
+              "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 66,
+            "y": 78
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 89
+            },
+            "cat": {
+              "x": 27,
+              "y": 64
+            },
+            "bubble": {
+              "x": 25,
+              "y": 21
+            },
+            "drink": {
+              "x": 49,
+              "y": 74
+            },
+            "patience": {
+              "x": 26,
+              "y": 15
+            },
+            "faceBlocker": {
+              "x": 47.188714705817326,
+              "y": 23.981132075471695,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 226,
+            "drinkScale": 100,
+            "catScale": 74,
+            "defaultImageSrc": "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
+            "imageSrc": "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
+              "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "nia": {
@@ -576,6 +2249,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 229,
         "drinkScale": 100,
         "catScale": 78,
@@ -587,6 +2266,239 @@
           "/admin-uploads/nia/1782178948923-chatgpt-image-jun-21-2026-10-27-39-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 51,
+            "y": 80
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 90
+            },
+            "cat": {
+              "x": 56,
+              "y": 72
+            },
+            "bubble": {
+              "x": 54,
+              "y": 23
+            },
+            "drink": {
+              "x": 37,
+              "y": 79
+            },
+            "patience": {
+              "x": 53,
+              "y": 16
+            },
+            "faceBlocker": {
+              "x": 28.86337807062153,
+              "y": 22.72327044025157,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 229,
+            "drinkScale": 100,
+            "catScale": 78,
+            "defaultImageSrc": "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
+            "imageSrc": "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
+              "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 51,
+            "y": 80
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 90
+            },
+            "cat": {
+              "x": 56,
+              "y": 72
+            },
+            "bubble": {
+              "x": 54,
+              "y": 23
+            },
+            "drink": {
+              "x": 37,
+              "y": 79
+            },
+            "patience": {
+              "x": 53,
+              "y": 16
+            },
+            "faceBlocker": {
+              "x": 28.86337807062153,
+              "y": 22.72327044025157,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 229,
+            "drinkScale": 100,
+            "catScale": 78,
+            "defaultImageSrc": "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
+            "imageSrc": "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
+              "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 51,
+            "y": 80
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 90
+            },
+            "cat": {
+              "x": 56,
+              "y": 72
+            },
+            "bubble": {
+              "x": 54,
+              "y": 23
+            },
+            "drink": {
+              "x": 37,
+              "y": 79
+            },
+            "patience": {
+              "x": 53,
+              "y": 16
+            },
+            "faceBlocker": {
+              "x": 28.86337807062153,
+              "y": 22.72327044025157,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 229,
+            "drinkScale": 100,
+            "catScale": 78,
+            "defaultImageSrc": "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
+            "imageSrc": "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
+              "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "gene": {
@@ -649,6 +2561,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 245,
         "drinkScale": 100,
         "catScale": 75,
@@ -660,6 +2578,239 @@
           "/admin-uploads/gene/1782179126578-chatgpt-image-jun-21-2026-11-17-33-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 37,
+            "y": 68
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 48,
+              "y": 94
+            },
+            "cat": {
+              "x": 46,
+              "y": 74
+            },
+            "bubble": {
+              "x": 34,
+              "y": 25
+            },
+            "drink": {
+              "x": 58,
+              "y": 80
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 55.18393879762089,
+              "y": 20.08176100628931,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 245,
+            "drinkScale": 100,
+            "catScale": 75,
+            "defaultImageSrc": "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
+            "imageSrc": "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
+              "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 37,
+            "y": 68
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 48,
+              "y": 94
+            },
+            "cat": {
+              "x": 46,
+              "y": 74
+            },
+            "bubble": {
+              "x": 34,
+              "y": 25
+            },
+            "drink": {
+              "x": 58,
+              "y": 80
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 55.18393879762089,
+              "y": 20.08176100628931,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 245,
+            "drinkScale": 100,
+            "catScale": 75,
+            "defaultImageSrc": "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
+            "imageSrc": "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
+              "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 37,
+            "y": 68
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 48,
+              "y": 94
+            },
+            "cat": {
+              "x": 46,
+              "y": 74
+            },
+            "bubble": {
+              "x": 34,
+              "y": 25
+            },
+            "drink": {
+              "x": 58,
+              "y": 80
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 55.18393879762089,
+              "y": 20.08176100628931,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 245,
+            "drinkScale": 100,
+            "catScale": 75,
+            "defaultImageSrc": "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
+            "imageSrc": "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
+              "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "quou": {
@@ -722,6 +2873,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 229,
         "drinkScale": 100,
         "catScale": 79,
@@ -733,6 +2890,239 @@
           "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 57,
+            "y": 91
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 44,
+              "y": 91
+            },
+            "cat": {
+              "x": 58,
+              "y": 72
+            },
+            "bubble": {
+              "x": 52,
+              "y": 26
+            },
+            "drink": {
+              "x": 45,
+              "y": 74
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 28.368098702102728,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 229,
+            "drinkScale": 100,
+            "catScale": 79,
+            "defaultImageSrc": "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
+            "imageSrc": "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
+              "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 57,
+            "y": 91
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 44,
+              "y": 91
+            },
+            "cat": {
+              "x": 58,
+              "y": 72
+            },
+            "bubble": {
+              "x": 52,
+              "y": 26
+            },
+            "drink": {
+              "x": 45,
+              "y": 74
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 28.368098702102728,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 229,
+            "drinkScale": 100,
+            "catScale": 79,
+            "defaultImageSrc": "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
+            "imageSrc": "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
+              "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 32,
+            "y": 48
+          },
+          "table": {
+            "x": 48,
+            "y": 72
+          },
+          "drink": {
+            "x": 50,
+            "y": 61
+          },
+          "cat": {
+            "x": 57,
+            "y": 91
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 44,
+              "y": 91
+            },
+            "cat": {
+              "x": 58,
+              "y": 72
+            },
+            "bubble": {
+              "x": 52,
+              "y": 26
+            },
+            "drink": {
+              "x": 45,
+              "y": 74
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 28.368098702102728,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 229,
+            "drinkScale": 100,
+            "catScale": 79,
+            "defaultImageSrc": "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
+            "imageSrc": "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
+              "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "custom_1": {
@@ -795,6 +3185,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 250,
         "drinkScale": 100,
         "catScale": 72,
@@ -806,6 +3202,239 @@
           "/admin-uploads/custom-1/1782183551536-chatgpt-image-jun-21-2026-11-25-38-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 50,
+              "y": 93
+            },
+            "cat": {
+              "x": 47,
+              "y": 72
+            },
+            "bubble": {
+              "x": 27,
+              "y": 28
+            },
+            "drink": {
+              "x": 34,
+              "y": 72
+            },
+            "patience": {
+              "x": 27,
+              "y": 20
+            },
+            "faceBlocker": {
+              "x": 49.45284896190329,
+              "y": 23.60377358490566,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 250,
+            "drinkScale": 100,
+            "catScale": 72,
+            "defaultImageSrc": "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
+            "imageSrc": "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
+              "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 50,
+              "y": 93
+            },
+            "cat": {
+              "x": 47,
+              "y": 72
+            },
+            "bubble": {
+              "x": 27,
+              "y": 28
+            },
+            "drink": {
+              "x": 34,
+              "y": 72
+            },
+            "patience": {
+              "x": 27,
+              "y": 20
+            },
+            "faceBlocker": {
+              "x": 49.45284896190329,
+              "y": 23.60377358490566,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 250,
+            "drinkScale": 100,
+            "catScale": 72,
+            "defaultImageSrc": "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
+            "imageSrc": "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
+              "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 50,
+              "y": 93
+            },
+            "cat": {
+              "x": 47,
+              "y": 72
+            },
+            "bubble": {
+              "x": 27,
+              "y": 28
+            },
+            "drink": {
+              "x": 34,
+              "y": 72
+            },
+            "patience": {
+              "x": 27,
+              "y": 20
+            },
+            "faceBlocker": {
+              "x": 49.45284896190329,
+              "y": 23.60377358490566,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 250,
+            "drinkScale": 100,
+            "catScale": 72,
+            "defaultImageSrc": "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
+            "imageSrc": "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
+              "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "custom_2": {
@@ -868,6 +3497,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
@@ -875,6 +3510,230 @@
         "imageSrc": "",
         "enabledImageSrcs": [],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "custom_3": {
@@ -937,6 +3796,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
@@ -944,6 +3809,230 @@
         "imageSrc": "",
         "enabledImageSrcs": [],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "custom_4": {
@@ -1006,6 +4095,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
@@ -1013,6 +4108,230 @@
         "imageSrc": "",
         "enabledImageSrcs": [],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "custom_5": {
@@ -1075,6 +4394,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
@@ -1082,6 +4407,230 @@
         "imageSrc": "",
         "enabledImageSrcs": [],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "custom_6": {
@@ -1144,6 +4693,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
@@ -1151,6 +4706,230 @@
         "imageSrc": "",
         "enabledImageSrcs": [],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "liam-eli": {
@@ -1213,6 +4992,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
@@ -1224,6 +5009,239 @@
           "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png"
         ],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
+            "imageSrc": "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
+              "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
+            "imageSrc": "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
+              "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
+            "imageSrc": "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
+              "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "matthew-shadow": {
@@ -1286,6 +5304,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
@@ -1293,6 +5317,230 @@
         "imageSrc": "",
         "enabledImageSrcs": [],
         "hiddenImageSrcs": []
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 47,
+              "y": 54
+            },
+            "cat": {
+              "x": 73,
+              "y": 70
+            },
+            "bubble": {
+              "x": 27,
+              "y": 18
+            },
+            "drink": {
+              "x": 39,
+              "y": 72
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 100,
+            "drinkScale": 100,
+            "catScale": 82,
+            "defaultImageSrc": "",
+            "imageSrc": "",
+            "enabledImageSrcs": [],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     },
     "alaric-eli": {
@@ -1355,6 +5603,12 @@
           "width": 18,
           "height": 24
         },
+        "safeZone": {
+          "x": 24,
+          "y": 42,
+          "width": 36,
+          "height": 48
+        },
         "characterScale": 220,
         "drinkScale": 86,
         "catScale": 71,
@@ -1370,6 +5624,239 @@
           "/admin-uploads/alaric-eli/1782179236508-chatgpt-image-jun-21-2026-11-34-56-pm.png",
           "/admin-uploads/alaric-eli/1782179236495-chatgpt-image-jun-21-2026-11-33-53-pm.png"
         ]
+      },
+      "mobile": {
+        "small": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 48,
+              "y": 89
+            },
+            "cat": {
+              "x": 56,
+              "y": 70
+            },
+            "bubble": {
+              "x": 50,
+              "y": 20
+            },
+            "drink": {
+              "x": 41,
+              "y": 75
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 220,
+            "drinkScale": 86,
+            "catScale": 71,
+            "defaultImageSrc": "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
+            "imageSrc": "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
+              "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "medium": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 48,
+              "y": 89
+            },
+            "cat": {
+              "x": 56,
+              "y": 70
+            },
+            "bubble": {
+              "x": 50,
+              "y": 20
+            },
+            "drink": {
+              "x": 41,
+              "y": 75
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 220,
+            "drinkScale": 86,
+            "catScale": 71,
+            "defaultImageSrc": "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
+            "imageSrc": "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
+              "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        },
+        "large": {
+          "character": {
+            "x": 30,
+            "y": 58
+          },
+          "table": {
+            "x": 30,
+            "y": 76
+          },
+          "drink": {
+            "x": 30,
+            "y": 73
+          },
+          "cat": {
+            "x": 50,
+            "y": 82
+          },
+          "bubble": {
+            "x": 24,
+            "y": 24
+          },
+          "order": {
+            "x": 43,
+            "y": 43
+          },
+          "patience": {
+            "x": 43,
+            "y": 47
+          },
+          "characterScale": 100,
+          "drinkScale": 100,
+          "catScale": 100,
+          "talking": {
+            "character": {
+              "x": 48,
+              "y": 89
+            },
+            "cat": {
+              "x": 56,
+              "y": 70
+            },
+            "bubble": {
+              "x": 50,
+              "y": 20
+            },
+            "drink": {
+              "x": 41,
+              "y": 75
+            },
+            "patience": {
+              "x": 43,
+              "y": 79
+            },
+            "faceBlocker": {
+              "x": 52,
+              "y": 27,
+              "width": 18,
+              "height": 24
+            },
+            "safeZone": {
+              "x": 24,
+              "y": 42,
+              "width": 36,
+              "height": 48
+            },
+            "characterScale": 220,
+            "drinkScale": 86,
+            "catScale": 71,
+            "defaultImageSrc": "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
+            "imageSrc": "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png",
+            "enabledImageSrcs": [
+              "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
+              "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png"
+            ],
+            "hiddenImageSrcs": []
+          }
+        }
       }
     }
   },
@@ -12188,6 +16675,29 @@
         "hexScale": 95,
         "textEnabled": false,
         "layer": 3
+      }
+    },
+    "mobile": {
+      "small": {
+        "position": {
+          "x": 82,
+          "y": 50
+        },
+        "scale": 62
+      },
+      "medium": {
+        "position": {
+          "x": 83,
+          "y": 50
+        },
+        "scale": 73
+      },
+      "large": {
+        "position": {
+          "x": 84,
+          "y": 50
+        },
+        "scale": 85
       }
     }
   },
