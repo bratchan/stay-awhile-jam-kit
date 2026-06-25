@@ -2730,6 +2730,102 @@ h3 {
   transform-origin: 50% 82%;
 }
 
+.admin-cat-placement-card {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 248, 235, 0.13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-cat-placement-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-cat-placement-card h3 {
+  margin: 0;
+  color: #fffaf1;
+}
+
+.admin-cat-placement-card p {
+  margin: 4px 0 0;
+  color: #d6c5ad;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.admin-cat-placement-preview {
+  position: relative;
+  min-height: clamp(420px, 58vh, 720px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 248, 235, 0.12);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 239, 205, 0.16), transparent 62%),
+    rgba(255, 255, 255, 0.045);
+}
+
+.admin-cat-placement-onion-toggle {
+  width: min(240px, 100%);
+}
+
+.admin-cat-placement-stage {
+  position: absolute;
+  inset: 0;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-cat-placement-onion {
+  z-index: 1;
+  opacity: 0.22;
+  pointer-events: none;
+  filter: saturate(0.3) brightness(1.05);
+}
+
+.admin-cat-placement-stage .cat-sprite-frame {
+  width: 100%;
+  height: 100%;
+}
+
+.admin-cat-placement-onion .cat-sprite {
+  filter: none;
+}
+
+.admin-cat-placement-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.admin-cat-placement-controls label {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  color: #f7efe5;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.admin-cat-placement-controls input {
+  width: 100%;
+  min-width: 0;
+  accent-color: #7f984d;
+}
+
+.admin-cat-placement-controls small {
+  text-align: right;
+}
+
 .admin-chat-menu-bg,
 .visit-action-menu-bg {
   position: absolute;
@@ -4335,6 +4431,11 @@ h3 {
   grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
 }
 
+.admin-cat-mode-tabs {
+  grid-template-columns: repeat(2, minmax(0, 180px));
+  align-self: start;
+}
+
 .admin-helper-text {
   margin: 8px 0 0;
   color: #d6c5ad;
@@ -4528,7 +4629,7 @@ h3 {
   bottom: 12px;
   z-index: 20;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   padding: 8px 10px;
@@ -4597,6 +4698,37 @@ h3 {
 
 .force-spawn-panel button.disabled small {
   background: #9f6d65;
+}
+
+.force-spawn-hide-button {
+  min-width: 74px;
+  justify-self: end;
+  grid-template-columns: 1fr !important;
+}
+
+.force-spawn-reveal {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 20;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 2px solid rgba(197, 155, 115, 0.72);
+  border-radius: 8px;
+  color: #fff8eb;
+  background: rgba(47, 51, 47, 0.88);
+  box-shadow: 0 10px 24px rgba(20, 18, 14, 0.22);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.force-spawn-reveal:hover {
+  border-color: #e9bf63;
+  background: rgba(63, 69, 57, 0.92);
 }
 
 .shop-stage {
@@ -5386,6 +5518,11 @@ h3 {
   transform-origin: var(--portrait-x, 50%) var(--portrait-y, 50%);
 }
 
+.animal-avatar-portrait .character-bust,
+.animal-avatar-portrait .character-image {
+  filter: none;
+}
+
 .character-party-1 .character-bust,
 .character-party-1 .character-image {
   width: 100%;
@@ -5399,12 +5536,28 @@ h3 {
 
 .cat-floor {
   position: absolute;
-  left: 50%;
-  bottom: clamp(-64px, -5.5cqh, -24px);
+  inset: 0;
   z-index: 15;
-  width: clamp(92px, 13.5cqw, 190px);
-  transform: translateX(-50%);
   pointer-events: none;
+}
+
+.cat-floor-pose {
+  position: absolute;
+  width: clamp(92px, 13.5cqw, 190px);
+  transform-origin: 50% 82%;
+}
+
+.cat-sprite-frame {
+  position: relative;
+  display: block;
+  overflow: visible;
+}
+
+.cat-floor-pose .cat-sprite-frame,
+.cat-close .cat-sprite-frame,
+.admin-cat-prop .cat-sprite-frame {
+  width: 100%;
+  aspect-ratio: 1 / 1;
 }
 
 .cat-sprite {
@@ -5413,13 +5566,26 @@ h3 {
   filter: drop-shadow(0 12px 10px rgba(42, 25, 14, 0.22));
 }
 
+.cat-sprite-frame > .cat-sprite {
+  position: absolute;
+  left: var(--cat-pose-x, 50%);
+  top: var(--cat-pose-y, 50%);
+  transform: translate(-50%, -50%) scale(var(--cat-pose-scale, 1));
+  transform-origin: 50% 50%;
+}
+
 .cat-sprite-image {
   display: block;
   object-fit: contain;
 }
 
-.cat-flipped .cat-sprite {
+.cat-flipped > .cat-sprite {
   transform: scaleX(-1);
+}
+
+.cat-flipped .cat-sprite-frame > .cat-sprite {
+  transform: translate(-50%, -50%)
+    scale(calc(var(--cat-pose-scale, 1) * -1), var(--cat-pose-scale, 1));
 }
 
 @keyframes cafeCustomerArrive {
@@ -5485,9 +5651,11 @@ h3 {
   box-shadow: 0 8px 18px rgba(69, 42, 25, 0.22);
 }
 
-.story-bag svg {
+.story-bag svg,
+.story-bag img {
   width: 30px;
   height: 30px;
+  object-fit: contain;
 }
 
 .story-bag span {
@@ -7731,6 +7899,10 @@ h3 {
     grid-template-columns: 1fr;
   }
 
+  .force-spawn-hide-button {
+    justify-self: stretch;
+  }
+
   .menu-panel {
     padding: 24px;
     width: min(370px, 54vw);
@@ -7806,9 +7978,8 @@ h3 {
     max-width: 66px;
   }
 
-  .cat-floor {
+  .cat-floor-pose {
     width: clamp(90px, 14cqw, 180px);
-    bottom: clamp(-58px, -5cqh, -20px);
   }
 
   .story-bag {
@@ -8682,13 +8853,22 @@ h3 {
     font-size: 0.66rem;
   }
 
+  .force-spawn-reveal {
+    left: 8px;
+    bottom: 8px;
+    min-height: 28px;
+    padding: 0 9px;
+    border-width: 1px;
+    border-radius: 7px;
+    font-size: 0.64rem;
+  }
+
   .admin-mobile-preview .admin-store-character-prop,
   .live-store-character {
     width: 19cqw;
   }
 
-  .cat-floor {
-    bottom: clamp(-44px, -5cqh, -14px);
+  .cat-floor-pose {
     width: clamp(78px, 11.5cqw, 136px);
   }
 
@@ -8700,7 +8880,8 @@ h3 {
     border-width: 2px;
   }
 
-  .story-bag svg {
+  .story-bag svg,
+  .story-bag img {
     width: 24px;
     height: 24px;
   }

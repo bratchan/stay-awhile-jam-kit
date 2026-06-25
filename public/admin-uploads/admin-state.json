@@ -84,7 +84,29 @@
           "/characters/shadow/ShadowTest_03.png",
           "/characters/shadow/ShadowTest_04.png"
         ],
-        "catPoseLayouts": {}
+        "catPoseLayouts": {
+          "idle": {
+            "cat": {
+              "x": 62,
+              "y": 79
+            },
+            "catScale": 76
+          },
+          "meow": {
+            "cat": {
+              "x": 62,
+              "y": 79
+            },
+            "catScale": 80
+          },
+          "purr": {
+            "cat": {
+              "x": 62,
+              "y": 89
+            },
+            "catScale": 84
+          }
+        }
       },
       "mobile": {
         "small": {
@@ -16862,6 +16884,64 @@
     "cute": "/admin-uploads/shadow/1782357052707-chatgpt-image-jun-24-2026-10-57-54-pm-0002-layer.png",
     "roll": "/admin-uploads/shadow/1782357070254-chatgpt-image-jun-24-2026-10-57-54-pm-0001-layer.png",
     "serve": "/admin-uploads/shadow/1782357084751-chatgpt-image-jun-24-2026-10-57-54-pm-0002-layer.png"
+  },
+  "catPosePlacements": {
+    "idle": {
+      "cat": {
+        "x": 37,
+        "y": 80
+      },
+      "catScale": 69
+    },
+    "meow": {
+      "cat": {
+        "x": 45,
+        "y": 53
+      },
+      "catScale": 82
+    },
+    "purr": {
+      "cat": {
+        "x": 45,
+        "y": 68
+      },
+      "catScale": 92
+    },
+    "listen": {
+      "cat": {
+        "x": 47,
+        "y": 51
+      },
+      "catScale": 82
+    },
+    "leave": {
+      "cat": {
+        "x": 47,
+        "y": 52
+      },
+      "catScale": 82
+    },
+    "cute": {
+      "cat": {
+        "x": 47,
+        "y": 52
+      },
+      "catScale": 95
+    },
+    "roll": {
+      "cat": {
+        "x": 45,
+        "y": 70
+      },
+      "catScale": 123
+    },
+    "serve": {
+      "cat": {
+        "x": 47,
+        "y": 53
+      },
+      "catScale": 93
+    }
   },
   "openingSettings": {
     "locationName": "Sweet Purr Café",

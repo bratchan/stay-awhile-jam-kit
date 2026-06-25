@@ -112,6 +112,13 @@ interface AdminPosition {
   y: number;
 }
 
+const ADMIN_CAT_POSE_BOUNDS = {
+  minX: -250,
+  maxX: 350,
+  minY: -180,
+  maxY: 320,
+} as const;
+
 const ADMIN_TALKING_CHARACTER_BOUNDS = {
   minX: -250,
   maxX: 350,
@@ -223,6 +230,7 @@ interface AdminCatPoseLayout {
   catScale: number;
 }
 
+type AdminCatPosePlacements = Record<CatPoseKey, AdminCatPoseLayout>;
 type AdminLayouts = Record<string, AdminLayout>;
 type AdminSeatSpots = Record<AdminSeatSpotKey, AdminSeatSpot>;
 type AdminSeatSpotLayouts = Record<string, AdminSeatSpots>;
@@ -352,6 +360,7 @@ interface AdminPortableState {
   moodIcons: AdminMoodIcon[];
   chatMenu: AdminChatMenuSettings;
   catSettings: AdminCatSettings;
+  catPosePlacements: AdminCatPosePlacements;
   openingSettings: AdminOpeningSettings;
 }
 
@@ -713,6 +722,7 @@ const ADMIN_CHATS_SCHEMA_VERSION = 2;
 const ADMIN_MOOD_ICONS_KEY = 'tea-shop-cat-admin-mood-icons-v1';
 const ADMIN_CHAT_MENU_KEY = 'tea-shop-cat-admin-chat-menu-v1';
 const ADMIN_CAT_SETTINGS_KEY = 'tea-shop-cat-admin-cat-settings-v1';
+const ADMIN_CAT_POSE_PLACEMENTS_KEY = 'tea-shop-cat-admin-cat-pose-placements-v1';
 const ADMIN_LARGE_DB_NAME = 'tea-shop-cat-admin-large-db-v1';
 const ADMIN_LARGE_DB_VERSION = 1;
 const ADMIN_LARGE_STORE_NAME = 'admin-records';
@@ -735,7 +745,8 @@ const EMPTY_TABLE_IMAGE_SRC = '/admin-uploads/store/smallChair.png';
 const UI_ICON_SRC = {
   gear: '/icons/gear.png',
   logBook: '/icons/logBook.png',
-  store: '/icons/storeIcon.png',
+  store: '/icons/store.png',
+  upgrades: '/icons/storeIcon.png',
   lock: '/icons/lock.png',
   cafeComfort: '/icons/cat_happy.png',
 } as const;
@@ -1111,6 +1122,17 @@ const DEFAULT_ADMIN_LAYOUT: AdminLayout = {
     large: DEFAULT_ADMIN_LAYOUT_VARIANT,
   },
 };
+
+const DEFAULT_CAT_POSE_PLACEMENTS = CAT_POSE_KEYS.reduce<AdminCatPosePlacements>(
+  (placements, poseKey) => {
+    placements[poseKey] = {
+      cat: { ...DEFAULT_ADMIN_LAYOUT_VARIANT.talking.cat },
+      catScale: DEFAULT_ADMIN_LAYOUT_VARIANT.talking.catScale,
+    };
+    return placements;
+  },
+  {} as AdminCatPosePlacements,
+);
 
 const TIP_STYLE_LABELS: Record<TipStyle, string> = {
   poor: 'Poor tipper',
@@ -1511,6 +1533,12 @@ function clampAdminTalkingCharacterPosition(position: AdminPosition): AdminPosit
 
 function clampAdminStagePosition(position: AdminPosition, item: AdminDragItem): AdminPosition {
   const minY = item === 'bubble' ? 2 : 6;
+  if (item === 'cat') {
+    return {
+      x: clamp(position.x, ADMIN_CAT_POSE_BOUNDS.minX, ADMIN_CAT_POSE_BOUNDS.maxX),
+      y: clamp(position.y, ADMIN_CAT_POSE_BOUNDS.minY, ADMIN_CAT_POSE_BOUNDS.maxY),
+    };
+  }
   if (item === 'character') {
     return {
       x: clamp(position.x, -40, 140),
@@ -1692,23 +1720,40 @@ function normalizeAdminSafeZone(value: unknown, fallback: AdminFaceBlocker): Adm
 function normalizeAdminCatPoseLayout(
   value: unknown,
   fallback: AdminCatPoseLayout,
+  bounds = { minX: 0, maxX: 100, minY: 0, maxY: 100 },
 ): AdminCatPoseLayout {
   const parsed =
     value != null && typeof value === 'object' ? (value as Partial<AdminCatPoseLayout>) : {};
   return {
-    cat: normalizeAdminPosition(parsed.cat, fallback.cat),
+    cat: normalizeAdminPosition(parsed.cat, fallback.cat, bounds),
     catScale: clamp(Math.floor(numericValue(parsed.catScale, fallback.catScale)), 35, 250),
   };
 }
 
-function getAdminTalkingCatPoseLayout(
-  layout: AdminTalkingLayout,
+function normalizeAdminCatPosePlacements(value: unknown): AdminCatPosePlacements {
+  const parsed =
+    value != null && typeof value === 'object'
+      ? (value as Partial<Record<CatPoseKey, unknown>>)
+      : {};
+  return CAT_POSE_KEYS.reduce<AdminCatPosePlacements>((placements, poseKey) => {
+    placements[poseKey] = normalizeAdminCatPoseLayout(
+      parsed[poseKey],
+      DEFAULT_CAT_POSE_PLACEMENTS[poseKey],
+      ADMIN_CAT_POSE_BOUNDS,
+    );
+    return placements;
+  }, {} as AdminCatPosePlacements);
+}
+
+function getAdminCatPosePlacement(
+  placements: AdminCatPosePlacements,
   poseKey: CatPoseKey,
 ): AdminCatPoseLayout {
-  return normalizeAdminCatPoseLayout(layout.catPoseLayouts[poseKey], {
-    cat: layout.cat,
-    catScale: layout.catScale,
-  });
+  return normalizeAdminCatPoseLayout(
+    placements[poseKey],
+    DEFAULT_CAT_POSE_PLACEMENTS[poseKey],
+    ADMIN_CAT_POSE_BOUNDS,
+  );
 }
 
 function normalizeAdminCatPoseLayouts(
@@ -3246,6 +3291,26 @@ function saveAdminCatSettings(settings: AdminCatSettings) {
   }
 }
 
+function loadAdminCatPosePlacements(): AdminCatPosePlacements {
+  try {
+    const raw = readBrowserStorage(ADMIN_CAT_POSE_PLACEMENTS_KEY);
+    return normalizeAdminCatPosePlacements(raw ? JSON.parse(raw) : DEFAULT_CAT_POSE_PLACEMENTS);
+  } catch {
+    return DEFAULT_CAT_POSE_PLACEMENTS;
+  }
+}
+
+function saveAdminCatPosePlacements(placements: AdminCatPosePlacements) {
+  try {
+    writeBrowserStorage(
+      ADMIN_CAT_POSE_PLACEMENTS_KEY,
+      JSON.stringify(normalizeAdminCatPosePlacements(placements)),
+    );
+  } catch {
+    // Placement is also stored in IndexedDB with the larger admin state.
+  }
+}
+
 function openAdminLargeDb(): Promise<IDBDatabase | null> {
   if (typeof window === 'undefined' || !window.indexedDB) {
     return Promise.resolve(null);
@@ -3329,6 +3394,7 @@ function normalizeAdminPortableState(value: unknown): AdminPortableState {
     moodIcons: normalizeAdminMoodIcons(parsed.moodIcons),
     chatMenu: normalizeAdminChatMenuSettings(parsed.chatMenu),
     catSettings: normalizeAdminCatSettings(parsed.catSettings),
+    catPosePlacements: normalizeAdminCatPosePlacements(parsed.catPosePlacements),
     openingSettings: normalizeOpeningSettings(parsed.openingSettings),
   };
 }
@@ -6487,6 +6553,9 @@ function TeaShopCat() {
   const [adminCatSettings, setAdminCatSettings] = useState<AdminCatSettings>(() =>
     loadAdminCatSettings(),
   );
+  const [adminCatPosePlacements, setAdminCatPosePlacements] = useState<AdminCatPosePlacements>(() =>
+    loadAdminCatPosePlacements(),
+  );
   const [adminOpeningSettings, setAdminOpeningSettings] = useState<AdminOpeningSettings>(() =>
     loadOpeningSettings(),
   );
@@ -6617,9 +6686,20 @@ function TeaShopCat() {
       loadAdminLargeRecord('mood-icons', normalizeAdminMoodIcons),
       loadAdminLargeRecord('chat-menu', normalizeAdminChatMenuSettings),
       loadAdminLargeRecord('cat-settings', normalizeAdminCatSettings),
+      loadAdminLargeRecord('cat-pose-placements', normalizeAdminCatPosePlacements),
       loadAdminPortableState(),
     ]).then(
-      ([layouts, seatSpots, settings, chats, moodIcons, chatMenu, catSettings, portable]) => {
+      ([
+        layouts,
+        seatSpots,
+        settings,
+        chats,
+        moodIcons,
+        chatMenu,
+        catSettings,
+        catPosePlacements,
+        portable,
+      ]) => {
         if (cancelled) return;
         const portableState = portable ?? null;
         const nextLayouts = portableState?.layouts ?? layouts;
@@ -6629,6 +6709,8 @@ function TeaShopCat() {
         const nextMoodIcons = portableState?.moodIcons ?? moodIcons;
         const nextChatMenu = portableState?.chatMenu ?? chatMenu;
         const nextCatSettings = portableState?.catSettings ?? catSettings;
+        const nextCatPosePlacements =
+          portableState?.catPosePlacements ?? catPosePlacements;
 
         if (nextLayouts) setAdminLayouts(nextLayouts);
         if (nextSeatSpots) setAdminSeatSpotLayouts(nextSeatSpots);
@@ -6643,6 +6725,7 @@ function TeaShopCat() {
         if (nextMoodIcons) setAdminMoodIcons(nextMoodIcons);
         if (nextChatMenu) setAdminChatMenuSettings(nextChatMenu);
         if (nextCatSettings) setAdminCatSettings(nextCatSettings);
+        if (nextCatPosePlacements) setAdminCatPosePlacements(nextCatPosePlacements);
         adminLargeLoadedRef.current = true;
         setAdminAssetsReady(true);
       },
@@ -6718,6 +6801,13 @@ function TeaShopCat() {
     saveAdminCatSettings(normalizedCatSettings);
     scheduleAdminLargeSave('cat-settings', normalizedCatSettings);
   }, [adminCatSettings]);
+
+  useEffect(() => {
+    const normalizedCatPosePlacements = normalizeAdminCatPosePlacements(adminCatPosePlacements);
+    if (!adminLargeLoadedRef.current) return;
+    saveAdminCatPosePlacements(normalizedCatPosePlacements);
+    scheduleAdminLargeSave('cat-pose-placements', normalizedCatPosePlacements);
+  }, [adminCatPosePlacements]);
 
   useEffect(() => {
     if (assetPreloadReady) return undefined;
@@ -9399,60 +9489,6 @@ function TeaShopCat() {
     setAdminSaveMessage('');
   }
 
-  function updateAdminTalkingCatPoseLayout(
-    characterId: AdminSubjectId,
-    poseKey: CatPoseKey,
-    patch: Partial<AdminCatPoseLayout>,
-    mobileSize: AdminMobileSize | null = null,
-  ) {
-    setAdminLayouts((prev) => {
-      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
-      const updateTalking = (talking: AdminTalkingLayout): AdminTalkingLayout => {
-        const currentPoseLayout = getAdminTalkingCatPoseLayout(talking, poseKey);
-        const nextPoseLayout = normalizeAdminCatPoseLayout(
-          {
-            ...currentPoseLayout,
-            ...patch,
-          },
-          currentPoseLayout,
-        );
-        return {
-          ...talking,
-          catPoseLayouts: {
-            ...talking.catPoseLayouts,
-            [poseKey]: nextPoseLayout,
-          },
-        };
-      };
-
-      if (mobileSize) {
-        const currentMobileLayout = currentLayout.mobile[mobileSize];
-        return {
-          ...prev,
-          [characterId]: {
-            ...currentLayout,
-            mobile: {
-              ...currentLayout.mobile,
-              [mobileSize]: {
-                ...currentMobileLayout,
-                talking: updateTalking(currentMobileLayout.talking),
-              },
-            },
-          },
-        };
-      }
-
-      return {
-        ...prev,
-        [characterId]: {
-          ...currentLayout,
-          talking: updateTalking(currentLayout.talking),
-        },
-      };
-    });
-    setAdminSaveMessage('');
-  }
-
   function updateAdminTalkingImage(characterId: AdminSubjectId, imageSrc: string) {
     setAdminLayouts((prev) => {
       const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
@@ -9622,6 +9658,7 @@ function TeaShopCat() {
     const normalizedMoodIcons = normalizeAdminMoodIcons(adminMoodIcons);
     const normalizedChatMenu = normalizeAdminChatMenuSettings(adminChatMenuSettings);
     const normalizedCatSettings = normalizeAdminCatSettings(adminCatSettings);
+    const normalizedCatPosePlacements = normalizeAdminCatPosePlacements(adminCatPosePlacements);
     const normalizedOpeningSettings = normalizeOpeningSettings(adminOpeningSettings);
     const portableState: AdminPortableState = {
       version: 1,
@@ -9632,6 +9669,7 @@ function TeaShopCat() {
       moodIcons: normalizedMoodIcons,
       chatMenu: normalizedChatMenu,
       catSettings: normalizedCatSettings,
+      catPosePlacements: normalizedCatPosePlacements,
       openingSettings: normalizedOpeningSettings,
     };
 
@@ -9642,6 +9680,7 @@ function TeaShopCat() {
     saveAdminMoodIcons(normalizedMoodIcons);
     saveAdminChatMenuSettings(normalizedChatMenu);
     saveAdminCatSettings(normalizedCatSettings);
+    saveAdminCatPosePlacements(normalizedCatPosePlacements);
     void saveAdminLargeRecord('layouts', normalizedLayouts);
     void saveAdminLargeRecord('seat-spots', normalizedSeatSpotLayouts);
     void saveAdminLargeRecord('character-settings', normalizedSettings);
@@ -9649,6 +9688,7 @@ function TeaShopCat() {
     void saveAdminLargeRecord('mood-icons', normalizedMoodIcons);
     void saveAdminLargeRecord('chat-menu', normalizedChatMenu);
     void saveAdminLargeRecord('cat-settings', normalizedCatSettings);
+    void saveAdminLargeRecord('cat-pose-placements', normalizedCatPosePlacements);
     const openingSavedToLocalStorage = saveOpeningSettings(normalizedOpeningSettings);
     const saveVersion = openingSaveVersionRef.current + 1;
     openingSaveVersionRef.current = saveVersion;
@@ -9678,6 +9718,7 @@ function TeaShopCat() {
     setAdminMoodIcons(normalizedMoodIcons);
     setAdminChatMenuSettings(normalizedChatMenu);
     setAdminCatSettings(normalizedCatSettings);
+    setAdminCatPosePlacements(normalizedCatPosePlacements);
     setAdminOpeningSettings(normalizedOpeningSettings);
     setPatienceBySlot((prev) =>
       normalizePatienceBySlot(prev, seatCustomerSlots, selectedOccupiedSlot, undefined),
@@ -9794,6 +9835,7 @@ function TeaShopCat() {
         {scene === 'shop' ? (
           <ShopScreen
             adminChats={adminChats}
+            adminCatPosePlacements={adminCatPosePlacements}
             adminLayouts={adminLayouts}
             adminMoodIcons={adminMoodIcons}
             adminSeatSpotLayouts={adminSeatSpotLayouts}
@@ -9862,6 +9904,7 @@ function TeaShopCat() {
             kittyReply={resolveGameTextVariables(currentKittyReply, game)}
             orderLine={resolveGameTextVariables(currentOrderComment, game)}
             layout={getCustomerAdminLayout(currentCustomer, adminLayouts)}
+            adminCatPosePlacements={adminCatPosePlacements}
             chatMenuSettings={adminChatMenuSettings}
             catImageSrc={getCatImageSrc(adminCatSettings, catActionPose)}
             catPoseKey={catActionPose}
@@ -9934,6 +9977,7 @@ function TeaShopCat() {
           <AdminScreen
             adminChats={adminChats}
             adminCatSettings={adminCatSettings}
+            adminCatPosePlacements={adminCatPosePlacements}
             adminChatMenuSettings={adminChatMenuSettings}
             adminMoodIcons={adminMoodIcons}
             openingSettings={adminOpeningSettings}
@@ -9950,6 +9994,21 @@ function TeaShopCat() {
             onAdminCatSettingsChange={(settings) => {
               setAdminCatSettings(normalizeAdminCatSettings(settings));
               setAdminSaveMessage('Saved');
+            }}
+            onAdminCatPosePlacementChange={(poseKey, patch) => {
+              setAdminCatPosePlacements((prev) => {
+                const normalizedPlacements = normalizeAdminCatPosePlacements(prev);
+                const currentPoseLayout = getAdminCatPosePlacement(normalizedPlacements, poseKey);
+                return {
+                  ...normalizedPlacements,
+                  [poseKey]: normalizeAdminCatPoseLayout(
+                    { ...currentPoseLayout, ...patch },
+                    currentPoseLayout,
+                    ADMIN_CAT_POSE_BOUNDS,
+                  ),
+                };
+              });
+              setAdminSaveMessage('');
             }}
             onAdminChatMenuSettingsChange={(settings) => {
               setAdminChatMenuSettings(normalizeAdminChatMenuSettings(settings));
@@ -9984,7 +10043,6 @@ function TeaShopCat() {
             onTalkingImageDelete={deleteAdminTalkingImage}
             onTalkingImagesAdd={addAdminTalkingImages}
             onTalkingCatFlipChange={updateAdminTalkingCatFlipped}
-            onTalkingCatPoseLayoutChange={updateAdminTalkingCatPoseLayout}
             onTalkingFaceBlockerChange={updateAdminTalkingFaceBlocker}
             onTalkingSafeZoneChange={updateAdminTalkingSafeZone}
             onTalkingLayoutChange={updateAdminTalkingLayout}
@@ -10112,7 +10170,7 @@ function TopBar({
           <UiImageIcon alt="" src={UI_ICON_SRC.logBook} />
         </IconButton>
         <IconButton label="Upgrades" onClick={onUpgrades}>
-          <ShopIcon />
+          <UiImageIcon alt="" src={UI_ICON_SRC.upgrades} />
         </IconButton>
         <div className="settings-anchor">
           <IconButton label="Settings" onClick={() => setSettingsOpen((prev) => !prev)}>
@@ -11188,6 +11246,7 @@ function MenuScreen({
 interface AdminScreenProps {
   adminChats: AdminChats;
   adminCatSettings: AdminCatSettings;
+  adminCatPosePlacements: AdminCatPosePlacements;
   adminChatMenuSettings: AdminChatMenuSettings;
   adminMoodIcons: AdminMoodIcon[];
   openingSettings: AdminOpeningSettings;
@@ -11198,6 +11257,10 @@ interface AdminScreenProps {
   selectedCharacterId: AdminSubjectId;
   onAdminChatsChange: (chats: AdminChats) => void;
   onAdminCatSettingsChange: (settings: AdminCatSettings) => void;
+  onAdminCatPosePlacementChange: (
+    poseKey: CatPoseKey,
+    patch: Partial<AdminCatPoseLayout>,
+  ) => void;
   onAdminChatEntryTest: (subjectId: AdminSubjectId, entryId: string) => void;
   onAdminChatMenuSettingsChange: (settings: AdminChatMenuSettings) => void;
   onAdminMoodIconsChange: (icons: AdminMoodIcon[]) => void;
@@ -11243,12 +11306,6 @@ interface AdminScreenProps {
     catFlipped: boolean,
     mobileSize?: AdminMobileSize | null,
   ) => void;
-  onTalkingCatPoseLayoutChange: (
-    characterId: AdminSubjectId,
-    poseKey: CatPoseKey,
-    patch: Partial<AdminCatPoseLayout>,
-    mobileSize?: AdminMobileSize | null,
-  ) => void;
   onTalkingImageChange: (characterId: AdminSubjectId, imageSrc: string) => void;
   onTalkingImageDelete: (characterId: AdminSubjectId, imageSrc: string) => void;
   onTalkingImagesAdd: (characterId: AdminSubjectId, imageSrcs: string[]) => void;
@@ -11279,6 +11336,7 @@ interface AdminScreenProps {
 function AdminScreen({
   adminChats,
   adminCatSettings,
+  adminCatPosePlacements,
   adminChatMenuSettings,
   adminMoodIcons,
   openingSettings,
@@ -11289,6 +11347,7 @@ function AdminScreen({
   selectedCharacterId,
   onAdminChatsChange,
   onAdminCatSettingsChange,
+  onAdminCatPosePlacementChange,
   onAdminChatEntryTest,
   onAdminChatMenuSettingsChange,
   onAdminMoodIconsChange,
@@ -11309,7 +11368,6 @@ function AdminScreen({
   onSubjectEnabledChange,
   onTalkingDefaultImageChange,
   onTalkingCatFlipChange,
-  onTalkingCatPoseLayoutChange,
   onTalkingImageChange,
   onTalkingImageDelete,
   onTalkingImagesAdd,
@@ -11319,6 +11377,7 @@ function AdminScreen({
   onTalkingScaleChange,
 }: AdminScreenProps) {
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const catPlacementPreviewRef = useRef<HTMLDivElement | null>(null);
   const chatMenuPreviewRef = useRef<HTMLElement | null>(null);
   const chatMenuEditorRef = useRef<HTMLDivElement | null>(null);
   const dragItemRef = useRef<AdminLayoutDragItem | null>(null);
@@ -11331,6 +11390,8 @@ function AdminScreen({
   const dragChatMenuOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const dragChatMenuWheelRef = useRef(false);
   const dragChatMenuWheelOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
+  const dragCatPosePlacementRef = useRef(false);
+  const dragCatPosePlacementOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
   const dragChatBlockIdRef = useRef('');
   const dragFaceBlockerRef = useRef(false);
   const dragFaceBlockerOffsetRef = useRef<AdminPosition>({ x: 0, y: 0 });
@@ -11355,6 +11416,8 @@ function AdminScreen({
   const [previewChatKind, setPreviewChatKind] = useState<AdminChatKind>('story');
   const [previewChatEntryId, setPreviewChatEntryId] = useState('');
   const [selectedTalkingCatPose, setSelectedTalkingCatPose] = useState<CatPoseKey>('idle');
+  const [catToolTab, setCatToolTab] = useState<'upload' | 'placement'>('upload');
+  const [showCatPlacementOnion, setShowCatPlacementOnion] = useState(false);
   const [openingTab, setOpeningTab] = useState<AdminOpeningTab>('settings');
   const [addingChatGroupId, setAddingChatGroupId] = useState('');
   const [chatImportMessage, setChatImportMessage] = useState('');
@@ -11376,10 +11439,13 @@ function AdminScreen({
   const activeMobileSize = mobilePreview ? mobilePreviewSize : null;
   const selectedLayout = getAdminLayoutVariant(selectedBaseLayout, activeMobileSize);
   const selectedTalkingLayout = selectedLayout.talking;
-  const selectedTalkingCatPoseLayout = getAdminTalkingCatPoseLayout(
-    selectedTalkingLayout,
+  const normalizedAdminCatPosePlacements =
+    normalizeAdminCatPosePlacements(adminCatPosePlacements);
+  const selectedGlobalCatPoseLayout = getAdminCatPosePlacement(
+    normalizedAdminCatPosePlacements,
     selectedTalkingCatPose,
   );
+  const idleCatPoseLayout = getAdminCatPosePlacement(normalizedAdminCatPosePlacements, 'idle');
   const safeAdminChatMenuSettings = normalizeAdminChatMenuSettings(adminChatMenuSettings);
   const activeChatMenuSettings = getAdminChatMenuSettingsForViewport(
     safeAdminChatMenuSettings,
@@ -11888,11 +11954,8 @@ function AdminScreen({
 
   function talkingCatStyle(): CSSProperties {
     return {
-      ...talkingDragStyle('cat', {
-        ...selectedTalkingLayout,
-        cat: selectedTalkingCatPoseLayout.cat,
-      }),
-      '--cat-scale': selectedTalkingCatPoseLayout.catScale / 100,
+      ...talkingDragStyle('cat'),
+      '--cat-scale': selectedTalkingLayout.catScale / 100,
     } as CSSProperties;
   }
 
@@ -12032,6 +12095,57 @@ function AdminScreen({
     };
   }
 
+  function getCatPlacementPreviewPercent(
+    event: ReactPointerEvent<HTMLElement>,
+  ): AdminPosition | null {
+    const preview = catPlacementPreviewRef.current;
+    if (!preview) return null;
+    const rect = preview.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+
+    return {
+      x: clamp(
+        ((event.clientX - rect.left) / rect.width) * 100,
+        ADMIN_CAT_POSE_BOUNDS.minX,
+        ADMIN_CAT_POSE_BOUNDS.maxX,
+      ),
+      y: clamp(
+        ((event.clientY - rect.top) / rect.height) * 100,
+        ADMIN_CAT_POSE_BOUNDS.minY,
+        ADMIN_CAT_POSE_BOUNDS.maxY,
+      ),
+    };
+  }
+
+  function beginCatPosePlacementDrag(event: ReactPointerEvent<HTMLElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const position = getCatPlacementPreviewPercent(event);
+    if (!position) return;
+    dragCatPosePlacementRef.current = true;
+    dragCatPosePlacementOffsetRef.current = {
+      x: position.x - selectedGlobalCatPoseLayout.cat.x,
+      y: position.y - selectedGlobalCatPoseLayout.cat.y,
+    };
+  }
+
+  function moveCatPosePlacementDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!dragCatPosePlacementRef.current) return;
+    const position = getCatPlacementPreviewPercent(event);
+    if (!position) return;
+    onAdminCatPosePlacementChange(selectedTalkingCatPose, {
+      cat: {
+        x: position.x - dragCatPosePlacementOffsetRef.current.x,
+        y: position.y - dragCatPosePlacementOffsetRef.current.y,
+      },
+    });
+  }
+
+  function stopCatPosePlacementDrag() {
+    dragCatPosePlacementRef.current = false;
+    dragCatPosePlacementOffsetRef.current = { x: 0, y: 0 };
+  }
+
   function updateChatFaceBlocker(patch: Partial<AdminFaceBlocker>) {
     const nextFaceBlocker = normalizeAdminFaceBlocker(
       {
@@ -12104,7 +12218,7 @@ function AdminScreen({
         item === 'drink' ||
         item === 'patience')
     ) {
-      if (item === 'cat') return selectedTalkingCatPoseLayout.cat;
+      if (item === 'cat') return selectedGlobalCatPoseLayout.cat;
       return item === 'bubble'
         ? getProtectedTalkingBubblePosition(selectedTalkingLayout, activeMobileSize)
         : selectedTalkingLayout[item];
@@ -12178,12 +12292,7 @@ function AdminScreen({
         dragItem === 'patience')
     ) {
       if (dragItem === 'cat') {
-        onTalkingCatPoseLayoutChange(
-          selectedCharacterId,
-          selectedTalkingCatPose,
-          { cat: nextPosition },
-          activeMobileSize,
-        );
+        onAdminCatPosePlacementChange(selectedTalkingCatPose, { cat: nextPosition });
         return;
       }
       onTalkingLayoutChange(selectedCharacterId, dragItem, nextPosition, activeMobileSize);
@@ -14569,25 +14678,19 @@ function AdminScreen({
                   min={35}
                   max={250}
                   type="range"
-                  value={selectedTalkingLayout.catScale}
+                  value={idleCatPoseLayout.catScale}
                   onInput={(event) =>
-                      onTalkingScaleChange(
-                        selectedCharacterId,
-                        'catScale',
-                        Number(event.currentTarget.value),
-                        activeMobileSize,
-                      )
+                    onAdminCatPosePlacementChange('idle', {
+                      catScale: Number(event.currentTarget.value),
+                    })
                   }
                   onChange={(event) =>
-                      onTalkingScaleChange(
-                        selectedCharacterId,
-                        'catScale',
-                        Number(event.currentTarget.value),
-                        activeMobileSize,
-                      )
+                    onAdminCatPosePlacementChange('idle', {
+                      catScale: Number(event.currentTarget.value),
+                    })
                   }
                 />
-                <small>{selectedTalkingLayout.catScale}%</small>
+                <small>{idleCatPoseLayout.catScale}%</small>
               </label>
             </header>
             <div className="admin-chat-menu-workspace">
@@ -14626,7 +14729,7 @@ function AdminScreen({
                 </div>
                 <div
                   className="admin-chat-menu-cat-reference"
-                  style={{ '--cat-scale': selectedTalkingLayout.catScale / 100 } as CSSProperties}
+                  style={{ '--cat-scale': selectedGlobalCatPoseLayout.catScale / 100 } as CSSProperties}
                   aria-hidden="true"
                 >
                   <CatSprite imageSrc={getCatImageSrc(adminCatSettings, 'idle')} resting />
@@ -14882,38 +14985,191 @@ function AdminScreen({
               </div>
               <span>Idle plus action poses</span>
             </header>
-            <div className="admin-cat-pose-grid">
-              {CAT_POSE_KEYS.map((poseKey) => (
-                <article className="admin-cat-pose-card" key={poseKey}>
-                  <div className="admin-cat-pose-preview">
-                    <CatSprite imageSrc={adminCatSettings[poseKey]} resting={poseKey === 'idle'} />
+            <div className="admin-spot-tabs admin-cat-mode-tabs" aria-label="Cat editor tabs">
+              <button
+                className={catToolTab === 'upload' ? 'active' : ''}
+                type="button"
+                onClick={() => setCatToolTab('upload')}
+              >
+                Upload
+              </button>
+              <button
+                className={catToolTab === 'placement' ? 'active' : ''}
+                type="button"
+                onClick={() => setCatToolTab('placement')}
+              >
+                Placement
+              </button>
+            </div>
+            {catToolTab === 'placement' ? (
+              <section className="admin-cat-placement-card" aria-label="Cat pose placement">
+                <header>
+                  <div>
+                    <h3>Cat Pose Placement</h3>
+                    <p>Global pose alignment inside the cat slot for every guest.</p>
                   </div>
-                  <h3>{getCatPoseLabel(poseKey)}</h3>
-                  <label className="admin-upload-line">
-                    <span>Image</span>
-                    <strong>Choose Image</strong>
+                </header>
+                <div className="admin-spot-tabs admin-cat-pose-tabs" aria-label="Cat pose placement">
+                  {CAT_POSE_KEYS.map((poseKey) => (
+                    <button
+                      className={selectedTalkingCatPose === poseKey ? 'active' : ''}
+                      key={poseKey}
+                      type="button"
+                      onClick={() => setSelectedTalkingCatPose(poseKey)}
+                    >
+                      {getCatPoseLabel(poseKey)}
+                    </button>
+                  ))}
+                </div>
+                <label className="admin-toggle-row admin-cat-placement-onion-toggle">
+                  <span>Onion idle pose</span>
+                  <input
+                    checked={showCatPlacementOnion}
+                    type="checkbox"
+                    onChange={(event) => setShowCatPlacementOnion(event.currentTarget.checked)}
+                  />
+                </label>
+                <div
+                  className="admin-cat-placement-preview"
+                  ref={catPlacementPreviewRef}
+                  onPointerCancel={stopCatPosePlacementDrag}
+                  onPointerMove={moveCatPosePlacementDrag}
+                  onPointerUp={stopCatPosePlacementDrag}
+                >
+                  {showCatPlacementOnion && selectedTalkingCatPose !== 'idle' ? (
+                    <div
+                      aria-hidden="true"
+                      className="admin-cat-placement-stage admin-cat-placement-onion"
+                    >
+                      <CatSprite
+                        imageSrc={getCatImageSrc(adminCatSettings, 'idle')}
+                        poseLayout={idleCatPoseLayout}
+                        resting
+                      />
+                    </div>
+                  ) : null}
+                  <button
+                    aria-label={`Move ${getCatPoseLabel(selectedTalkingCatPose)} cat pose`}
+                    className="admin-cat-placement-stage"
+                    type="button"
+                    onPointerDown={beginCatPosePlacementDrag}
+                  >
+                    <CatSprite
+                      imageSrc={getCatImageSrc(adminCatSettings, selectedTalkingCatPose)}
+                      poseLayout={selectedGlobalCatPoseLayout}
+                      resting={selectedTalkingCatPose === 'idle'}
+                    />
+                  </button>
+                </div>
+                <div className="admin-cat-placement-controls">
+                  <label>
+                    <span>X</span>
                     <input
-                      accept="image/*"
-                      type="file"
+                      min={ADMIN_CAT_POSE_BOUNDS.minX}
+                      max={ADMIN_CAT_POSE_BOUNDS.maxX}
+                      type="range"
+                      value={selectedGlobalCatPoseLayout.cat.x}
+                      onInput={(event) =>
+                        onAdminCatPosePlacementChange(selectedTalkingCatPose, {
+                          cat: {
+                            ...selectedGlobalCatPoseLayout.cat,
+                            x: Number(event.currentTarget.value),
+                          },
+                        })
+                      }
                       onChange={(event) =>
-                        readUploadedImage(event, (imageSrc) =>
-                          updateCatPoseImage(poseKey, imageSrc),
-                        )
+                        onAdminCatPosePlacementChange(selectedTalkingCatPose, {
+                          cat: {
+                            ...selectedGlobalCatPoseLayout.cat,
+                            x: Number(event.currentTarget.value),
+                          },
+                        })
                       }
                     />
+                    <small>{Math.round(selectedGlobalCatPoseLayout.cat.x)}%</small>
                   </label>
-                  {adminCatSettings[poseKey] ? (
-                    <button
-                      className="danger-text-button"
-                      type="button"
-                      onClick={() => updateCatPoseImage(poseKey, '')}
-                    >
-                      Clear Image
-                    </button>
-                  ) : null}
-                </article>
-              ))}
-            </div>
+                  <label>
+                    <span>Y</span>
+                    <input
+                      min={ADMIN_CAT_POSE_BOUNDS.minY}
+                      max={ADMIN_CAT_POSE_BOUNDS.maxY}
+                      type="range"
+                      value={selectedGlobalCatPoseLayout.cat.y}
+                      onInput={(event) =>
+                        onAdminCatPosePlacementChange(selectedTalkingCatPose, {
+                          cat: {
+                            ...selectedGlobalCatPoseLayout.cat,
+                            y: Number(event.currentTarget.value),
+                          },
+                        })
+                      }
+                      onChange={(event) =>
+                        onAdminCatPosePlacementChange(selectedTalkingCatPose, {
+                          cat: {
+                            ...selectedGlobalCatPoseLayout.cat,
+                            y: Number(event.currentTarget.value),
+                          },
+                        })
+                      }
+                    />
+                    <small>{Math.round(selectedGlobalCatPoseLayout.cat.y)}%</small>
+                  </label>
+                  <label>
+                    <span>Scale</span>
+                    <input
+                      min={35}
+                      max={250}
+                      type="range"
+                      value={selectedGlobalCatPoseLayout.catScale}
+                      onInput={(event) =>
+                        onAdminCatPosePlacementChange(selectedTalkingCatPose, {
+                          catScale: Number(event.currentTarget.value),
+                        })
+                      }
+                      onChange={(event) =>
+                        onAdminCatPosePlacementChange(selectedTalkingCatPose, {
+                          catScale: Number(event.currentTarget.value),
+                        })
+                      }
+                    />
+                    <small>{selectedGlobalCatPoseLayout.catScale}%</small>
+                  </label>
+                </div>
+              </section>
+            ) : (
+              <div className="admin-cat-pose-grid">
+                {CAT_POSE_KEYS.map((poseKey) => (
+                  <article className="admin-cat-pose-card" key={poseKey}>
+                    <div className="admin-cat-pose-preview">
+                      <CatSprite imageSrc={adminCatSettings[poseKey]} resting={poseKey === 'idle'} />
+                    </div>
+                    <h3>{getCatPoseLabel(poseKey)}</h3>
+                    <label className="admin-upload-line">
+                      <span>Image</span>
+                      <strong>Choose Image</strong>
+                      <input
+                        accept="image/*"
+                        type="file"
+                        onChange={(event) =>
+                          readUploadedImage(event, (imageSrc) =>
+                            updateCatPoseImage(poseKey, imageSrc),
+                          )
+                        }
+                      />
+                    </label>
+                    {adminCatSettings[poseKey] ? (
+                      <button
+                        className="danger-text-button"
+                        type="button"
+                        onClick={() => updateCatPoseImage(poseKey, '')}
+                      >
+                        Clear Image
+                      </button>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div
@@ -15374,6 +15630,7 @@ function AdminScreen({
               >
                 <CatSprite
                   imageSrc={getCatImageSrc(adminCatSettings, selectedTalkingCatPose)}
+                  poseLayout={selectedGlobalCatPoseLayout}
                   resting={selectedTalkingCatPose === 'idle'}
                 />
               </div>
@@ -15890,7 +16147,7 @@ function AdminScreen({
                       ))}
                     </div>
                     <p className="admin-helper-text">
-                      Drag the cat in the preview to place this pose for {selectedCustomer.name}.
+                      Drag the cat in the preview to place this pose for every guest.
                     </p>
                   </fieldset>
                   <label>
@@ -15899,25 +16156,21 @@ function AdminScreen({
                       min={35}
                       max={250}
                       type="range"
-                      value={selectedTalkingCatPoseLayout.catScale}
+                      value={selectedGlobalCatPoseLayout.catScale}
                       onInput={(event) =>
-                        onTalkingCatPoseLayoutChange(
-                          selectedCharacterId,
+                        onAdminCatPosePlacementChange(
                           selectedTalkingCatPose,
                           { catScale: Number(event.currentTarget.value) },
-                          activeMobileSize,
                         )
                       }
                       onChange={(event) =>
-                        onTalkingCatPoseLayoutChange(
-                          selectedCharacterId,
+                        onAdminCatPosePlacementChange(
                           selectedTalkingCatPose,
                           { catScale: Number(event.target.value) },
-                          activeMobileSize,
                         )
                       }
                     />
-                    <small>{selectedTalkingCatPoseLayout.catScale}%</small>
+                    <small>{selectedGlobalCatPoseLayout.catScale}%</small>
                   </label>
                   <label className="admin-toggle-row">
                     <span>Flip cat</span>
@@ -16341,6 +16594,7 @@ function AdminScreen({
 
 interface ShopScreenProps {
   adminChats: AdminChats;
+  adminCatPosePlacements: AdminCatPosePlacements;
   adminLayouts: AdminLayouts;
   adminMoodIcons: AdminMoodIcon[];
   adminSeatSpotLayouts: AdminSeatSpotLayouts;
@@ -16391,6 +16645,7 @@ function ShopUpgradeDecor({ upgrades }: { upgrades: string[] }) {
 
 function ShopScreen({
   adminChats,
+  adminCatPosePlacements,
   adminLayouts,
   adminMoodIcons,
   adminSeatSpotLayouts,
@@ -16421,6 +16676,7 @@ function ShopScreen({
   tutorialStep,
   onTutorialNext,
 }: ShopScreenProps) {
+  const [forceSpawnHidden, setForceSpawnHidden] = useState(false);
   const tutorialPatienceActive = tutorialStep === 'patience';
   const tutorialServeActive = tutorialStep === 'serve';
   const tutorialVisitActive = tutorialStep === 'visit';
@@ -16475,6 +16731,18 @@ function ShopScreen({
       transform: `translate(-50%, -100%)${scale === 1 ? '' : ` scale(${scale})`}`,
     };
   }
+
+  const shopCatPlacement = getAdminCatPosePlacement(
+    normalizeAdminCatPosePlacements(adminCatPosePlacements),
+    'idle',
+  );
+  const shopCatStyle: CSSProperties = {
+    bottom: 'auto',
+    left: '50%',
+    right: 'auto',
+    top: '100%',
+    transform: 'translate(-50%, -100%)',
+  };
 
   function getMoodIconSrcForCustomer(customer: Customer, kind: AdminChatKind): string {
     const subjectId = getCustomerAdminSubjectId(customer);
@@ -16808,7 +17076,9 @@ function ShopScreen({
         })}
 
         <div className="cat-floor">
-          <CatSprite imageSrc={catImageSrc} />
+          <div className="cat-floor-pose" style={shopCatStyle}>
+            <CatSprite imageSrc={catImageSrc} poseLayout={shopCatPlacement} />
+          </div>
         </div>
 
         {arrivalState === 'waiting' ? (
@@ -16836,11 +17106,20 @@ function ShopScreen({
           onClick={onStories}
           aria-label={`Guest log, ${customerLogCount} parties met`}
         >
-          <BookIcon />
+          <UiImageIcon alt="" src={UI_ICON_SRC.logBook} />
           <span>{customerLogCount}</span>
         </button>
       </section>
-      {showForceSpawn ? (
+      {showForceSpawn && forceSpawnHidden ? (
+        <button
+          className="force-spawn-reveal"
+          type="button"
+          onClick={() => setForceSpawnHidden(false)}
+        >
+          Show Force Spawn
+        </button>
+      ) : null}
+      {showForceSpawn && !forceSpawnHidden ? (
         <aside className="force-spawn-panel" aria-label="Force spawn guests">
           <span>Force Spawn</span>
           <div>
@@ -16861,6 +17140,13 @@ function ShopScreen({
               );
             })}
           </div>
+          <button
+            className="force-spawn-hide-button"
+            type="button"
+            onClick={() => setForceSpawnHidden(true)}
+          >
+            Hide
+          </button>
         </aside>
       ) : null}
     </main>
@@ -16894,6 +17180,7 @@ function WallClock({ progress }: WallClockProps) {
 }
 
 interface VisitScreenProps {
+  adminCatPosePlacements: AdminCatPosePlacements;
   customer: Customer;
   services: ServiceItem[];
   servedOrderIndexes: number[];
@@ -16952,6 +17239,7 @@ interface VisitScreenProps {
 }
 
 function VisitScreen({
+  adminCatPosePlacements,
   customer,
   services,
   servedOrderIndexes,
@@ -17214,22 +17502,15 @@ function VisitScreen({
     };
   }
 
-  function talkingPositionFromPoint(position: AdminPosition, scale = 1): CSSProperties {
-    return {
-      bottom: 'auto',
-      left: `${position.x}%`,
-      right: 'auto',
-      top: `${position.y}%`,
-      transform: `translate(-50%, -50%)${visitScaleTransform(scale)}`,
-    };
-  }
-
   const bubbleStyle = useTalkingImage
     ? talkingPositionStyle('bubble')
     : visitPositionStyle('bubble');
-  const talkingCatPoseLayout = getAdminTalkingCatPoseLayout(visitLayout.talking, catPoseKey);
+  const activeCatPosePlacement = getAdminCatPosePlacement(
+    normalizeAdminCatPosePlacements(adminCatPosePlacements),
+    catPoseKey,
+  );
   const catStyle = useTalkingImage
-    ? talkingPositionFromPoint(talkingCatPoseLayout.cat, talkingCatPoseLayout.catScale / 100)
+    ? talkingPositionStyle('cat', visitLayout.talking.catScale / 100)
     : visitPositionStyle('cat', visitLayout.catScale / 100);
   const patienceStyle = useTalkingImage
     ? talkingPositionStyle('patience')
@@ -17394,7 +17675,7 @@ function VisitScreen({
               <span>purr</span>
             </div>
           ) : null}
-          <CatSprite imageSrc={catImageSrc} />
+          <CatSprite imageSrc={catImageSrc} poseLayout={activeCatPosePlacement} />
         </div>
         {serviceServed ? (
           <div
@@ -18047,7 +18328,7 @@ function UpgradesScreen({
           ) : null}
         </div>
         <button className="paper-button ledger-back" type="button" onClick={onBack}>
-          <ShopIcon />
+          <UiImageIcon alt="" src={UI_ICON_SRC.store} />
           Back to Shop
         </button>
       </section>
@@ -18459,22 +18740,19 @@ function CharacterBust({ member, index, total }: CharacterBustProps) {
 
 interface CatSpriteProps {
   imageSrc?: string;
+  poseLayout?: AdminCatPoseLayout | null;
   resting?: boolean;
 }
 
-function CatSprite({ imageSrc = '', resting = false }: CatSpriteProps) {
-  if (imageSrc) {
-    return (
-      <img
-        alt="Shop cat"
-        className={`cat-sprite cat-sprite-image ${resting ? 'cat-resting' : ''}`}
-        draggable={false}
-        src={resolveAssetSrc(imageSrc)}
-      />
-    );
-  }
-
-  return (
+function CatSprite({ imageSrc = '', poseLayout = null, resting = false }: CatSpriteProps) {
+  const sprite = imageSrc ? (
+    <img
+      alt="Shop cat"
+      className={`cat-sprite cat-sprite-image ${resting ? 'cat-resting' : ''}`}
+      draggable={false}
+      src={resolveAssetSrc(imageSrc)}
+    />
+  ) : (
     <svg
       className={`cat-sprite ${resting ? 'cat-resting' : ''}`}
       viewBox="0 0 210 140"
@@ -18542,6 +18820,23 @@ function CatSprite({ imageSrc = '', resting = false }: CatSpriteProps) {
       <circle cx="50" cy="88" r="12" fill="#c8793b" />
       <title>Shop cat</title>
     </svg>
+  );
+
+  if (!poseLayout) return sprite;
+
+  return (
+    <span
+      className="cat-sprite-frame"
+      style={
+        {
+          '--cat-pose-x': `${poseLayout.cat.x}%`,
+          '--cat-pose-y': `${poseLayout.cat.y}%`,
+          '--cat-pose-scale': poseLayout.catScale / 100,
+        } as CSSProperties
+      }
+    >
+      {sprite}
+    </span>
   );
 }
 
