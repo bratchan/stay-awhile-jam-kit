@@ -210,10 +210,17 @@ interface AdminTalkingLayout {
   characterScale: number;
   drinkScale: number;
   catScale: number;
+  catFlipped: boolean;
   defaultImageSrc: string;
   imageSrc: string;
   enabledImageSrcs: string[];
   hiddenImageSrcs: string[];
+  catPoseLayouts: Partial<Record<CatPoseKey, AdminCatPoseLayout>>;
+}
+
+interface AdminCatPoseLayout {
+  cat: AdminPosition;
+  catScale: number;
 }
 
 type AdminLayouts = Record<string, AdminLayout>;
@@ -728,7 +735,9 @@ const EMPTY_TABLE_IMAGE_SRC = '/admin-uploads/store/smallChair.png';
 const UI_ICON_SRC = {
   gear: '/icons/gear.png',
   logBook: '/icons/logBook.png',
-  store: '/icons/store.png',
+  store: '/icons/storeIcon.png',
+  lock: '/icons/lock.png',
+  cafeComfort: '/icons/cat_happy.png',
 } as const;
 const RELATIONSHIP_HEART_SRC = {
   black: '/icons/black_heart.png',
@@ -1084,10 +1093,12 @@ const DEFAULT_ADMIN_LAYOUT_VARIANT: AdminLayoutVariant = {
     characterScale: 100,
     drinkScale: 100,
     catScale: 82,
+    catFlipped: false,
     defaultImageSrc: '',
     imageSrc: '',
     enabledImageSrcs: [],
     hiddenImageSrcs: [],
+    catPoseLayouts: {},
   },
 };
 
@@ -1410,6 +1421,15 @@ function cloneAdminTalkingLayout(layout: AdminTalkingLayout): AdminTalkingLayout
     safeZone: { ...layout.safeZone },
     enabledImageSrcs: [...layout.enabledImageSrcs],
     hiddenImageSrcs: [...layout.hiddenImageSrcs],
+    catPoseLayouts: Object.fromEntries(
+      Object.entries(layout.catPoseLayouts).map(([poseKey, poseLayout]) => [
+        poseKey,
+        {
+          cat: { ...poseLayout.cat },
+          catScale: poseLayout.catScale,
+        },
+      ]),
+    ),
   };
 }
 
@@ -1669,6 +1689,46 @@ function normalizeAdminSafeZone(value: unknown, fallback: AdminFaceBlocker): Adm
   };
 }
 
+function normalizeAdminCatPoseLayout(
+  value: unknown,
+  fallback: AdminCatPoseLayout,
+): AdminCatPoseLayout {
+  const parsed =
+    value != null && typeof value === 'object' ? (value as Partial<AdminCatPoseLayout>) : {};
+  return {
+    cat: normalizeAdminPosition(parsed.cat, fallback.cat),
+    catScale: clamp(Math.floor(numericValue(parsed.catScale, fallback.catScale)), 35, 250),
+  };
+}
+
+function getAdminTalkingCatPoseLayout(
+  layout: AdminTalkingLayout,
+  poseKey: CatPoseKey,
+): AdminCatPoseLayout {
+  return normalizeAdminCatPoseLayout(layout.catPoseLayouts[poseKey], {
+    cat: layout.cat,
+    catScale: layout.catScale,
+  });
+}
+
+function normalizeAdminCatPoseLayouts(
+  value: unknown,
+  fallbackLayout: AdminTalkingLayout,
+): Partial<Record<CatPoseKey, AdminCatPoseLayout>> {
+  const parsed =
+    value != null && typeof value === 'object'
+      ? (value as Partial<Record<CatPoseKey, unknown>>)
+      : {};
+  return CAT_POSE_KEYS.reduce<Partial<Record<CatPoseKey, AdminCatPoseLayout>>>((layouts, poseKey) => {
+    if (parsed[poseKey] == null) return layouts;
+    layouts[poseKey] = normalizeAdminCatPoseLayout(parsed[poseKey], {
+      cat: fallbackLayout.cat,
+      catScale: fallbackLayout.catScale,
+    });
+    return layouts;
+  }, {});
+}
+
 function normalizeAdminTalkingLayout(
   value: unknown,
   subjectId?: AdminSubjectId,
@@ -1730,10 +1790,13 @@ function normalizeAdminTalkingLayout(
     ),
     drinkScale: clamp(Math.floor(numericValue(parsed.drinkScale, fallback.drinkScale)), 45, 250),
     catScale: clamp(Math.floor(numericValue(parsed.catScale, fallback.catScale)), 35, 250),
+    catFlipped:
+      typeof parsed.catFlipped === 'boolean' ? parsed.catFlipped : fallback.catFlipped,
     defaultImageSrc,
     imageSrc,
     enabledImageSrcs: safeEnabledImageSrcs,
     hiddenImageSrcs,
+    catPoseLayouts: normalizeAdminCatPoseLayouts(parsed.catPoseLayouts, fallback),
   };
 }
 
@@ -9295,6 +9358,101 @@ function TeaShopCat() {
     setAdminSaveMessage('');
   }
 
+  function updateAdminTalkingCatFlipped(
+    characterId: AdminSubjectId,
+    catFlipped: boolean,
+    mobileSize: AdminMobileSize | null = null,
+  ) {
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                talking: {
+                  ...currentMobileLayout.talking,
+                  catFlipped,
+                },
+              },
+            },
+          },
+        };
+      }
+
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          talking: {
+            ...currentLayout.talking,
+            catFlipped,
+          },
+        },
+      };
+    });
+    setAdminSaveMessage('');
+  }
+
+  function updateAdminTalkingCatPoseLayout(
+    characterId: AdminSubjectId,
+    poseKey: CatPoseKey,
+    patch: Partial<AdminCatPoseLayout>,
+    mobileSize: AdminMobileSize | null = null,
+  ) {
+    setAdminLayouts((prev) => {
+      const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
+      const updateTalking = (talking: AdminTalkingLayout): AdminTalkingLayout => {
+        const currentPoseLayout = getAdminTalkingCatPoseLayout(talking, poseKey);
+        const nextPoseLayout = normalizeAdminCatPoseLayout(
+          {
+            ...currentPoseLayout,
+            ...patch,
+          },
+          currentPoseLayout,
+        );
+        return {
+          ...talking,
+          catPoseLayouts: {
+            ...talking.catPoseLayouts,
+            [poseKey]: nextPoseLayout,
+          },
+        };
+      };
+
+      if (mobileSize) {
+        const currentMobileLayout = currentLayout.mobile[mobileSize];
+        return {
+          ...prev,
+          [characterId]: {
+            ...currentLayout,
+            mobile: {
+              ...currentLayout.mobile,
+              [mobileSize]: {
+                ...currentMobileLayout,
+                talking: updateTalking(currentMobileLayout.talking),
+              },
+            },
+          },
+        };
+      }
+
+      return {
+        ...prev,
+        [characterId]: {
+          ...currentLayout,
+          talking: updateTalking(currentLayout.talking),
+        },
+      };
+    });
+    setAdminSaveMessage('');
+  }
+
   function updateAdminTalkingImage(characterId: AdminSubjectId, imageSrc: string) {
     setAdminLayouts((prev) => {
       const currentLayout = normalizeAdminLayout(prev[characterId], characterId);
@@ -9585,6 +9743,7 @@ function TeaShopCat() {
             musicMuted={musicMuted}
             musicVolume={musicVolume}
             debugBlockersVisible={debugBlockersVisible}
+            showDebugTools={adminAvailable}
             onMusicMutedChange={updateMusicMuted}
             onMusicVolumeChange={updateMusicVolume}
             onReset={resetSave}
@@ -9705,6 +9864,7 @@ function TeaShopCat() {
             layout={getCustomerAdminLayout(currentCustomer, adminLayouts)}
             chatMenuSettings={adminChatMenuSettings}
             catImageSrc={getCatImageSrc(adminCatSettings, catActionPose)}
+            catPoseKey={catActionPose}
             afterHoursComment={resolveGameTextVariables(
               getCustomerAfterHoursComment(currentCustomer, game),
               game,
@@ -9823,6 +9983,8 @@ function TeaShopCat() {
             onTalkingImageChange={updateAdminTalkingImage}
             onTalkingImageDelete={deleteAdminTalkingImage}
             onTalkingImagesAdd={addAdminTalkingImages}
+            onTalkingCatFlipChange={updateAdminTalkingCatFlipped}
+            onTalkingCatPoseLayoutChange={updateAdminTalkingCatPoseLayout}
             onTalkingFaceBlockerChange={updateAdminTalkingFaceBlocker}
             onTalkingSafeZoneChange={updateAdminTalkingSafeZone}
             onTalkingLayoutChange={updateAdminTalkingLayout}
@@ -9859,6 +10021,7 @@ interface TopBarProps {
   musicMuted: boolean;
   musicVolume: number;
   debugBlockersVisible: boolean;
+  showDebugTools: boolean;
   onMusicMutedChange: (muted: boolean) => void;
   onMusicVolumeChange: (volume: number) => void;
   onReset: () => void;
@@ -9900,6 +10063,7 @@ function TopBar({
   musicMuted,
   musicVolume,
   debugBlockersVisible,
+  showDebugTools,
   onMusicMutedChange,
   onMusicVolumeChange,
   onReset,
@@ -9924,7 +10088,7 @@ function TopBar({
         <Meter value={clockProgress} label="Cafe day progress" />
       </div>
       <div className="happiness-meter">
-        <CatHeadIcon />
+        <UiImageIcon alt="" className="comfort-cat-icon" src={UI_ICON_SRC.cafeComfort} />
         <div>
           <div className="meter-label">
             <span>Cafe Comfort</span>
@@ -9966,13 +10130,15 @@ function TopBar({
             />
           ) : null}
         </div>
-        <IconButton
-          className={debugBlockersVisible ? 'debug-button active' : 'debug-button'}
-          label={debugBlockersVisible ? 'Hide blocker debug' : 'Show blocker debug'}
-          onClick={onToggleDebugBlockers}
-        >
-          <BugIcon />
-        </IconButton>
+        {showDebugTools ? (
+          <IconButton
+            className={debugBlockersVisible ? 'debug-button active' : 'debug-button'}
+            label={debugBlockersVisible ? 'Hide blocker debug' : 'Show blocker debug'}
+            onClick={onToggleDebugBlockers}
+          >
+            <BugIcon />
+          </IconButton>
+        ) : null}
       </nav>
     </header>
   );
@@ -11072,6 +11238,17 @@ interface AdminScreenProps {
   onSelectCharacter: (characterId: AdminSubjectId) => void;
   onSubjectEnabledChange: (characterId: AdminSubjectId, enabled: boolean) => void;
   onTalkingDefaultImageChange: (characterId: AdminSubjectId, imageSrc: string) => void;
+  onTalkingCatFlipChange: (
+    characterId: AdminSubjectId,
+    catFlipped: boolean,
+    mobileSize?: AdminMobileSize | null,
+  ) => void;
+  onTalkingCatPoseLayoutChange: (
+    characterId: AdminSubjectId,
+    poseKey: CatPoseKey,
+    patch: Partial<AdminCatPoseLayout>,
+    mobileSize?: AdminMobileSize | null,
+  ) => void;
   onTalkingImageChange: (characterId: AdminSubjectId, imageSrc: string) => void;
   onTalkingImageDelete: (characterId: AdminSubjectId, imageSrc: string) => void;
   onTalkingImagesAdd: (characterId: AdminSubjectId, imageSrcs: string[]) => void;
@@ -11131,6 +11308,8 @@ function AdminScreen({
   onSelectCharacter,
   onSubjectEnabledChange,
   onTalkingDefaultImageChange,
+  onTalkingCatFlipChange,
+  onTalkingCatPoseLayoutChange,
   onTalkingImageChange,
   onTalkingImageDelete,
   onTalkingImagesAdd,
@@ -11175,6 +11354,7 @@ function AdminScreen({
   const [chatToolMode, setChatToolMode] = useState<AdminChatToolMode>('chats');
   const [previewChatKind, setPreviewChatKind] = useState<AdminChatKind>('story');
   const [previewChatEntryId, setPreviewChatEntryId] = useState('');
+  const [selectedTalkingCatPose, setSelectedTalkingCatPose] = useState<CatPoseKey>('idle');
   const [openingTab, setOpeningTab] = useState<AdminOpeningTab>('settings');
   const [addingChatGroupId, setAddingChatGroupId] = useState('');
   const [chatImportMessage, setChatImportMessage] = useState('');
@@ -11196,6 +11376,10 @@ function AdminScreen({
   const activeMobileSize = mobilePreview ? mobilePreviewSize : null;
   const selectedLayout = getAdminLayoutVariant(selectedBaseLayout, activeMobileSize);
   const selectedTalkingLayout = selectedLayout.talking;
+  const selectedTalkingCatPoseLayout = getAdminTalkingCatPoseLayout(
+    selectedTalkingLayout,
+    selectedTalkingCatPose,
+  );
   const safeAdminChatMenuSettings = normalizeAdminChatMenuSettings(adminChatMenuSettings);
   const activeChatMenuSettings = getAdminChatMenuSettingsForViewport(
     safeAdminChatMenuSettings,
@@ -11704,8 +11888,11 @@ function AdminScreen({
 
   function talkingCatStyle(): CSSProperties {
     return {
-      ...talkingDragStyle('cat'),
-      '--cat-scale': selectedTalkingLayout.catScale / 100,
+      ...talkingDragStyle('cat', {
+        ...selectedTalkingLayout,
+        cat: selectedTalkingCatPoseLayout.cat,
+      }),
+      '--cat-scale': selectedTalkingCatPoseLayout.catScale / 100,
     } as CSSProperties;
   }
 
@@ -11917,6 +12104,7 @@ function AdminScreen({
         item === 'drink' ||
         item === 'patience')
     ) {
+      if (item === 'cat') return selectedTalkingCatPoseLayout.cat;
       return item === 'bubble'
         ? getProtectedTalkingBubblePosition(selectedTalkingLayout, activeMobileSize)
         : selectedTalkingLayout[item];
@@ -11989,6 +12177,15 @@ function AdminScreen({
         dragItem === 'drink' ||
         dragItem === 'patience')
     ) {
+      if (dragItem === 'cat') {
+        onTalkingCatPoseLayoutChange(
+          selectedCharacterId,
+          selectedTalkingCatPose,
+          { cat: nextPosition },
+          activeMobileSize,
+        );
+        return;
+      }
       onTalkingLayoutChange(selectedCharacterId, dragItem, nextPosition, activeMobileSize);
       return;
     }
@@ -15167,13 +15364,18 @@ function AdminScreen({
             {previewMode !== 'settings' && !referenceEditMode ? (
               <div
                 aria-label="Move cat"
-                className="admin-draggable admin-cat-prop"
+                className={`admin-draggable admin-cat-prop ${
+                  previewMode === 'talking' && selectedTalkingLayout.catFlipped ? 'cat-flipped' : ''
+                }`}
                 role="button"
                 tabIndex={0}
                 style={previewMode === 'talking' ? talkingCatStyle() : catDragStyle()}
                 onPointerDown={(event) => beginDrag('cat', event)}
               >
-                <CatSprite imageSrc={getCatImageSrc(adminCatSettings, 'idle')} resting />
+                <CatSprite
+                  imageSrc={getCatImageSrc(adminCatSettings, selectedTalkingCatPose)}
+                  resting={selectedTalkingCatPose === 'idle'}
+                />
               </div>
             ) : null}
 
@@ -15673,31 +15875,63 @@ function AdminScreen({
                       <small>{Math.round(selectedTalkingLayout.bubble.y)}%</small>
                     </label>
                   </fieldset>
+                  <fieldset className="admin-reference-point-editor admin-reference-scale-editor">
+                    <legend>Cat Pose Placement</legend>
+                    <div className="admin-spot-tabs admin-cat-pose-tabs">
+                      {CAT_POSE_KEYS.map((poseKey) => (
+                        <button
+                          className={selectedTalkingCatPose === poseKey ? 'active' : ''}
+                          key={poseKey}
+                          type="button"
+                          onClick={() => setSelectedTalkingCatPose(poseKey)}
+                        >
+                          {getCatPoseLabel(poseKey)}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="admin-helper-text">
+                      Drag the cat in the preview to place this pose for {selectedCustomer.name}.
+                    </p>
+                  </fieldset>
                   <label>
-                    <span>Talk cat</span>
+                    <span>{getCatPoseLabel(selectedTalkingCatPose)} scale</span>
                     <input
                       min={35}
                       max={250}
                       type="range"
-                      value={selectedTalkingLayout.catScale}
+                      value={selectedTalkingCatPoseLayout.catScale}
                       onInput={(event) =>
-                        onTalkingScaleChange(
+                        onTalkingCatPoseLayoutChange(
                           selectedCharacterId,
-                          'catScale',
-                          Number(event.currentTarget.value),
+                          selectedTalkingCatPose,
+                          { catScale: Number(event.currentTarget.value) },
                           activeMobileSize,
                         )
                       }
                       onChange={(event) =>
-                        onTalkingScaleChange(
+                        onTalkingCatPoseLayoutChange(
                           selectedCharacterId,
-                          'catScale',
-                          Number(event.target.value),
+                          selectedTalkingCatPose,
+                          { catScale: Number(event.target.value) },
                           activeMobileSize,
                         )
                       }
                     />
-                    <small>{selectedTalkingLayout.catScale}%</small>
+                    <small>{selectedTalkingCatPoseLayout.catScale}%</small>
+                  </label>
+                  <label className="admin-toggle-row">
+                    <span>Flip cat</span>
+                    <input
+                      checked={selectedTalkingLayout.catFlipped}
+                      type="checkbox"
+                      onChange={(event) =>
+                        onTalkingCatFlipChange(
+                          selectedCharacterId,
+                          event.currentTarget.checked,
+                          activeMobileSize,
+                        )
+                      }
+                    />
                   </label>
                   <fieldset className="admin-reference-point-editor admin-reference-scale-editor">
                     <legend>Cat Menu</legend>
@@ -16696,6 +16930,7 @@ interface VisitScreenProps {
   layout: AdminLayout;
   chatMenuSettings: AdminChatMenuSettings;
   catImageSrc: string;
+  catPoseKey: CatPoseKey;
   afterHoursComment: string;
   tutorialStep: TutorialStep;
   tutorialCoachSrc: string;
@@ -16753,6 +16988,7 @@ function VisitScreen({
   layout,
   chatMenuSettings,
   catImageSrc,
+  catPoseKey,
   afterHoursComment,
   tutorialStep,
   tutorialCoachSrc,
@@ -16813,6 +17049,31 @@ function VisitScreen({
     catActionsUnlocked &&
     meowReady &&
     (tutorialMeowActive || tutorialMoodActive || (!tutorialActive && !catMenuLockedForReply));
+  const meowLocked = !canMeow;
+  const purrLocked =
+    catMenuLockedForReply ||
+    !catActionsUnlocked ||
+    (tutorialActive && !tutorialMoodActive) ||
+    !purrReady;
+  const listenLocked =
+    catMenuLockedForReply ||
+    !catActionsUnlocked ||
+    (tutorialActive && !tutorialMoodActive) ||
+    !quietReady;
+  const leaveLocked =
+    catMenuLockedForReply || !catActionsUnlocked || (tutorialActive && !tutorialLeaveActive);
+  const cuteLocked =
+    catMenuLockedForReply ||
+    !catActionsUnlocked ||
+    (tutorialActive && !tutorialMoodActive) ||
+    !fullMoodCareUnlocked ||
+    !cuteReady;
+  const rollLocked =
+    catMenuLockedForReply ||
+    !catActionsUnlocked ||
+    (tutorialActive && !tutorialMoodActive) ||
+    !fullMoodCareUnlocked ||
+    !rollReady;
   const showKittyReplyPanel = kittyReplyPending;
   const hasDialoguePanel = tutorialActive || normalStoryChoiceReady || showKittyReplyPanel;
   const nextUnservedOrderIndex = services.findIndex(
@@ -16953,11 +17214,22 @@ function VisitScreen({
     };
   }
 
+  function talkingPositionFromPoint(position: AdminPosition, scale = 1): CSSProperties {
+    return {
+      bottom: 'auto',
+      left: `${position.x}%`,
+      right: 'auto',
+      top: `${position.y}%`,
+      transform: `translate(-50%, -50%)${visitScaleTransform(scale)}`,
+    };
+  }
+
   const bubbleStyle = useTalkingImage
     ? talkingPositionStyle('bubble')
     : visitPositionStyle('bubble');
+  const talkingCatPoseLayout = getAdminTalkingCatPoseLayout(visitLayout.talking, catPoseKey);
   const catStyle = useTalkingImage
-    ? talkingPositionStyle('cat', visitLayout.talking.catScale / 100)
+    ? talkingPositionFromPoint(talkingCatPoseLayout.cat, talkingCatPoseLayout.catScale / 100)
     : visitPositionStyle('cat', visitLayout.catScale / 100);
   const patienceStyle = useTalkingImage
     ? talkingPositionStyle('patience')
@@ -16972,10 +17244,22 @@ function VisitScreen({
   const rollCooldownLabel = fullMoodCareUnlocked
     ? actionCooldownLabel(rollCooldownRemaining, rollReady)
     : 'Locked';
+  const serveLocked = storyCompleteLeaveOnly || catMenuLockedForReply || tutorialActive || !canServeNext;
 
   function actionCooldownLabel(remainingMs: number, ready: boolean): string {
     if (!catActionsUnlocked) return 'Serve first';
     return ready ? 'Ready' : formatCooldown(remainingMs);
+  }
+
+  function renderActionLock(locked: boolean) {
+    return locked ? (
+      <img
+        alt=""
+        className="visit-hex-lock"
+        draggable={false}
+        src={resolveAssetSrc(UI_ICON_SRC.lock)}
+      />
+    ) : null;
   }
 
   function meowAction() {
@@ -17097,7 +17381,12 @@ function VisitScreen({
             </div>
           </>
         ) : null}
-        <div className="cat-close" style={catStyle}>
+        <div
+          className={`cat-close ${
+            useTalkingImage && visitLayout.talking.catFlipped ? 'cat-flipped' : ''
+          }`}
+          style={catStyle}
+        >
           {purrBeat > 0 ? (
             <div className="purr-words" key={purrBeat}>
               <span>purr</span>
@@ -17167,11 +17456,12 @@ function VisitScreen({
             className={`visit-hex-button visit-hex-meow ${
               chatMenuImage('meow') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('meow')}`}
-            disabled={!canMeow}
+            disabled={meowLocked}
             onClick={meowAction}
             style={chatMenuButtonStyle('meow')}
             type="button"
           >
+            {renderActionLock(meowLocked)}
             {chatMenuImage('meow') ? null : <CatHeadIcon />}
             <strong>Meow</strong>
             <small>{meowCooldownLabel}</small>
@@ -17180,16 +17470,12 @@ function VisitScreen({
             className={`visit-hex-button visit-hex-purr ${
               chatMenuImage('purr') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('purr')}`}
-            disabled={
-              catMenuLockedForReply ||
-              !catActionsUnlocked ||
-              (tutorialActive && !tutorialMoodActive) ||
-              !purrReady
-            }
+            disabled={purrLocked}
             onClick={onPurr}
             style={chatMenuButtonStyle('purr')}
             type="button"
           >
+            {renderActionLock(purrLocked)}
             {chatMenuImage('purr') ? null : <PawIcon />}
             <strong>Purr</strong>
             <small>{purrCooldownLabel}</small>
@@ -17198,16 +17484,12 @@ function VisitScreen({
             className={`visit-hex-button visit-hex-listen ${
               chatMenuImage('listen') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('listen')}`}
-            disabled={
-              catMenuLockedForReply ||
-              !catActionsUnlocked ||
-              (tutorialActive && !tutorialMoodActive) ||
-              !quietReady
-            }
+            disabled={listenLocked}
             onClick={onQuiet}
             style={chatMenuButtonStyle('listen')}
             type="button"
           >
+            {renderActionLock(listenLocked)}
             {chatMenuImage('listen') ? null : <CupIcon />}
             <strong>Listen</strong>
             <small>{listenCooldownLabel}</small>
@@ -17220,11 +17502,7 @@ function VisitScreen({
             )}`}
             onClick={onBack}
             type="button"
-            disabled={
-              catMenuLockedForReply ||
-              !catActionsUnlocked ||
-              (tutorialActive && !tutorialLeaveActive)
-            }
+            disabled={leaveLocked}
             style={chatMenuButtonStyle('leave')}
             aria-label={
               shopDayEnded
@@ -17232,6 +17510,7 @@ function VisitScreen({
                 : `Leave ${customer.name} and return to shop`
             }
           >
+            {renderActionLock(leaveLocked)}
             {chatMenuImage('leave') ? null : <ShopIcon />}
             <strong>Leave</strong>
             <small>{leaveOnlyMode ? 'Ready' : 'Back'}</small>
@@ -17240,17 +17519,12 @@ function VisitScreen({
             className={`visit-hex-button visit-hex-cute ${
               chatMenuImage('cute') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('cute')}`}
-            disabled={
-              catMenuLockedForReply ||
-              !catActionsUnlocked ||
-              (tutorialActive && !tutorialMoodActive) ||
-              !fullMoodCareUnlocked ||
-              !cuteReady
-            }
+            disabled={cuteLocked}
             onClick={onBeCute}
             style={chatMenuButtonStyle('cute')}
             type="button"
           >
+            {renderActionLock(cuteLocked)}
             {chatMenuImage('cute') ? null : <StarIcon />}
             <strong>Be Cute</strong>
             <small>{cuteCooldownLabel}</small>
@@ -17259,17 +17533,12 @@ function VisitScreen({
             className={`visit-hex-button visit-hex-roll ${
               chatMenuImage('roll') ? 'visit-hex-custom-bg' : ''
             } ${chatMenuTextClass('roll')}`}
-            disabled={
-              catMenuLockedForReply ||
-              !catActionsUnlocked ||
-              (tutorialActive && !tutorialMoodActive) ||
-              !fullMoodCareUnlocked ||
-              !rollReady
-            }
+            disabled={rollLocked}
             onClick={onRollOver}
             style={chatMenuButtonStyle('roll')}
             type="button"
           >
+            {renderActionLock(rollLocked)}
             {chatMenuImage('roll') ? null : <CatHeadIcon />}
             <strong>Roll</strong>
             <small>{rollCooldownLabel}</small>
@@ -17278,9 +17547,7 @@ function VisitScreen({
             className={`visit-hex-button visit-hex-center ${
               canServeNext ? 'visit-hex-serve' : 'visit-hex-face'
             } ${serveMenuImage ? 'visit-hex-custom-bg' : ''} ${chatMenuTextClass('serve')}`}
-            disabled={
-              storyCompleteLeaveOnly || catMenuLockedForReply || tutorialActive || !canServeNext
-            }
+            disabled={serveLocked}
             onClick={serveNextOrder}
             style={chatMenuButtonStyle('serve', serveMenuImage)}
             type="button"
@@ -17290,6 +17557,7 @@ function VisitScreen({
                 : `${customer.name} is served`
             }
           >
+            {renderActionLock(serveLocked)}
             {serveMenuImage ? null : nextUnservedService ? (
               <ServiceIcon kind={nextUnservedService.id} />
             ) : (
@@ -18026,11 +18294,19 @@ function IconButton({ children, className = '', label, onClick }: IconButtonProp
 
 interface UiImageIconProps {
   alt: string;
+  className?: string;
   src: string;
 }
 
-function UiImageIcon({ alt, src }: UiImageIconProps) {
-  return <img className="ui-image-icon" alt={alt} draggable={false} src={resolveAssetSrc(src)} />;
+function UiImageIcon({ alt, className = '', src }: UiImageIconProps) {
+  return (
+    <img
+      className={`ui-image-icon ${className}`.trim()}
+      alt={alt}
+      draggable={false}
+      src={resolveAssetSrc(src)}
+    />
+  );
 }
 
 interface MeterProps {

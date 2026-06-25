@@ -62,14 +62,15 @@
           "height": 24
         },
         "safeZone": {
-          "x": 23.486301369863014,
-          "y": 38.54997153550704,
+          "x": 24.547614302403314,
+          "y": 40.814122478903265,
           "width": 36,
           "height": 48
         },
         "characterScale": 247,
         "drinkScale": 115,
         "catScale": 55,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
         "imageSrc": "/admin-uploads/shadow/1782154679051-shadowtalking.png",
         "enabledImageSrcs": [
@@ -82,7 +83,8 @@
           "/characters/shadow/ShadowTest_02.png",
           "/characters/shadow/ShadowTest_03.png",
           "/characters/shadow/ShadowTest_04.png"
-        ]
+        ],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -145,21 +147,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 21.451274362818587,
+              "y": 42.26666666666667,
               "width": 36,
               "height": 48
             },
-            "characterScale": 247,
+            "characterScale": 122,
             "drinkScale": 115,
             "catScale": 55,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
             "imageSrc": "/admin-uploads/shadow/1782154679051-shadowtalking.png",
             "enabledImageSrcs": [
               "/admin-uploads/shadow/1782154679068-shadowthinking.png",
               "/admin-uploads/shadow/1782154679051-shadowtalking.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -230,13 +234,15 @@
             "characterScale": 120,
             "drinkScale": 107,
             "catScale": 49,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
             "imageSrc": "/admin-uploads/shadow/1782154679051-shadowtalking.png",
             "enabledImageSrcs": [
               "/admin-uploads/shadow/1782154679068-shadowthinking.png",
               "/admin-uploads/shadow/1782154679051-shadowtalking.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -307,13 +313,15 @@
             "characterScale": 144,
             "drinkScale": 115,
             "catScale": 46,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
             "imageSrc": "/admin-uploads/shadow/1782154679051-shadowtalking.png",
             "enabledImageSrcs": [
               "/admin-uploads/shadow/1782154679068-shadowthinking.png",
               "/admin-uploads/shadow/1782154679051-shadowtalking.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -387,6 +395,7 @@
         "characterScale": 209,
         "drinkScale": 124,
         "catScale": 60,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
         "imageSrc": "/admin-uploads/matthew/1782178624777-matthewtalking.png",
         "enabledImageSrcs": [
@@ -394,7 +403,8 @@
           "/admin-uploads/matthew/1782178624770-mattewheaddown.png",
           "/admin-uploads/matthew/1782178624777-matthewtalking.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -440,7 +450,7 @@
             },
             "bubble": {
               "x": 22,
-              "y": 31
+              "y": 35
             },
             "drink": {
               "x": 49,
@@ -465,13 +475,15 @@
             "characterScale": 104,
             "drinkScale": 124,
             "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
             "imageSrc": "/admin-uploads/matthew/1782178624777-matthewtalking.png",
             "enabledImageSrcs": [
               "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
               "/admin-uploads/matthew/1782178624777-matthewtalking.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -542,13 +554,15 @@
             "characterScale": 118,
             "drinkScale": 102,
             "catScale": 57,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
             "imageSrc": "/admin-uploads/matthew/1782178624777-matthewtalking.png",
             "enabledImageSrcs": [
               "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
               "/admin-uploads/matthew/1782178624777-matthewtalking.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -619,13 +633,15 @@
             "characterScale": 131,
             "drinkScale": 99,
             "catScale": 39,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
             "imageSrc": "/admin-uploads/matthew/1782178624777-matthewtalking.png",
             "enabledImageSrcs": [
               "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
               "/admin-uploads/matthew/1782178624777-matthewtalking.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -691,14 +707,15 @@
           "height": 24
         },
         "safeZone": {
-          "x": 24,
-          "y": 42,
+          "x": 54.56581245716055,
+          "y": 44.0125786163522,
           "width": 36,
           "height": 48
         },
         "characterScale": 218,
         "drinkScale": 75,
         "catScale": 76,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
         "imageSrc": "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png",
         "enabledImageSrcs": [
@@ -706,7 +723,8 @@
           "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png",
           "/admin-uploads/liam/1782178719634-chatgpt-image-jun-21-2026-10-48-38-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -743,20 +761,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 41,
-              "y": 93
+              "x": 32,
+              "y": 95
             },
             "cat": {
-              "x": 52,
-              "y": 72
+              "x": 50,
+              "y": 66
             },
             "bubble": {
               "x": 49,
-              "y": 20
+              "y": 44
             },
             "drink": {
-              "x": 37,
-              "y": 78
+              "x": 31,
+              "y": 93
             },
             "patience": {
               "x": 49,
@@ -769,21 +787,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 46.638680659670165,
+              "y": 40.66666666666666,
               "width": 36,
               "height": 48
             },
-            "characterScale": 218,
+            "characterScale": 107,
             "drinkScale": 75,
-            "catScale": 76,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
             "imageSrc": "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
               "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -820,20 +840,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 41,
+              "x": 30,
               "y": 93
             },
             "cat": {
-              "x": 52,
-              "y": 72
+              "x": 42,
+              "y": 71
             },
             "bubble": {
-              "x": 49,
-              "y": 20
+              "x": 53,
+              "y": 41
             },
             "drink": {
-              "x": 37,
-              "y": 78
+              "x": 25,
+              "y": 94
             },
             "patience": {
               "x": 49,
@@ -846,21 +866,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 49.11848341232227,
+              "y": 40.97435897435898,
               "width": 36,
               "height": 48
             },
-            "characterScale": 218,
-            "drinkScale": 75,
-            "catScale": 76,
+            "characterScale": 117,
+            "drinkScale": 97,
+            "catScale": 40,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
             "imageSrc": "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
               "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -897,24 +919,24 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 41,
-              "y": 93
+              "x": 31,
+              "y": 91
             },
             "cat": {
-              "x": 52,
-              "y": 72
+              "x": 43,
+              "y": 68
             },
             "bubble": {
-              "x": 49,
-              "y": 20
+              "x": 48,
+              "y": 51
             },
             "drink": {
-              "x": 37,
-              "y": 78
+              "x": 25,
+              "y": 91
             },
             "patience": {
-              "x": 49,
-              "y": 13
+              "x": 48,
+              "y": 37
             },
             "faceBlocker": {
               "x": 28.792623875118842,
@@ -923,21 +945,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 48.89270386266093,
+              "y": 42.69767441860466,
               "width": 36,
               "height": 48
             },
-            "characterScale": 218,
+            "characterScale": 127,
             "drinkScale": 75,
-            "catScale": 76,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
             "imageSrc": "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
               "/admin-uploads/liam/1782178719628-chatgpt-image-jun-21-2026-10-47-27-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -978,15 +1002,15 @@
       "talking": {
         "character": {
           "x": 41,
-          "y": 91
+          "y": 100
         },
         "cat": {
           "x": 55,
-          "y": 64
+          "y": 74
         },
         "bubble": {
-          "x": 48,
-          "y": 26
+          "x": 57,
+          "y": 40
         },
         "drink": {
           "x": 36,
@@ -1003,21 +1027,23 @@
           "height": 24
         },
         "safeZone": {
-          "x": 24,
-          "y": 42,
+          "x": 54.35354987065249,
+          "y": 37.094339622641506,
           "width": 36,
           "height": 48
         },
         "characterScale": 231,
         "drinkScale": 100,
         "catScale": 67,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
         "imageSrc": "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png",
         "enabledImageSrcs": [
           "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png",
           "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -1054,11 +1080,11 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 41,
+              "x": 34,
               "y": 91
             },
             "cat": {
-              "x": 55,
+              "x": 54,
               "y": 64
             },
             "bubble": {
@@ -1080,21 +1106,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 49.33733133433283,
+              "y": 41.2,
               "width": 36,
               "height": 48
             },
-            "characterScale": 231,
+            "characterScale": 105,
             "drinkScale": 100,
-            "catScale": 67,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
             "imageSrc": "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
               "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -1131,11 +1159,11 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 41,
-              "y": 91
+              "x": 32,
+              "y": 89
             },
             "cat": {
-              "x": 55,
+              "x": 49,
               "y": 64
             },
             "bubble": {
@@ -1157,21 +1185,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 48.17061611374407,
+              "y": 41.48717948717949,
               "width": 36,
               "height": 48
             },
-            "characterScale": 231,
+            "characterScale": 109,
             "drinkScale": 100,
-            "catScale": 67,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
             "imageSrc": "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
               "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -1208,12 +1238,12 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 41,
+              "x": 33,
               "y": 91
             },
             "cat": {
-              "x": 55,
-              "y": 64
+              "x": 53,
+              "y": 65
             },
             "bubble": {
               "x": 48,
@@ -1234,21 +1264,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 49.536480686695285,
+              "y": 39.67441860465116,
               "width": 36,
               "height": 48
             },
-            "characterScale": 231,
+            "characterScale": 121,
             "drinkScale": 100,
-            "catScale": 67,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
             "imageSrc": "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/alfrin/1782178768394-chatgpt-image-jun-21-2026-10-41-40-pm.png",
               "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -1288,16 +1320,16 @@
       "catScale": 100,
       "talking": {
         "character": {
-          "x": 51,
+          "x": 43,
           "y": 89
         },
         "cat": {
-          "x": 62,
+          "x": 60,
           "y": 68
         },
         "bubble": {
-          "x": 60,
-          "y": 21
+          "x": 57,
+          "y": 31
         },
         "drink": {
           "x": 39,
@@ -1314,14 +1346,15 @@
           "height": 24
         },
         "safeZone": {
-          "x": 24,
-          "y": 42,
+          "x": 54.42430406615517,
+          "y": 36.21383647798743,
           "width": 36,
           "height": 48
         },
         "characterScale": 224,
         "drinkScale": 95,
         "catScale": 71,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
         "imageSrc": "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png",
         "enabledImageSrcs": [
@@ -1329,7 +1362,8 @@
           "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
           "/admin-uploads/alaric/1782178802530-chatgpt-image-jun-21-2026-10-13-23-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -1366,12 +1400,12 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 51,
-              "y": 89
+              "x": 37,
+              "y": 86
             },
             "cat": {
-              "x": 62,
-              "y": 68
+              "x": 47,
+              "y": 63
             },
             "bubble": {
               "x": 60,
@@ -1392,21 +1426,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 47.68815592203899,
+              "y": 41.733333333333334,
               "width": 36,
               "height": 48
             },
-            "characterScale": 224,
+            "characterScale": 105,
             "drinkScale": 95,
-            "catScale": 71,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
             "imageSrc": "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
               "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -1443,12 +1479,12 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 51,
+              "x": 32,
               "y": 89
             },
             "cat": {
-              "x": 62,
-              "y": 68
+              "x": 47,
+              "y": 65
             },
             "bubble": {
               "x": 60,
@@ -1469,21 +1505,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 51.48815165876777,
+              "y": 44.05128205128205,
               "width": 36,
               "height": 48
             },
-            "characterScale": 224,
+            "characterScale": 111,
             "drinkScale": 95,
-            "catScale": 71,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
             "imageSrc": "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
               "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -1520,11 +1558,11 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 51,
-              "y": 89
+              "x": 33,
+              "y": 92
             },
             "cat": {
-              "x": 62,
+              "x": 47,
               "y": 68
             },
             "bubble": {
@@ -1532,8 +1570,8 @@
               "y": 21
             },
             "drink": {
-              "x": 39,
-              "y": 77
+              "x": 28,
+              "y": 78
             },
             "patience": {
               "x": 59,
@@ -1546,21 +1584,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 48.892703862660944,
+              "y": 39.906976744186046,
               "width": 36,
               "height": 48
             },
-            "characterScale": 224,
+            "characterScale": 121,
             "drinkScale": 95,
-            "catScale": 71,
+            "catScale": 40,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
             "imageSrc": "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
               "/admin-uploads/alaric/1782178802506-chatgpt-image-jun-21-2026-10-07-34-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -1608,8 +1648,8 @@
           "y": 68
         },
         "bubble": {
-          "x": 34,
-          "y": 20
+          "x": 28,
+          "y": 22
         },
         "drink": {
           "x": 43,
@@ -1634,6 +1674,7 @@
         "characterScale": 204,
         "drinkScale": 100,
         "catScale": 76,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
         "imageSrc": "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png",
         "enabledImageSrcs": [
@@ -1641,7 +1682,8 @@
           "/admin-uploads/eli/1782178856983-chatgpt-image-jun-21-2026-10-16-24-pm.png",
           "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -1690,12 +1732,12 @@
               "y": 20
             },
             "drink": {
-              "x": 43,
-              "y": 70
+              "x": 38,
+              "y": 79
             },
             "patience": {
-              "x": 43,
-              "y": 79
+              "x": 25,
+              "y": 18
             },
             "faceBlocker": {
               "x": 58.7924027682579,
@@ -1704,21 +1746,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
+              "x": 23.10044977511244,
               "y": 42,
               "width": 36,
               "height": 48
             },
-            "characterScale": 204,
+            "characterScale": 106,
             "drinkScale": 100,
-            "catScale": 76,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
             "imageSrc": "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
               "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -1755,20 +1799,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 58,
-              "y": 88
+              "x": 60,
+              "y": 92
             },
             "cat": {
-              "x": 57,
-              "y": 68
+              "x": 48,
+              "y": 67
             },
             "bubble": {
               "x": 34,
               "y": 20
             },
             "drink": {
-              "x": 43,
-              "y": 70
+              "x": 66,
+              "y": 84
             },
             "patience": {
               "x": 43,
@@ -1781,21 +1825,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
+              "x": 20,
               "y": 42,
               "width": 36,
               "height": 48
             },
-            "characterScale": 204,
+            "characterScale": 118,
             "drinkScale": 100,
-            "catScale": 76,
+            "catScale": 39,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
             "imageSrc": "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
               "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -1844,8 +1890,8 @@
               "y": 20
             },
             "drink": {
-              "x": 43,
-              "y": 70
+              "x": 44,
+              "y": 76
             },
             "patience": {
               "x": 43,
@@ -1863,16 +1909,18 @@
               "width": 36,
               "height": 48
             },
-            "characterScale": 204,
+            "characterScale": 120,
             "drinkScale": 100,
-            "catScale": 76,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
             "imageSrc": "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
               "/admin-uploads/eli/1782178856974-chatgpt-image-jun-21-2026-10-14-36-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -1912,7 +1960,7 @@
       "catScale": 100,
       "talking": {
         "character": {
-          "x": 47,
+          "x": 56,
           "y": 89
         },
         "cat": {
@@ -1920,8 +1968,8 @@
           "y": 64
         },
         "bubble": {
-          "x": 25,
-          "y": 21
+          "x": 22,
+          "y": 40
         },
         "drink": {
           "x": 49,
@@ -1938,14 +1986,15 @@
           "height": 24
         },
         "safeZone": {
-          "x": 24,
-          "y": 42,
+          "x": 28.103743339155812,
+          "y": 33.19496855345912,
           "width": 36,
           "height": 48
         },
         "characterScale": 226,
         "drinkScale": 100,
         "catScale": 74,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
         "imageSrc": "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png",
         "enabledImageSrcs": [
@@ -1953,7 +2002,8 @@
           "/admin-uploads/miles/1782178896551-chatgpt-image-jun-21-2026-11-20-14-pm.png",
           "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -1990,20 +2040,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 47,
-              "y": 89
+              "x": 55,
+              "y": 87
             },
             "cat": {
-              "x": 27,
-              "y": 64
+              "x": 35,
+              "y": 62
             },
             "bubble": {
               "x": 25,
               "y": 21
             },
             "drink": {
-              "x": 49,
-              "y": 74
+              "x": 57,
+              "y": 90
             },
             "patience": {
               "x": 26,
@@ -2021,16 +2071,18 @@
               "width": 36,
               "height": 48
             },
-            "characterScale": 226,
+            "characterScale": 103,
             "drinkScale": 100,
-            "catScale": 74,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
             "imageSrc": "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
               "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -2067,20 +2119,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 47,
-              "y": 89
+              "x": 53,
+              "y": 84
             },
             "cat": {
-              "x": 27,
-              "y": 64
+              "x": 35,
+              "y": 59
             },
             "bubble": {
               "x": 25,
               "y": 21
             },
             "drink": {
-              "x": 49,
-              "y": 74
+              "x": 54,
+              "y": 85
             },
             "patience": {
               "x": 26,
@@ -2098,16 +2150,18 @@
               "width": 36,
               "height": 48
             },
-            "characterScale": 226,
+            "characterScale": 102,
             "drinkScale": 100,
-            "catScale": 74,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
             "imageSrc": "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
               "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -2144,20 +2198,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 47,
+              "x": 54,
               "y": 89
             },
             "cat": {
-              "x": 27,
-              "y": 64
+              "x": 37,
+              "y": 61
             },
             "bubble": {
               "x": 25,
               "y": 21
             },
             "drink": {
-              "x": 49,
-              "y": 74
+              "x": 54,
+              "y": 86
             },
             "patience": {
               "x": 26,
@@ -2175,16 +2229,18 @@
               "width": 36,
               "height": 48
             },
-            "characterScale": 226,
+            "characterScale": 121,
             "drinkScale": 100,
-            "catScale": 74,
+            "catScale": 42,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
             "imageSrc": "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
               "/admin-uploads/miles/1782178896537-chatgpt-image-jun-21-2026-11-18-38-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -2232,7 +2288,7 @@
           "y": 72
         },
         "bubble": {
-          "x": 54,
+          "x": 55,
           "y": 23
         },
         "drink": {
@@ -2250,14 +2306,15 @@
           "height": 24
         },
         "safeZone": {
-          "x": 24,
-          "y": 42,
+          "x": 55.48561699869548,
+          "y": 36.9685534591195,
           "width": 36,
           "height": 48
         },
         "characterScale": 229,
         "drinkScale": 100,
         "catScale": 78,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
         "imageSrc": "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png",
         "enabledImageSrcs": [
@@ -2265,7 +2322,8 @@
           "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
           "/admin-uploads/nia/1782178948923-chatgpt-image-jun-21-2026-10-27-39-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -2302,20 +2360,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 47,
+              "x": 39,
               "y": 90
             },
             "cat": {
-              "x": 56,
-              "y": 72
+              "x": 57,
+              "y": 64
             },
             "bubble": {
               "x": 54,
               "y": 23
             },
             "drink": {
-              "x": 37,
-              "y": 79
+              "x": 36,
+              "y": 85
             },
             "patience": {
               "x": 53,
@@ -2328,21 +2386,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
+              "x": 47.83808095952024,
               "y": 42,
               "width": 36,
               "height": 48
             },
-            "characterScale": 229,
+            "characterScale": 103,
             "drinkScale": 100,
-            "catScale": 78,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
             "imageSrc": "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
               "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -2379,19 +2439,19 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 47,
-              "y": 90
+              "x": 33,
+              "y": 88
             },
             "cat": {
-              "x": 56,
-              "y": 72
+              "x": 46,
+              "y": 63
             },
             "bubble": {
               "x": 54,
               "y": 23
             },
             "drink": {
-              "x": 37,
+              "x": 32,
               "y": 79
             },
             "patience": {
@@ -2405,21 +2465,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 48.5260663507109,
+              "y": 41.743589743589745,
               "width": 36,
               "height": 48
             },
-            "characterScale": 229,
+            "characterScale": 111,
             "drinkScale": 100,
-            "catScale": 78,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
             "imageSrc": "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
               "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -2456,12 +2518,12 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 47,
-              "y": 90
+              "x": 38,
+              "y": 89
             },
             "cat": {
-              "x": 56,
-              "y": 72
+              "x": 52,
+              "y": 65
             },
             "bubble": {
               "x": 54,
@@ -2482,21 +2544,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
+              "x": 50.07296137339057,
               "y": 42,
               "width": 36,
               "height": 48
             },
-            "characterScale": 229,
+            "characterScale": 124,
             "drinkScale": 100,
-            "catScale": 78,
+            "catScale": 38,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
             "imageSrc": "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
               "/admin-uploads/nia/1782178948897-chatgpt-image-jun-21-2026-10-20-21-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -2570,6 +2634,7 @@
         "characterScale": 245,
         "drinkScale": 100,
         "catScale": 75,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
         "imageSrc": "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png",
         "enabledImageSrcs": [
@@ -2577,7 +2642,8 @@
           "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
           "/admin-uploads/gene/1782179126578-chatgpt-image-jun-21-2026-11-17-33-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -2614,24 +2680,24 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 48,
-              "y": 94
+              "x": 49,
+              "y": 82
             },
             "cat": {
-              "x": 46,
-              "y": 74
+              "x": 51,
+              "y": 66
             },
             "bubble": {
               "x": 34,
               "y": 25
             },
             "drink": {
-              "x": 58,
-              "y": 80
+              "x": 24,
+              "y": 88
             },
             "patience": {
-              "x": 43,
-              "y": 79
+              "x": 20,
+              "y": 57
             },
             "faceBlocker": {
               "x": 55.18393879762089,
@@ -2640,21 +2706,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 20.701649175412292,
+              "y": 44.400000000000006,
               "width": 36,
               "height": 48
             },
-            "characterScale": 245,
+            "characterScale": 100,
             "drinkScale": 100,
-            "catScale": 75,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
             "imageSrc": "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
               "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -2692,19 +2760,19 @@
           "talking": {
             "character": {
               "x": 48,
-              "y": 94
+              "y": 84
             },
             "cat": {
-              "x": 46,
-              "y": 74
+              "x": 50,
+              "y": 66
             },
             "bubble": {
               "x": 34,
               "y": 25
             },
             "drink": {
-              "x": 58,
-              "y": 80
+              "x": 28,
+              "y": 86
             },
             "patience": {
               "x": 43,
@@ -2722,16 +2790,18 @@
               "width": 36,
               "height": 48
             },
-            "characterScale": 245,
+            "characterScale": 109,
             "drinkScale": 100,
-            "catScale": 75,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
             "imageSrc": "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
               "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -2768,20 +2838,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 48,
-              "y": 94
+              "x": 49,
+              "y": 91
             },
             "cat": {
-              "x": 46,
-              "y": 74
+              "x": 49,
+              "y": 71
             },
             "bubble": {
               "x": 34,
               "y": 25
             },
             "drink": {
-              "x": 58,
-              "y": 80
+              "x": 26,
+              "y": 87
             },
             "patience": {
               "x": 43,
@@ -2794,21 +2864,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 23.78540772532189,
+              "y": 42.23255813953489,
               "width": 36,
               "height": 48
             },
-            "characterScale": 245,
+            "characterScale": 127,
             "drinkScale": 100,
-            "catScale": 75,
+            "catScale": 36,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
             "imageSrc": "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/gene/1782179126564-chatgpt-image-jun-21-2026-11-15-09-pm.png",
               "/admin-uploads/gene/1782179126554-chatgpt-image-jun-21-2026-11-10-51-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -2874,14 +2946,15 @@
           "height": 24
         },
         "safeZone": {
-          "x": 24,
-          "y": 42,
+          "x": 57.042209299754575,
+          "y": 36.339622641509436,
           "width": 36,
           "height": 48
         },
         "characterScale": 229,
         "drinkScale": 100,
         "catScale": 79,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
         "imageSrc": "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png",
         "enabledImageSrcs": [
@@ -2889,7 +2962,8 @@
           "/admin-uploads/quou/1782179351599-chatgpt-image-jun-21-2026-10-51-42-pm.png",
           "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -2926,20 +3000,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 44,
-              "y": 91
+              "x": 35,
+              "y": 82
             },
             "cat": {
-              "x": 58,
-              "y": 72
+              "x": 48,
+              "y": 61
             },
             "bubble": {
-              "x": 52,
+              "x": 62,
               "y": 26
             },
             "drink": {
-              "x": 45,
-              "y": 74
+              "x": 35,
+              "y": 82
             },
             "patience": {
               "x": 43,
@@ -2952,21 +3026,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 48.7376311844078,
+              "y": 40.93333333333333,
               "width": 36,
               "height": 48
             },
-            "characterScale": 229,
+            "characterScale": 103,
             "drinkScale": 100,
-            "catScale": 79,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
             "imageSrc": "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
               "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -3003,24 +3079,24 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 44,
-              "y": 91
+              "x": 31,
+              "y": 78
             },
             "cat": {
-              "x": 58,
-              "y": 72
+              "x": 41,
+              "y": 60
             },
             "bubble": {
               "x": 52,
               "y": 26
             },
             "drink": {
-              "x": 45,
-              "y": 74
+              "x": 32,
+              "y": 79
             },
             "patience": {
-              "x": 43,
-              "y": 79
+              "x": 68,
+              "y": 85
             },
             "faceBlocker": {
               "x": 28.368098702102728,
@@ -3029,21 +3105,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 46.86729857819905,
+              "y": 42.256410256410255,
               "width": 36,
               "height": 48
             },
-            "characterScale": 229,
-            "drinkScale": 100,
-            "catScale": 79,
+            "characterScale": 87,
+            "drinkScale": 85,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
             "imageSrc": "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
               "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -3080,24 +3158,24 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 44,
-              "y": 91
+              "x": 32,
+              "y": 85
             },
             "cat": {
-              "x": 58,
-              "y": 72
+              "x": 48,
+              "y": 66
             },
             "bubble": {
               "x": 52,
               "y": 26
             },
             "drink": {
-              "x": 45,
-              "y": 74
+              "x": 33,
+              "y": 84
             },
             "patience": {
-              "x": 43,
-              "y": 79
+              "x": 70,
+              "y": 81
             },
             "faceBlocker": {
               "x": 28.368098702102728,
@@ -3106,21 +3184,23 @@
               "height": 24
             },
             "safeZone": {
-              "x": 24,
-              "y": 42,
+              "x": 47.81974248927038,
+              "y": 41.76744186046511,
               "width": 36,
               "height": 48
             },
-            "characterScale": 229,
+            "characterScale": 107,
             "drinkScale": 100,
-            "catScale": 79,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
             "imageSrc": "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
               "/admin-uploads/quou/1782179351591-chatgpt-image-jun-21-2026-10-50-02-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -3160,8 +3240,8 @@
       "catScale": 100,
       "talking": {
         "character": {
-          "x": 50,
-          "y": 93
+          "x": 57,
+          "y": 94
         },
         "cat": {
           "x": 47,
@@ -3194,6 +3274,7 @@
         "characterScale": 250,
         "drinkScale": 100,
         "catScale": 72,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
         "imageSrc": "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png",
         "enabledImageSrcs": [
@@ -3201,7 +3282,8 @@
           "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
           "/admin-uploads/custom-1/1782183551536-chatgpt-image-jun-21-2026-11-25-38-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -3242,16 +3324,16 @@
               "y": 93
             },
             "cat": {
-              "x": 47,
-              "y": 72
+              "x": 31,
+              "y": 62
             },
             "bubble": {
               "x": 27,
               "y": 28
             },
             "drink": {
-              "x": 34,
-              "y": 72
+              "x": 52,
+              "y": 93
             },
             "patience": {
               "x": 27,
@@ -3269,16 +3351,18 @@
               "width": 36,
               "height": 48
             },
-            "characterScale": 250,
+            "characterScale": 109,
             "drinkScale": 100,
-            "catScale": 72,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
             "imageSrc": "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
               "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -3315,20 +3399,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 50,
-              "y": 93
+              "x": 56,
+              "y": 88
             },
             "cat": {
-              "x": 47,
-              "y": 72
+              "x": 41,
+              "y": 61
             },
             "bubble": {
               "x": 27,
               "y": 28
             },
             "drink": {
-              "x": 34,
-              "y": 72
+              "x": 60,
+              "y": 90
             },
             "patience": {
               "x": 27,
@@ -3346,16 +3430,18 @@
               "width": 36,
               "height": 48
             },
-            "characterScale": 250,
+            "characterScale": 109,
             "drinkScale": 100,
-            "catScale": 72,
+            "catScale": 35,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
             "imageSrc": "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
               "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -3392,20 +3478,20 @@
           "catScale": 100,
           "talking": {
             "character": {
-              "x": 50,
-              "y": 93
+              "x": 52,
+              "y": 90
             },
             "cat": {
-              "x": 47,
-              "y": 72
+              "x": 40,
+              "y": 62
             },
             "bubble": {
               "x": 27,
               "y": 28
             },
             "drink": {
-              "x": 34,
-              "y": 72
+              "x": 32,
+              "y": 77
             },
             "patience": {
               "x": 27,
@@ -3423,16 +3509,18 @@
               "width": 36,
               "height": 48
             },
-            "characterScale": 250,
+            "characterScale": 133,
             "drinkScale": 100,
-            "catScale": 72,
+            "catScale": 42,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
             "imageSrc": "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/custom-1/1782183551526-chatgpt-image-jun-21-2026-11-23-51-pm.png",
               "/admin-uploads/custom-1/1782183551515-chatgpt-image-jun-21-2026-11-22-48-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -3506,10 +3594,12 @@
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
+        "catFlipped": false,
         "defaultImageSrc": "",
         "imageSrc": "",
         "enabledImageSrcs": [],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -3580,10 +3670,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -3654,10 +3746,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -3728,10 +3822,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -3805,10 +3901,12 @@
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
+        "catFlipped": false,
         "defaultImageSrc": "",
         "imageSrc": "",
         "enabledImageSrcs": [],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -3879,10 +3977,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -3953,10 +4053,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -4027,10 +4129,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -4104,10 +4208,12 @@
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
+        "catFlipped": false,
         "defaultImageSrc": "",
         "imageSrc": "",
         "enabledImageSrcs": [],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -4178,10 +4284,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -4252,10 +4360,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -4326,10 +4436,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -4403,10 +4515,12 @@
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
+        "catFlipped": false,
         "defaultImageSrc": "",
         "imageSrc": "",
         "enabledImageSrcs": [],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -4477,10 +4591,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -4551,10 +4667,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -4625,10 +4743,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -4702,10 +4822,12 @@
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
+        "catFlipped": false,
         "defaultImageSrc": "",
         "imageSrc": "",
         "enabledImageSrcs": [],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -4776,10 +4898,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -4850,10 +4974,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -4924,10 +5050,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -5001,6 +5129,7 @@
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
         "imageSrc": "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png",
         "enabledImageSrcs": [
@@ -5008,7 +5137,8 @@
           "/admin-uploads/liam-eli/1782179172834-chatgpt-image-jun-21-2026-11-31-58-pm.png",
           "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png"
         ],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -5079,13 +5209,15 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
             "imageSrc": "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
               "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -5156,13 +5288,15 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
             "imageSrc": "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
               "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -5233,13 +5367,15 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
             "imageSrc": "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/liam-eli/1782179172824-chatgpt-image-jun-21-2026-11-30-56-pm.png",
               "/admin-uploads/liam-eli/1782179172851-chatgpt-image-jun-21-2026-11-32-56-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -5313,10 +5449,12 @@
         "characterScale": 100,
         "drinkScale": 100,
         "catScale": 82,
+        "catFlipped": false,
         "defaultImageSrc": "",
         "imageSrc": "",
         "enabledImageSrcs": [],
-        "hiddenImageSrcs": []
+        "hiddenImageSrcs": [],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -5387,10 +5525,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -5461,10 +5601,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -5535,10 +5677,12 @@
             "characterScale": 100,
             "drinkScale": 100,
             "catScale": 82,
+            "catFlipped": false,
             "defaultImageSrc": "",
             "imageSrc": "",
             "enabledImageSrcs": [],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -5612,6 +5756,7 @@
         "characterScale": 220,
         "drinkScale": 86,
         "catScale": 71,
+        "catFlipped": false,
         "defaultImageSrc": "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
         "imageSrc": "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png",
         "enabledImageSrcs": [
@@ -5623,7 +5768,8 @@
           "/admin-uploads/alaric-eli/1782179236521-chatgpt-image-jun-21-2026-11-35-54-pm.png",
           "/admin-uploads/alaric-eli/1782179236508-chatgpt-image-jun-21-2026-11-34-56-pm.png",
           "/admin-uploads/alaric-eli/1782179236495-chatgpt-image-jun-21-2026-11-33-53-pm.png"
-        ]
+        ],
+        "catPoseLayouts": {}
       },
       "mobile": {
         "small": {
@@ -5694,13 +5840,15 @@
             "characterScale": 220,
             "drinkScale": 86,
             "catScale": 71,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
             "imageSrc": "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
               "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "medium": {
@@ -5771,13 +5919,15 @@
             "characterScale": 220,
             "drinkScale": 86,
             "catScale": 71,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
             "imageSrc": "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
               "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         },
         "large": {
@@ -5848,13 +5998,15 @@
             "characterScale": 220,
             "drinkScale": 86,
             "catScale": 71,
+            "catFlipped": false,
             "defaultImageSrc": "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
             "imageSrc": "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png",
             "enabledImageSrcs": [
               "/admin-uploads/alaric-eli/1782179244476-chatgpt-image-jun-21-2026-11-26-59-pm.png",
               "/admin-uploads/alaric-eli/1782179244505-chatgpt-image-jun-21-2026-11-29-09-pm.png"
             ],
-            "hiddenImageSrcs": []
+            "hiddenImageSrcs": [],
+            "catPoseLayouts": {}
           }
         }
       }
@@ -7591,10 +7743,10 @@
       "patienceMs": 20000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/shadow/1782154679068-shadowthinking.png",
-        "scale": 237,
+        "imageSrc": "/admin-uploads/shadow/1782358610050-shadowicon.png",
+        "scale": 100,
         "x": 50,
-        "y": 5
+        "y": 50
       }
     },
     "matthew": {
@@ -7605,10 +7757,10 @@
       "patienceMs": 24000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/matthew/1782178624756-chatgpt-image-jun-21-2026-10-04-20-pm.png",
-        "scale": 250,
+        "imageSrc": "/admin-uploads/matthew/1782358623018-matticon.png",
+        "scale": 100,
         "x": 50,
-        "y": 4
+        "y": 50
       }
     },
     "liam": {
@@ -7619,10 +7771,10 @@
       "patienceMs": 15000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/liam/1782178719616-chatgpt-image-jun-21-2026-10-43-05-pm.png",
-        "scale": 250,
-        "x": 16,
-        "y": 0
+        "imageSrc": "/admin-uploads/liam/1782358641996-liamicon.png",
+        "scale": 100,
+        "x": 50,
+        "y": 50
       }
     },
     "alfrin": {
@@ -7633,10 +7785,10 @@
       "patienceMs": 13000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/alfrin/1782178768367-chatgpt-image-jun-21-2026-10-37-52-pm.png",
-        "scale": 250,
-        "x": 21,
-        "y": 0
+        "imageSrc": "/admin-uploads/alfrin/1782358651958-alaricicon.png",
+        "scale": 100,
+        "x": 50,
+        "y": 50
       }
     },
     "alaric": {
@@ -7647,10 +7799,10 @@
       "patienceMs": 18000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/alaric/1782178802520-chatgpt-image-jun-21-2026-10-11-23-pm.png",
-        "scale": 250,
-        "x": 19,
-        "y": 0
+        "imageSrc": "/admin-uploads/alaric/1782358660754-alaric.png",
+        "scale": 100,
+        "x": 50,
+        "y": 50
       }
     },
     "eli": {
@@ -7661,10 +7813,10 @@
       "patienceMs": 19000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/eli/1782178857002-chatgpt-image-jun-21-2026-10-19-10-pm.png",
-        "scale": 250,
-        "x": 54,
-        "y": 3
+        "imageSrc": "/admin-uploads/eli/1782358679914-eliicon.png",
+        "scale": 100,
+        "x": 50,
+        "y": 50
       }
     },
     "miles": {
@@ -7675,10 +7827,10 @@
       "patienceMs": 27000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/miles/1782178896566-chatgpt-image-jun-21-2026-11-21-58-pm.png",
-        "scale": 250,
-        "x": 58,
-        "y": 3
+        "imageSrc": "/admin-uploads/miles/1782358693894-milesicon.png",
+        "scale": 100,
+        "x": 50,
+        "y": 50
       }
     },
     "nia": {
@@ -7689,10 +7841,10 @@
       "patienceMs": 17000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/nia/1782178948909-chatgpt-image-jun-21-2026-10-25-12-pm.png",
-        "scale": 250,
-        "x": 17,
-        "y": 0
+        "imageSrc": "/admin-uploads/nia/1782358707284-niaicon.png",
+        "scale": 100,
+        "x": 50,
+        "y": 50
       }
     },
     "gene": {
@@ -7703,10 +7855,10 @@
       "patienceMs": 16000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/gene/1782179126578-chatgpt-image-jun-21-2026-11-17-33-pm.png",
-        "scale": 250,
-        "x": 66,
-        "y": 0
+        "imageSrc": "/admin-uploads/gene/1782358721872-geneicon.png",
+        "scale": 100,
+        "x": 50,
+        "y": 50
       }
     },
     "quou": {
@@ -7717,10 +7869,10 @@
       "patienceMs": 22000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/quou/1782179351607-chatgpt-image-jun-21-2026-10-57-30-pm.png",
-        "scale": 250,
-        "x": 17,
-        "y": 0
+        "imageSrc": "/admin-uploads/quou/1782358730630-quouicon.png",
+        "scale": 100,
+        "x": 50,
+        "y": 50
       }
     },
     "custom_1": {
@@ -7731,10 +7883,10 @@
       "patienceMs": 20000,
       "afterHoursComment": "Oh, you're closed. I should head out.",
       "portrait": {
-        "imageSrc": "/admin-uploads/custom-1/1782183551536-chatgpt-image-jun-21-2026-11-25-38-pm.png",
-        "scale": 243,
-        "x": 54,
-        "y": 7
+        "imageSrc": "/admin-uploads/custom-1/1782358741255-celticicon.png",
+        "scale": 100,
+        "x": 50,
+        "y": 50
       }
     },
     "custom_2": {
@@ -16690,7 +16842,7 @@
           "x": 83,
           "y": 50
         },
-        "scale": 73
+        "scale": 75
       },
       "large": {
         "position": {
@@ -16702,14 +16854,14 @@
     }
   },
   "catSettings": {
-    "idle": "/admin-uploads/shadow/1782141877601-cat-0002-layer-3.png",
-    "meow": "/admin-uploads/shadow/1782141881980-cat2-0001-layer-6.png",
-    "purr": "/admin-uploads/shadow/1782141885268-cat-0000-layer-5.png",
-    "listen": "/admin-uploads/shadow/1782141888975-cat2-0000-layer-7.png",
+    "idle": "/admin-uploads/shadow/1782357028668-chatgpt-image-jun-24-2026-10-57-54-pm-0003-layer.png",
+    "meow": "/admin-uploads/shadow/1782357035533-chatgpt-image-jun-24-2026-10-57-54-pm-0004-layer.png",
+    "purr": "/admin-uploads/shadow/1782357039842-chatgpt-image-jun-24-2026-10-57-54-pm-0000-layer.png",
+    "listen": "/admin-uploads/shadow/1782357079706-chatgpt-image-jun-24-2026-10-57-54-pm-0003-layer.png",
     "leave": "",
-    "cute": "/admin-uploads/shadow/1782141899687-cat-0001-layer-4.png",
-    "roll": "/admin-uploads/shadow/1782141903665-cat-0004-layer-1.png",
-    "serve": "/admin-uploads/shadow/1782141910807-cat-0002-layer-3.png"
+    "cute": "/admin-uploads/shadow/1782357052707-chatgpt-image-jun-24-2026-10-57-54-pm-0002-layer.png",
+    "roll": "/admin-uploads/shadow/1782357070254-chatgpt-image-jun-24-2026-10-57-54-pm-0001-layer.png",
+    "serve": "/admin-uploads/shadow/1782357084751-chatgpt-image-jun-24-2026-10-57-54-pm-0002-layer.png"
   },
   "openingSettings": {
     "locationName": "Sweet Purr Café",
