@@ -5,8 +5,8 @@ order drinks, linger at table spots, and share story chapters as you serve them 
 with small cat actions.
 
 The project is built on the Stay Awhile kit, so the Run.Game SDK wrappers and local docs are still in
-the repo. Game work should happen in `src/App.tsx`, `src/index.css`, and the runtime assets under
-`public/`.
+the repo. Game work now lives across `src/App.tsx`, `src/components/`, `src/game/`, `src/index.css`,
+and the runtime assets under `public/`.
 
 ---
 
@@ -23,7 +23,8 @@ npm install
 npm run dev
 ```
 
-`npm run dev` opens the URL Vite prints. The current game is implemented in `src/App.tsx`.
+`npm run dev` opens the URL Vite prints. The main game root is `src/App.tsx`; shared icons/meters live in
+`src/components/`, and data-heavy game definitions live in `src/game/`.
 
 When your game is ready, ship it (update the CLI first, see below):
 
@@ -118,14 +119,16 @@ rewarded boost), see [`docs/cozy-recipes.md`](docs/cozy-recipes.md).
 
 ## Project layout
 
-```
+```text
 src/
-├── services/              # Run.Game SDK wrappers — fail-loud contracts (the kit)
-├── theme/                 # theme tokens — edit default.ts for your look
-├── starter/               # the blank welcome screen — replace this
-├── components/            # ErrorBoundary
-├── App.tsx                # one-line indirection — points at the starter by default
-└── main.tsx               # boot
+- components/            # reusable React UI: ErrorBoundary, icons, meters
+- game/                  # game data and helpers split out of the main app
+- services/              # Run.Game SDK wrappers, fail-loud contracts from the kit
+- theme/                 # theme tokens; edit default.ts for base look
+- starter/               # original kit starter files
+- App.tsx                # main Cat Cafe game root
+- index.css              # Cat Cafe layout and styling
+- main.tsx               # boot
 ```
 
 ---

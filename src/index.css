@@ -1788,7 +1788,8 @@ h3 {
 
 .admin-assets-board,
 .admin-opening-board,
-.admin-chats-board {
+.admin-chats-board,
+.admin-store-board {
   min-height: 0;
   display: grid;
   gap: 14px;
@@ -1802,6 +1803,7 @@ h3 {
 .admin-opening-board,
 .admin-chat-menu-board,
 .admin-cat-board,
+.admin-store-board,
 .admin-character-board {
   grid-template-rows: auto minmax(0, 1fr);
   padding: 16px;
@@ -2288,6 +2290,137 @@ h3 {
 
 .admin-board-header input[type='range'] {
   width: 100%;
+}
+
+.admin-store-upgrade-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(420px, 1.35fr);
+  gap: 14px;
+  overflow: hidden;
+}
+
+.admin-store-upgrade-list,
+.admin-store-upgrade-editor {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid rgba(255, 248, 235, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-store-upgrade-list {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.admin-store-upgrade-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(255, 248, 235, 0.13);
+  border-radius: 8px;
+  color: #f7efe5;
+  background: rgba(10, 13, 12, 0.55);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-store-upgrade-row:hover,
+.admin-store-upgrade-row.active {
+  border-color: rgba(127, 152, 77, 0.76);
+  background: rgba(127, 152, 77, 0.18);
+}
+
+.admin-store-upgrade-row.disabled {
+  opacity: 0.62;
+  filter: saturate(0.45);
+}
+
+.admin-store-upgrade-icon,
+.admin-store-upgrade-preview-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255, 248, 235, 0.08);
+}
+
+.admin-store-upgrade-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.admin-store-upgrade-icon svg,
+.admin-store-upgrade-icon img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.admin-store-upgrade-row strong,
+.admin-store-upgrade-row small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-store-upgrade-row small {
+  color: #c9d8a5;
+  font-size: 0.74rem;
+}
+
+.admin-store-upgrade-cost {
+  min-width: 48px;
+  padding: 5px 8px;
+  border: 1px solid rgba(217, 181, 139, 0.54);
+  border-radius: 999px;
+  color: #fff8eb;
+  background: rgba(90, 60, 38, 0.54);
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-align: center;
+}
+
+.admin-store-upgrade-editor {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.admin-store-upgrade-preview {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-store-upgrade-preview-icon {
+  width: 88px;
+  height: 88px;
+}
+
+.admin-store-upgrade-preview-icon svg,
+.admin-store-upgrade-preview-icon img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+}
+
+.admin-store-upgrade-fields .admin-wide-field {
+  grid-column: 1 / -1;
+}
+
+.admin-store-upgrade-fields textarea {
+  min-height: 86px;
+  resize: vertical;
 }
 
 .admin-asset-grid {

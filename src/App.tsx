@@ -5,8 +5,69 @@ import type {
   DragEvent as ReactDragEvent,
   FormEvent as ReactFormEvent,
   PointerEvent as ReactPointerEvent,
+  ReactNode,
 } from 'react';
 import { unzipSync, strFromU8 } from 'fflate';
+import {
+  BACKGROUND_MUSIC_SRC,
+  EMPTY_TABLE_IMAGE_SRC,
+  RELATIONSHIP_HEART_SRC,
+  UI_ICON_SRC,
+  cssAssetUrl,
+  resolveAssetSrc,
+} from './game/assets';
+import {
+  DEFAULT_ADMIN_RECIPES,
+  DEFAULT_ADMIN_TRAINING_UPGRADES,
+  DEFAULT_STORE_UPGRADES,
+  LEGACY_RECIPE_IDS,
+  SERVICE_ITEMS,
+  STARTER_RECIPE_ID,
+  careActionValue,
+  normalizeAdminRecipe,
+  normalizeAdminRecipes,
+  normalizeAdminStoreUpgrade,
+  normalizeAdminStoreUpgrades,
+  normalizeAdminTrainingUpgrade,
+  normalizeAdminTrainingUpgrades,
+  recipeCategoryValue,
+  upgradeKindValue,
+} from './game/catalogs';
+import type {
+  AdminRecipe,
+  AdminStoreUpgrade,
+  AdminTrainingUpgrade,
+  CareAction,
+  RecipeCategory,
+  ServiceItem,
+  ServiceKind,
+} from './game/catalogs';
+import {
+  BedIcon,
+  BellIcon,
+  BookIcon,
+  BugIcon,
+  CatHeadIcon,
+  CheckIcon,
+  CupIcon,
+  CushionIcon,
+  HearthIcon,
+  HeartIcon,
+  IconButton,
+  LampIcon,
+  LeafIcon,
+  MenuIcon,
+  PauseIcon,
+  PawIcon,
+  PlantIcon,
+  RotateIcon,
+  ShopIcon,
+  StarIcon,
+  SunIcon,
+  UiImageIcon,
+  WindowSeatIcon,
+} from './components/icons';
+import { Meter } from './components/meters';
 import { getSafeArea, isDev } from './services/environment';
 import {
   SAVE_SCHEMA_VERSION,
@@ -29,19 +90,6 @@ type Scene =
   | 'collection'
   | 'admin';
 type ArrivalState = 'ready' | 'waiting';
-type ServiceKind =
-  | 'blackTea'
-  | 'greenTea'
-  | 'chamomiletea'
-  | 'peppermintTea'
-  | 'lemon'
-  | 'basicCoffee'
-  | 'americano'
-  | 'latte'
-  | 'cappuccino'
-  | 'mocha';
-type RecipeCategory = 'Tea' | 'Coffee';
-type CareAction = 'purr' | 'quiet' | 'roll' | 'cute';
 type LedgerTab = 'recipes' | 'training' | 'comfort' | 'store';
 type Gender = 'female' | 'male';
 type TipStyle = 'poor' | 'steady' | 'good' | 'high';
@@ -67,9 +115,10 @@ type AdminSidePanelMode =
   | 'chats'
   | 'chatMenu'
   | 'cat'
+  | 'store'
   | 'ref'
   | 'opening';
-type AdminChatKind = 'story' | 'comment' | 'leave' | 'order' | 'happy';
+type AdminChatKind = 'story' | 'comment' | 'leave' | 'order' | 'happy' | 'comfort';
 type AdminChatEditorMode = 'list' | AdminChatKind;
 type AdminChatToolMode = 'chats' | 'moodIcons';
 type AdminOpeningTab = 'settings' | 'dialogue' | 'preview';
@@ -359,6 +408,9 @@ interface AdminPortableState {
   chats: AdminChats;
   moodIcons: AdminMoodIcon[];
   chatMenu: AdminChatMenuSettings;
+  storeUpgrades: AdminStoreUpgrade[];
+  recipes: AdminRecipe[];
+  trainingUpgrades: AdminTrainingUpgrade[];
   catSettings: AdminCatSettings;
   catPosePlacements: AdminCatPosePlacements;
   openingSettings: AdminOpeningSettings;
@@ -477,40 +529,6 @@ interface Customer {
   followUps: readonly StoryChapter[];
   blockedIfPresent?: readonly string[];
   requiresPresent?: readonly string[];
-}
-
-interface Upgrade {
-  id: string;
-  name: string;
-  kind: 'Furniture' | 'Decor' | 'Comfort';
-  cost: number;
-  comfort: number;
-  happiness: number;
-  description: string;
-}
-
-interface ServiceItem {
-  id: ServiceKind;
-  label: string;
-  name: string;
-  category: RecipeCategory;
-  imageSrc: string;
-  cost: number;
-  quality: number;
-  moodBoost: number;
-  tipBonus: number;
-  happinessGain: number;
-  reputationBonus: number;
-  description: string;
-}
-
-interface CooldownUpgrade {
-  id: string;
-  name: string;
-  action: CareAction;
-  cost: number;
-  reductionMs: number;
-  description: string;
 }
 
 interface GameState {
@@ -693,9 +711,6 @@ const YEAR_LENGTH_DAYS = 365;
 const GOOD_SHOP_SCORE = 70;
 const DEFAULT_CAFE_NAME = 'Cat Cafe';
 const DEFAULT_CAT_NAME = 'Mr. Kitty';
-const STARTER_RECIPE_ID = 'blackTea';
-const SECOND_TABLE_UPGRADE_ID = 'second-table-spot';
-const THIRD_TABLE_UPGRADE_ID = 'third-table-spot';
 const BASE_PURR_COOLDOWN_MS = 6_000;
 const BASE_MEOW_COOLDOWN_MS = 2_000;
 const BASE_QUIET_COOLDOWN_MS = 2_500;
@@ -721,6 +736,9 @@ const ADMIN_CHATS_KEY = 'tea-shop-cat-admin-chats-v1';
 const ADMIN_CHATS_SCHEMA_VERSION = 2;
 const ADMIN_MOOD_ICONS_KEY = 'tea-shop-cat-admin-mood-icons-v1';
 const ADMIN_CHAT_MENU_KEY = 'tea-shop-cat-admin-chat-menu-v1';
+const ADMIN_STORE_UPGRADES_KEY = 'tea-shop-cat-admin-store-upgrades-v1';
+const ADMIN_RECIPES_KEY = 'tea-shop-cat-admin-recipes-v1';
+const ADMIN_TRAINING_UPGRADES_KEY = 'tea-shop-cat-admin-training-upgrades-v1';
 const ADMIN_CAT_SETTINGS_KEY = 'tea-shop-cat-admin-cat-settings-v1';
 const ADMIN_CAT_POSE_PLACEMENTS_KEY = 'tea-shop-cat-admin-cat-pose-placements-v1';
 const ADMIN_LARGE_DB_NAME = 'tea-shop-cat-admin-large-db-v1';
@@ -732,7 +750,6 @@ const ADMIN_OPENING_DB_VERSION = 1;
 const ADMIN_OPENING_STORE_NAME = 'opening-settings';
 const ADMIN_OPENING_RECORD_KEY = 'settings';
 const ADMIN_PORTABLE_STATE_SRC = '/admin-uploads/admin-state.json';
-const PUBLIC_ASSET_BASE_URL = new URL(import.meta.env.BASE_URL || './', window.location.href).href;
 const ADMIN_PORTABLE_FETCH_TIMEOUT_MS = 5_000;
 const PRELOAD_IMAGE_TIMEOUT_MS = 4_000;
 const STARTUP_PRELOAD_TIMEOUT_MS = 9_000;
@@ -740,27 +757,6 @@ const OPENING_IMAGE_NONE = '__none';
 const MUSIC_MUTED_KEY = 'tea-shop-cat-music-muted-v1';
 const MUSIC_VOLUME_KEY = 'tea-shop-cat-music-volume-v1';
 const DEFAULT_MUSIC_VOLUME = 42;
-const BACKGROUND_MUSIC_SRC = '/music/rainy-table-by-the-window.mp3';
-const EMPTY_TABLE_IMAGE_SRC = '/admin-uploads/store/smallChair.png';
-const UI_ICON_SRC = {
-  gear: '/icons/gear.png',
-  logBook: '/icons/logBook.png',
-  store: '/icons/store.png',
-  upgrades: '/icons/storeIcon.png',
-  lock: '/icons/lock.png',
-  cafeComfort: '/icons/cat_happy.png',
-} as const;
-const RELATIONSHIP_HEART_SRC = {
-  black: '/icons/black_heart.png',
-  white: '/icons/white_heart.png',
-  purple: '/icons/purple_heart.png',
-  blue: '/icons/blue_heart.png',
-  green: '/icons/green_heart.png',
-  yellow: '/icons/yellow_heart.png',
-  orange: '/icons/orange_heart.png',
-  pink: '/icons/pink_heart.png',
-  red: '/icons/red_heart.png',
-} as const;
 
 let platformSaveRetryPausedUntil = 0;
 type TableSlot = (typeof TABLE_SLOTS)[number];
@@ -771,21 +767,6 @@ const OPENING_CITY_BACKGROUND_SRC = '/admin-uploads/opening/stellar-vanguard-cit
 const OPENING_CAFE_FRONT_BACKGROUND_SRC = '/admin-uploads/opening/green-door-cafe-front.png';
 const LEGACY_OPENING_LOCATION_DETAIL = 'Planet: Caelorin, City';
 const OPENING_LOCATION_DETAIL = 'Planet: Caelorin, City: Ganyra';
-
-function resolveAssetSrc(src: unknown): string {
-  if (typeof src !== 'string') return '';
-  const trimmed = src.trim();
-  if (!trimmed) return '';
-  if (/^(?:data:|blob:|https?:\/\/)/i.test(trimmed)) return trimmed;
-  if (!trimmed.startsWith('/')) return trimmed;
-
-  return new URL(trimmed.replace(/^\/+/, ''), PUBLIC_ASSET_BASE_URL).href;
-}
-
-function cssAssetUrl(src: unknown): string | undefined {
-  const resolved = resolveAssetSrc(src);
-  return resolved ? `url("${resolved.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")` : undefined;
-}
 
 const DEFAULT_OPENING_BEATS: AdminOpeningBeat[] = [
   {
@@ -1147,6 +1128,7 @@ const ADMIN_CHAT_KIND_LABELS: Record<AdminChatKind, string> = {
   leave: 'Leave',
   order: 'Order',
   happy: 'Happy',
+  comfort: 'Comfort',
 };
 
 const TIP_STYLE_MULTIPLIERS: Record<TipStyle, number> = {
@@ -2313,7 +2295,8 @@ function adminChatKindValue(value: unknown, fallback: AdminChatKind): AdminChatK
     value === 'comment' ||
     value === 'leave' ||
     value === 'order' ||
-    value === 'happy'
+    value === 'happy' ||
+    value === 'comfort'
     ? value
     : fallback;
 }
@@ -2356,9 +2339,11 @@ function defaultAdminChatEntry(
       : kind === 'leave'
         ? "Oh, you're closed. I should head out."
         : kind === 'order'
-          ? 'I know what I would like today.'
-          : kind === 'happy'
-            ? 'That helped more than you know.'
+        ? 'I know what I would like today.'
+        : kind === 'happy'
+          ? 'That helped more than you know.'
+          : kind === 'comfort'
+            ? 'I feel a bit better now.'
             : 'Hello there kitty.';
   return {
     id: `${subjectId}-${kind}-${Date.now()}-${index}`,
@@ -2659,6 +2644,24 @@ function getDefaultAdminChatsForSubject(subjectId: AdminSubjectId): AdminRelatio
           triggerDelayDays: 0,
           moodIconIds: [],
         },
+        {
+          id: `${subjectId}-comfort-0`,
+          kind: 'comfort',
+          title: 'Comfort 1',
+          summary: '',
+          startImageSrc: '',
+          blocks: [
+            createAdminBubbleBlock(
+              'I feel a bit better now.',
+              `${subjectId}-comfort-0-bubble-0`,
+            ),
+          ],
+          bubbles: ['I feel a bit better now.'],
+          catReply: null,
+          triggerStoryId: '',
+          triggerDelayDays: 0,
+          moodIconIds: [],
+        },
       ],
     },
     {
@@ -2819,6 +2822,7 @@ function importChatKindValue(value: string): AdminChatKind {
   if (normalized === 'leave') return 'leave';
   if (normalized === 'order') return 'order';
   if (normalized === 'happy') return 'happy';
+  if (normalized === 'comfort') return 'comfort';
   return 'comment';
 }
 
@@ -3393,6 +3397,9 @@ function normalizeAdminPortableState(value: unknown): AdminPortableState {
     chats: normalizeAdminChats(parsed.chats),
     moodIcons: normalizeAdminMoodIcons(parsed.moodIcons),
     chatMenu: normalizeAdminChatMenuSettings(parsed.chatMenu),
+    storeUpgrades: normalizeAdminStoreUpgrades(parsed.storeUpgrades),
+    recipes: normalizeAdminRecipes(parsed.recipes),
+    trainingUpgrades: normalizeAdminTrainingUpgrades(parsed.trainingUpgrades),
     catSettings: normalizeAdminCatSettings(parsed.catSettings),
     catPosePlacements: normalizeAdminCatPosePlacements(parsed.catPosePlacements),
     openingSettings: normalizeOpeningSettings(parsed.openingSettings),
@@ -3701,6 +3708,9 @@ async function saveOpeningSettingsToIndexedDb(settings: AdminOpeningSettings): P
 let activeAdminCharacterSettings = loadAdminCharacterSettings();
 let activeAdminLayouts = loadAdminLayouts();
 let activeAdminChats: AdminChats = {} as AdminChats;
+let activeAdminStoreUpgrades: AdminStoreUpgrade[] = [];
+let activeAdminRecipes: AdminRecipe[] = [];
+let activeAdminTrainingUpgrades: AdminTrainingUpgrade[] = [];
 
 function setActiveAdminCharacterSettings(settings: AdminCharacterSettings) {
   activeAdminCharacterSettings = normalizeAdminCharacterSettings(settings);
@@ -3712,6 +3722,18 @@ function setActiveAdminLayouts(layouts: AdminLayouts) {
 
 function setActiveAdminChats(chats: AdminChats) {
   activeAdminChats = normalizeAdminChats(chats);
+}
+
+function setActiveAdminStoreUpgrades(upgrades: AdminStoreUpgrade[]) {
+  activeAdminStoreUpgrades = normalizeAdminStoreUpgrades(upgrades);
+}
+
+function setActiveAdminRecipes(recipes: AdminRecipe[]) {
+  activeAdminRecipes = normalizeAdminRecipes(recipes);
+}
+
+function setActiveAdminTrainingUpgrades(upgrades: AdminTrainingUpgrade[]) {
+  activeAdminTrainingUpgrades = normalizeAdminTrainingUpgrades(upgrades);
 }
 
 function applyAdminSettingsToProfile(
@@ -4304,282 +4326,67 @@ function getPlayableCustomerForAdminSubject(subjectId: AdminSubjectId): Customer
   );
 }
 
-const UPGRADES = [
-  {
-    id: SECOND_TABLE_UPGRADE_ID,
-    name: 'Second Table Spot',
-    kind: 'Furniture',
-    cost: 120,
-    comfort: 0,
-    happiness: 2,
-    description: 'Opens a second customer spot for busier shop days.',
-  },
-  {
-    id: THIRD_TABLE_UPGRADE_ID,
-    name: 'Third Table Spot',
-    kind: 'Furniture',
-    cost: 260,
-    comfort: 0,
-    happiness: 3,
-    description: 'Opens the third customer spot when the shop is ready for a full room.',
-  },
-  {
-    id: 'cushion',
-    name: 'Cozy Cushion',
-    kind: 'Furniture',
-    cost: 50,
-    comfort: 1,
-    happiness: 4,
-    description: 'Soft seats help shy customers settle in.',
-  },
-  {
-    id: 'cat-bed',
-    name: 'Cat Bed',
-    kind: 'Furniture',
-    cost: 80,
-    comfort: 2,
-    happiness: 5,
-    description: 'A sunny rest spot between visits.',
-  },
-  {
-    id: 'tea-plant',
-    name: 'Tea Plant',
-    kind: 'Decor',
-    cost: 60,
-    comfort: 1,
-    happiness: 4,
-    description: 'Fresh green leaves brighten the counter.',
-  },
-  {
-    id: 'lamp',
-    name: 'Hanging Lamp',
-    kind: 'Comfort',
-    cost: 70,
-    comfort: 2,
-    happiness: 5,
-    description: 'A warmer glow makes purring easier.',
-  },
-  {
-    id: 'window-seat',
-    name: 'Window Seat',
-    kind: 'Furniture',
-    cost: 130,
-    comfort: 3,
-    happiness: 6,
-    description: 'A quiet place for regulars to linger.',
-  },
-  {
-    id: 'hearth',
-    name: 'Little Hearth',
-    kind: 'Comfort',
-    cost: 180,
-    comfort: 4,
-    happiness: 8,
-    description: 'Warmth that turns short visits into generous ones.',
-  },
-] as const satisfies readonly [Upgrade, ...Upgrade[]];
+function loadAdminStoreUpgrades(): AdminStoreUpgrade[] {
+  try {
+    const raw = readBrowserStorage(ADMIN_STORE_UPGRADES_KEY);
+    return normalizeAdminStoreUpgrades(raw ? JSON.parse(raw) : DEFAULT_STORE_UPGRADES);
+  } catch {
+    return DEFAULT_STORE_UPGRADES.map((upgrade) => ({ ...upgrade }));
+  }
+}
 
-const SERVICE_ITEMS = [
-  {
-    id: 'blackTea',
-    label: 'black tea',
-    name: 'Black Tea',
-    category: 'Tea',
-    imageSrc: '/items/blackTea.png',
-    cost: 0,
-    quality: 4,
-    moodBoost: 14,
-    tipBonus: 8,
-    happinessGain: 2,
-    reputationBonus: 1,
-    description: 'A dependable, full-bodied cup. Every good shop starts with a steady pour.',
-  },
-  {
-    id: 'greenTea',
-    label: 'green tea',
-    name: 'Green Tea',
-    category: 'Tea',
-    imageSrc: '/items/greenTea.png',
-    cost: 85,
-    quality: 8,
-    moodBoost: 12,
-    tipBonus: 10,
-    happinessGain: 1,
-    reputationBonus: 2,
-    description: 'A bright, gentle tea for guests who want the room to feel a little lighter.',
-  },
-  {
-    id: 'chamomiletea',
-    label: 'chamomile tea',
-    name: 'Chamomile Tea',
-    category: 'Tea',
-    imageSrc: '/items/chamomiletea.png',
-    cost: 120,
-    quality: 10,
-    moodBoost: 16,
-    tipBonus: 12,
-    happinessGain: 2,
-    reputationBonus: 3,
-    description: 'Soft flowers in a warm cup, perfect for customers who need a quiet minute.',
-  },
-  {
-    id: 'peppermintTea',
-    label: 'peppermint tea',
-    name: 'Peppermint Tea',
-    category: 'Tea',
-    imageSrc: '/items/peppermintTea.png',
-    cost: 165,
-    quality: 13,
-    moodBoost: 18,
-    tipBonus: 15,
-    happinessGain: 3,
-    reputationBonus: 4,
-    description: 'Fresh mint leaves make the whole table feel awake and cared for.',
-  },
-  {
-    id: 'lemon',
-    label: 'lemon tea',
-    name: 'Lemon Tea',
-    category: 'Tea',
-    imageSrc: '/items/lemon.png',
-    cost: 230,
-    quality: 17,
-    moodBoost: 20,
-    tipBonus: 18,
-    happinessGain: 4,
-    reputationBonus: 5,
-    description: 'A golden citrus recipe that makes the shop feel known for something special.',
-  },
-  {
-    id: 'basicCoffee',
-    label: 'basic coffee',
-    name: 'Basic Coffee',
-    category: 'Coffee',
-    imageSrc: '/items/basicCoffee.png',
-    cost: 95,
-    quality: 7,
-    moodBoost: 11,
-    tipBonus: 9,
-    happinessGain: 1,
-    reputationBonus: 2,
-    description: 'A clean, simple cup for guests who like their comfort direct.',
-  },
-  {
-    id: 'americano',
-    label: 'americano',
-    name: 'Americano',
-    category: 'Coffee',
-    imageSrc: '/items/americano.png',
-    cost: 135,
-    quality: 11,
-    moodBoost: 13,
-    tipBonus: 12,
-    happinessGain: 2,
-    reputationBonus: 3,
-    description: 'Smooth and steady, with enough depth to make the afternoon feel longer.',
-  },
-  {
-    id: 'latte',
-    label: 'latte',
-    name: 'Latte',
-    category: 'Coffee',
-    imageSrc: '/items/latte.png',
-    cost: 185,
-    quality: 14,
-    moodBoost: 17,
-    tipBonus: 15,
-    happinessGain: 3,
-    reputationBonus: 4,
-    description: 'A creamy heart in the cup, made for customers who notice little kindnesses.',
-  },
-  {
-    id: 'cappuccino',
-    label: 'cappuccino',
-    name: 'Cappuccino',
-    category: 'Coffee',
-    imageSrc: '/items/cappuccino.png',
-    cost: 225,
-    quality: 16,
-    moodBoost: 19,
-    tipBonus: 17,
-    happinessGain: 3,
-    reputationBonus: 5,
-    description: 'Foamy, warm, and just fancy enough to feel like a treat.',
-  },
-  {
-    id: 'mocha',
-    label: 'mocha',
-    name: 'Mocha',
-    category: 'Coffee',
-    imageSrc: '/items/mocha.png',
-    cost: 280,
-    quality: 20,
-    moodBoost: 22,
-    tipBonus: 21,
-    happinessGain: 4,
-    reputationBonus: 6,
-    description: 'Chocolatey comfort with a flourish, the kind of recipe people remember.',
-  },
-] as const satisfies readonly [ServiceItem, ...ServiceItem[]];
+function saveAdminStoreUpgrades(upgrades: AdminStoreUpgrade[]) {
+  try {
+    writeBrowserStorage(
+      ADMIN_STORE_UPGRADES_KEY,
+      JSON.stringify(normalizeAdminStoreUpgrades(upgrades)),
+    );
+  } catch {
+    // Store catalog can include uploaded image data; IndexedDB keeps the larger copy.
+  }
+}
 
-const LEGACY_RECIPE_IDS: Record<string, ServiceKind> = {
-  tea: 'blackTea',
-  coffee: 'basicCoffee',
-  cake: 'chamomiletea',
-  scone: 'peppermintTea',
-  cocoa: 'lemon',
-};
+activeAdminStoreUpgrades = loadAdminStoreUpgrades();
 
-const COOLDOWN_UPGRADES = [
-  {
-    id: 'purr-practice',
-    name: 'Purr Practice',
-    action: 'purr',
-    cost: 110,
-    reductionMs: 1_500,
-    description: 'Shortens the purr cooldown so the cat can reassure guests more often.',
-  },
-  {
-    id: 'soft-rumble',
-    name: 'Soft Rumble',
-    action: 'purr',
-    cost: 210,
-    reductionMs: 1_500,
-    description: 'A steadier purr rhythm for busier shop days.',
-  },
-  {
-    id: 'quiet-cushion',
-    name: 'Quiet Cushion',
-    action: 'quiet',
-    cost: 95,
-    reductionMs: 1_000,
-    description: 'Shortens the listen cooldown with a more comfortable listening spot.',
-  },
-  {
-    id: 'listening-ritual',
-    name: 'Listening Ritual',
-    action: 'quiet',
-    cost: 175,
-    reductionMs: 1_000,
-    description: 'A practiced little pause that helps the cat listen again sooner.',
-  },
-  {
-    id: 'cozy-flop',
-    name: 'Cozy Flop',
-    action: 'roll',
-    cost: 160,
-    reductionMs: 1_500,
-    description: 'Shortens the roll over cooldown for guests who warm up to silly trust.',
-  },
-  {
-    id: 'bright-whiskers',
-    name: 'Bright Whiskers',
-    action: 'cute',
-    cost: 190,
-    reductionMs: 1_500,
-    description: 'Shortens the be cute cooldown for guests who need a little charm.',
-  },
-] as const satisfies readonly [CooldownUpgrade, ...CooldownUpgrade[]];
+function loadAdminRecipes(): AdminRecipe[] {
+  try {
+    const raw = readBrowserStorage(ADMIN_RECIPES_KEY);
+    return normalizeAdminRecipes(raw ? JSON.parse(raw) : DEFAULT_ADMIN_RECIPES);
+  } catch {
+    return DEFAULT_ADMIN_RECIPES.map((recipe) => ({ ...recipe }));
+  }
+}
+
+function saveAdminRecipes(recipes: AdminRecipe[]) {
+  try {
+    writeBrowserStorage(ADMIN_RECIPES_KEY, JSON.stringify(normalizeAdminRecipes(recipes)));
+  } catch {
+    // Recipe art can be large; IndexedDB keeps the larger copy.
+  }
+}
+
+function loadAdminTrainingUpgrades(): AdminTrainingUpgrade[] {
+  try {
+    const raw = readBrowserStorage(ADMIN_TRAINING_UPGRADES_KEY);
+    return normalizeAdminTrainingUpgrades(raw ? JSON.parse(raw) : DEFAULT_ADMIN_TRAINING_UPGRADES);
+  } catch {
+    return DEFAULT_ADMIN_TRAINING_UPGRADES.map((upgrade) => ({ ...upgrade }));
+  }
+}
+
+function saveAdminTrainingUpgrades(upgrades: AdminTrainingUpgrade[]) {
+  try {
+    writeBrowserStorage(
+      ADMIN_TRAINING_UPGRADES_KEY,
+      JSON.stringify(normalizeAdminTrainingUpgrades(upgrades)),
+    );
+  } catch {
+    // Training icons can be large; IndexedDB keeps the larger copy.
+  }
+}
+
+activeAdminRecipes = loadAdminRecipes();
+activeAdminTrainingUpgrades = loadAdminTrainingUpgrades();
 
 const SHOP_RANKS = [
   { name: 'New', min: 0 },
@@ -4636,7 +4443,9 @@ function createCustomerToken(arrivalIndex: number, customerIndex: number): numbe
 }
 
 function getOwnedRecipeIds(recipeIds: string[]): string[] {
-  const validIds = new Set<string>(SERVICE_ITEMS.map((recipe) => recipe.id));
+  const validIds = new Set<string>(
+    activeAdminRecipes.filter((recipe) => recipe.enabled).map((recipe) => recipe.id),
+  );
   const owned = [STARTER_RECIPE_ID, ...recipeIds]
     .map((id) => (validIds.has(id) ? id : LEGACY_RECIPE_IDS[id]))
     .filter((id): id is ServiceKind => Boolean(id));
@@ -4645,7 +4454,7 @@ function getOwnedRecipeIds(recipeIds: string[]): string[] {
 
 function getOwnedRecipes(recipeIds: string[]): ServiceItem[] {
   const ownedIds = new Set(getOwnedRecipeIds(recipeIds));
-  return SERVICE_ITEMS.filter((recipe) => ownedIds.has(recipe.id));
+  return activeAdminRecipes.filter((recipe) => recipe.enabled && ownedIds.has(recipe.id));
 }
 
 function getService(
@@ -4661,7 +4470,7 @@ function getService(
     ? stringSeed(`${customer.id}:${memberId}:${orderIndex}:${recipeKey}`)
     : stringSeed(`${slot}:${orderIndex}:${recipeKey}`);
   const index = Math.floor(seededRandom(seed) * recipes.length);
-  return recipes[index] ?? SERVICE_ITEMS[0];
+  return recipes[index] ?? activeAdminRecipes[0] ?? SERVICE_ITEMS[0];
 }
 
 function getServicesForCustomer(
@@ -4678,7 +4487,7 @@ function getVisibleServedService(
 ): ServiceItem {
   const lastServedIndex = servedOrderIndexes[servedOrderIndexes.length - 1];
   const mostRecentServedIndex = typeof lastServedIndex === 'number' ? lastServedIndex : 0;
-  return services[mostRecentServedIndex] ?? services[0] ?? SERVICE_ITEMS[0];
+  return services[mostRecentServedIndex] ?? services[0] ?? activeAdminRecipes[0] ?? SERVICE_ITEMS[0];
 }
 
 function getServedOrderIndexes(
@@ -4825,14 +4634,77 @@ function getPresentMemberIds(seats: Array<number | null>): Set<string> {
   return present;
 }
 
-function getUnlockedTableCount(upgradeIds: string[]): number {
-  if (upgradeIds.includes(THIRD_TABLE_UPGRADE_ID)) return 3;
-  if (upgradeIds.includes(SECOND_TABLE_UPGRADE_ID)) return 2;
-  return 1;
+function getUnlockedTableCount(
+  upgradeIds: string[],
+  upgrades: readonly AdminStoreUpgrade[] = activeAdminStoreUpgrades,
+): number {
+  return upgrades.reduce((tableCount, upgrade) => {
+    if (!upgrade.enabled || !upgradeIds.includes(upgrade.id) || !upgrade.unlocksTable) {
+      return tableCount;
+    }
+    return Math.max(tableCount, clamp(upgrade.unlocksTable, 1, TABLE_SLOTS.length));
+  }, 1);
 }
 
-function getTableCount(game: GameState): number {
-  return getUnlockedTableCount(game.upgrades);
+function getTableCount(game: GameState, upgrades = activeAdminStoreUpgrades): number {
+  return getUnlockedTableCount(game.upgrades, upgrades);
+}
+
+function getOwnedComfort(
+  upgradeIds: string[],
+  upgrades: readonly AdminStoreUpgrade[] = activeAdminStoreUpgrades,
+): number {
+  return upgradeIds.reduce((total, id) => {
+    const upgrade = upgrades.find((item) => item.enabled && item.id === id);
+    return total + (upgrade?.comfort ?? 0);
+  }, 0);
+}
+
+function getStoreUpgradeById(id: string, upgrades = activeAdminStoreUpgrades): AdminStoreUpgrade | null {
+  return upgrades.find((item) => item.enabled && item.id === id) ?? null;
+}
+
+function getStoreUpgradeEffectText(upgrade: AdminStoreUpgrade): string {
+  if (upgrade.effect?.trim()) return upgrade.effect.trim();
+  if (upgrade.unlocksTable) return 'Adds another customer spot';
+  if (upgrade.comfort > 0) return `Comfort +${upgrade.comfort}`;
+  if (upgrade.happiness > 0) return `Cafe comfort +${upgrade.happiness}`;
+  return 'Shop upgrade';
+}
+
+function getStoreUpgradesByCategory(
+  upgrades: readonly AdminStoreUpgrade[],
+  category: 'table' | 'comfort',
+): AdminStoreUpgrade[] {
+  return upgrades.filter((upgrade) => {
+    if (!upgrade.enabled) return false;
+    const isTableUpgrade = Boolean(upgrade.unlocksTable);
+    return category === 'table' ? isTableUpgrade : !isTableUpgrade;
+  });
+}
+
+function getUniqueCatalogId(name: string, items: readonly { id: string }[]): string {
+  const base =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'new-upgrade';
+  const used = new Set(items.map((item) => item.id));
+  if (!used.has(base)) return base;
+  for (let index = 2; index < 999; index += 1) {
+    const candidate = `${base}-${index}`;
+    if (!used.has(candidate)) return candidate;
+  }
+  return `${base}-${Date.now()}`;
+}
+
+function getLegacyStoreUpgradeIcon(id: string): ReactNode {
+  if (id === 'cushion') return <CushionIcon />;
+  if (id === 'cat-bed') return <BedIcon />;
+  if (id === 'window-seat') return <WindowSeatIcon />;
+  if (id === 'hearth') return <HearthIcon />;
+  if (id === 'tea-plant') return <PlantIcon />;
+  return <LampIcon />;
 }
 
 function clampTableSlot(slot: number, tableCount: number): TableSlot {
@@ -5182,13 +5054,6 @@ function formatShopTime(progress: number): string {
   return `${displayHour}:${minute.toString().padStart(2, '0')} ${suffix}`;
 }
 
-function getOwnedComfort(upgradeIds: string[]): number {
-  return upgradeIds.reduce((total, id) => {
-    const upgrade = UPGRADES.find((item) => item.id === id);
-    return total + (upgrade?.comfort ?? 0);
-  }, 0);
-}
-
 function getRecipeQuality(recipeIds: string[]): number {
   return getOwnedRecipes(recipeIds).reduce((total, recipe) => total + recipe.quality, 0);
 }
@@ -5202,8 +5067,8 @@ function getActionCooldown(upgradeIds: string[], action: CareAction): number {
         : action === 'roll'
           ? BASE_ROLL_COOLDOWN_MS
           : BASE_CUTE_COOLDOWN_MS;
-  const reduction = COOLDOWN_UPGRADES.reduce((total, upgrade) => {
-    if (upgrade.action !== action || !upgradeIds.includes(upgrade.id)) return total;
+  const reduction = activeAdminTrainingUpgrades.reduce((total, upgrade) => {
+    if (!upgrade.enabled || upgrade.action !== action || !upgradeIds.includes(upgrade.id)) return total;
     return total + upgrade.reductionMs;
   }, 0);
   return Math.max(1_500, base - reduction);
@@ -5654,11 +5519,12 @@ const KITTY_CHATS: readonly KittyChat[] = [
   },
 ];
 
-function getAdminCommentChat(
+function getAdminKindChat(
   customer: Customer,
   game: GameState,
   visitNumber: number,
   chatSeed: number,
+  kind: AdminChatKind,
   forcedEntryId = '',
 ): KittyChat | null {
   const subjectId = getCustomerAdminSubjectId(customer);
@@ -5667,25 +5533,53 @@ function getAdminCommentChat(
   const relationshipScore = getCustomerRelationshipScore(game, customer);
   const groups = activeAdminChats[subjectId] ?? getDefaultAdminChatsForSubject(subjectId);
   const forcedEntry = forcedEntryId ? findAdminChatEntryForCustomer(customer, forcedEntryId) : null;
-  const comments = forcedEntry
+  const entries = forcedEntry
     ? [forcedEntry.entry]
     : groups
         .filter((group) => relationshipScore >= group.threshold)
         .sort((a, b) => b.threshold - a.threshold)
-        .flatMap((group) => group.entries.filter((entry) => entry.kind === 'comment'));
+        .flatMap((group) => group.entries.filter((entry) => entry.kind === kind));
 
-  if (comments.length === 0) return null;
+  if (entries.length === 0) return null;
 
   const seed = stringSeed(customer.id) + game.day * 43 + visitNumber * 17 + chatSeed;
-  const entry = comments[Math.floor(seededRandom(seed) * comments.length)] ?? comments[0];
+  const entry = entries[Math.floor(seededRandom(seed) * entries.length)] ?? entries[0];
   if (!entry) return null;
   const lines = getAdminChatStoryLines(entry);
   const lineImages = getAdminChatStoryLineImages(entry);
   return {
-    question: lines.join(' ') || entry.title || 'Hi there...',
+    question:
+      lines.join(' ') ||
+      entry.title ||
+      (kind === 'comfort' ? 'I feel a bit better now.' : 'Hi there...'),
     options: entry.catReply,
     imageSrc: lineImages.find(Boolean) || '',
   };
+}
+
+function getAdminCommentChat(
+  customer: Customer,
+  game: GameState,
+  visitNumber: number,
+  chatSeed: number,
+  forcedEntryId = '',
+): KittyChat | null {
+  return getAdminKindChat(customer, game, visitNumber, chatSeed, 'comment', forcedEntryId);
+}
+
+function getAdminComfortChat(
+  customer: Customer,
+  game: GameState,
+  visitNumber: number,
+  chatSeed: number,
+): KittyChat {
+  return (
+    getAdminKindChat(customer, game, visitNumber, chatSeed, 'comfort') ?? {
+      question: 'I feel a bit better now.',
+      options: null,
+      imageSrc: '',
+    }
+  );
 }
 
 function getKittyChat(
@@ -6346,6 +6240,9 @@ function collectPreloadImageSources({
   chats,
   moodIcons,
   chatMenu,
+  storeUpgrades,
+  recipes,
+  trainingUpgrades,
   catSettings,
   openingSettings,
 }: {
@@ -6354,6 +6251,9 @@ function collectPreloadImageSources({
   chats: AdminChats;
   moodIcons: AdminMoodIcon[];
   chatMenu: AdminChatMenuSettings;
+  storeUpgrades: AdminStoreUpgrade[];
+  recipes: AdminRecipe[];
+  trainingUpgrades: AdminTrainingUpgrade[];
   catSettings: AdminCatSettings;
   openingSettings: AdminOpeningSettings;
 }): string[] {
@@ -6362,7 +6262,7 @@ function collectPreloadImageSources({
   addPreloadImageSource(sources, EMPTY_TABLE_IMAGE_SRC);
   Object.values(UI_ICON_SRC).forEach((src) => addPreloadImageSource(sources, src));
   Object.values(RELATIONSHIP_HEART_SRC).forEach((src) => addPreloadImageSource(sources, src));
-  SERVICE_ITEMS.forEach((service) => addPreloadImageSource(sources, service.imageSrc));
+  recipes.forEach((service) => addPreloadImageSource(sources, service.imageSrc));
 
   const normalizedCatSettings = normalizeAdminCatSettings(catSettings);
   Object.values(normalizedCatSettings).forEach((src) => addPreloadImageSource(sources, src));
@@ -6374,6 +6274,8 @@ function collectPreloadImageSources({
   });
 
   moodIcons.forEach((icon) => addPreloadImageSource(sources, icon.src));
+  storeUpgrades.forEach((upgrade) => addPreloadImageSource(sources, upgrade.iconSrc));
+  trainingUpgrades.forEach((upgrade) => addPreloadImageSource(sources, upgrade.iconSrc));
 
   addPreloadImageSource(sources, OPENING_CITY_BACKGROUND_SRC);
   addPreloadImageSource(sources, OPENING_CAFE_FRONT_BACKGROUND_SRC);
@@ -6550,6 +6452,13 @@ function TeaShopCat() {
   const [adminChatMenuSettings, setAdminChatMenuSettings] = useState<AdminChatMenuSettings>(() =>
     loadAdminChatMenuSettings(),
   );
+  const [adminStoreUpgrades, setAdminStoreUpgrades] = useState<AdminStoreUpgrade[]>(
+    () => activeAdminStoreUpgrades,
+  );
+  const [adminRecipes, setAdminRecipes] = useState<AdminRecipe[]>(() => activeAdminRecipes);
+  const [adminTrainingUpgrades, setAdminTrainingUpgrades] = useState<AdminTrainingUpgrade[]>(
+    () => activeAdminTrainingUpgrades,
+  );
   const [adminCatSettings, setAdminCatSettings] = useState<AdminCatSettings>(() =>
     loadAdminCatSettings(),
   );
@@ -6685,6 +6594,9 @@ function TeaShopCat() {
       loadAdminLargeRecord('chats', normalizeAdminChats),
       loadAdminLargeRecord('mood-icons', normalizeAdminMoodIcons),
       loadAdminLargeRecord('chat-menu', normalizeAdminChatMenuSettings),
+      loadAdminLargeRecord('store-upgrades', normalizeAdminStoreUpgrades),
+      loadAdminLargeRecord('recipes', normalizeAdminRecipes),
+      loadAdminLargeRecord('training-upgrades', normalizeAdminTrainingUpgrades),
       loadAdminLargeRecord('cat-settings', normalizeAdminCatSettings),
       loadAdminLargeRecord('cat-pose-placements', normalizeAdminCatPosePlacements),
       loadAdminPortableState(),
@@ -6696,6 +6608,9 @@ function TeaShopCat() {
         chats,
         moodIcons,
         chatMenu,
+        storeUpgrades,
+        recipes,
+        trainingUpgrades,
         catSettings,
         catPosePlacements,
         portable,
@@ -6708,6 +6623,9 @@ function TeaShopCat() {
         const nextChats = portableState?.chats ?? chats;
         const nextMoodIcons = portableState?.moodIcons ?? moodIcons;
         const nextChatMenu = portableState?.chatMenu ?? chatMenu;
+        const nextStoreUpgrades = portableState?.storeUpgrades ?? storeUpgrades;
+        const nextRecipes = portableState?.recipes ?? recipes;
+        const nextTrainingUpgrades = portableState?.trainingUpgrades ?? trainingUpgrades;
         const nextCatSettings = portableState?.catSettings ?? catSettings;
         const nextCatPosePlacements =
           portableState?.catPosePlacements ?? catPosePlacements;
@@ -6724,6 +6642,18 @@ function TeaShopCat() {
         }
         if (nextMoodIcons) setAdminMoodIcons(nextMoodIcons);
         if (nextChatMenu) setAdminChatMenuSettings(nextChatMenu);
+        if (nextStoreUpgrades) {
+          setAdminStoreUpgrades(nextStoreUpgrades);
+          setActiveAdminStoreUpgrades(nextStoreUpgrades);
+        }
+        if (nextRecipes) {
+          setAdminRecipes(nextRecipes);
+          setActiveAdminRecipes(nextRecipes);
+        }
+        if (nextTrainingUpgrades) {
+          setAdminTrainingUpgrades(nextTrainingUpgrades);
+          setActiveAdminTrainingUpgrades(nextTrainingUpgrades);
+        }
         if (nextCatSettings) setAdminCatSettings(nextCatSettings);
         if (nextCatPosePlacements) setAdminCatPosePlacements(nextCatPosePlacements);
         adminLargeLoadedRef.current = true;
@@ -6796,6 +6726,30 @@ function TeaShopCat() {
   }, [adminChatMenuSettings]);
 
   useEffect(() => {
+    const normalizedStoreUpgrades = normalizeAdminStoreUpgrades(adminStoreUpgrades);
+    setActiveAdminStoreUpgrades(normalizedStoreUpgrades);
+    if (!adminLargeLoadedRef.current) return;
+    saveAdminStoreUpgrades(normalizedStoreUpgrades);
+    scheduleAdminLargeSave('store-upgrades', normalizedStoreUpgrades);
+  }, [adminStoreUpgrades]);
+
+  useEffect(() => {
+    const normalizedRecipes = normalizeAdminRecipes(adminRecipes);
+    setActiveAdminRecipes(normalizedRecipes);
+    if (!adminLargeLoadedRef.current) return;
+    saveAdminRecipes(normalizedRecipes);
+    scheduleAdminLargeSave('recipes', normalizedRecipes);
+  }, [adminRecipes]);
+
+  useEffect(() => {
+    const normalizedTrainingUpgrades = normalizeAdminTrainingUpgrades(adminTrainingUpgrades);
+    setActiveAdminTrainingUpgrades(normalizedTrainingUpgrades);
+    if (!adminLargeLoadedRef.current) return;
+    saveAdminTrainingUpgrades(normalizedTrainingUpgrades);
+    scheduleAdminLargeSave('training-upgrades', normalizedTrainingUpgrades);
+  }, [adminTrainingUpgrades]);
+
+  useEffect(() => {
     const normalizedCatSettings = normalizeAdminCatSettings(adminCatSettings);
     if (!adminLargeLoadedRef.current) return;
     saveAdminCatSettings(normalizedCatSettings);
@@ -6831,6 +6785,9 @@ function TeaShopCat() {
       chats: adminChats,
       moodIcons: adminMoodIcons,
       chatMenu: adminChatMenuSettings,
+      storeUpgrades: adminStoreUpgrades,
+      recipes: adminRecipes,
+      trainingUpgrades: adminTrainingUpgrades,
       catSettings: adminCatSettings,
       openingSettings: adminOpeningSettings,
     });
@@ -6849,6 +6806,9 @@ function TeaShopCat() {
     adminCatSettings,
     adminCharacterSettings,
     adminChatMenuSettings,
+    adminRecipes,
+    adminStoreUpgrades,
+    adminTrainingUpgrades,
     adminChats,
     adminLayouts,
     adminMoodIcons,
@@ -6965,19 +6925,22 @@ function TeaShopCat() {
   const currentStoryImageSrc = currentStoryReady
     ? getStoryTalkImage(currentStory, currentStoryProgress - 1)
     : '';
-  const currentKittyChat = getKittyChat(
-    currentCustomer,
-    game,
-    currentVisitNumber,
-    currentChatSeed,
-    currentForcedEntryId,
-  );
-  const currentKittyOptions = currentConversationKind === 'kitty' ? currentKittyChat.options : null;
+  const currentComfortChatReady =
+    serviceServed &&
+    currentConversationKind === 'story' &&
+    currentStoryComplete &&
+    mood >= 100;
+  const currentKittyChat = currentComfortChatReady
+    ? getAdminComfortChat(currentCustomer, game, currentVisitNumber, currentChatSeed)
+    : getKittyChat(currentCustomer, game, currentVisitNumber, currentChatSeed, currentForcedEntryId);
+  const currentKittyOptions =
+    !currentComfortChatReady && currentConversationKind === 'kitty' ? currentKittyChat.options : null;
   const currentKittyReply =
     currentKittyAnswer > 0 && currentKittyOptions
       ? (currentKittyOptions[currentKittyAnswer - 1]?.reply ?? '')
       : '';
-  const currentKittyChatReady = !currentStoryReady && !currentStoryChoiceReady;
+  const currentKittyChatReady =
+    currentComfortChatReady || (!currentStoryReady && !currentStoryChoiceReady);
   const currentOrderComment =
     game.tutorialStep === 'firstDayStoryOrder' && currentCustomer.id === 'matthew'
       ? FIRST_DAY_STORY_ORDER_MESSAGE
@@ -6993,9 +6956,12 @@ function TeaShopCat() {
   const hasSeatedCustomers = hasOccupiedSeats(seatCustomerSlots);
 
   const ownedUpgradeNames = useMemo(() => new Set(game.upgrades), [game.upgrades]);
-  const totalComfort = useMemo(() => getOwnedComfort(game.upgrades), [game.upgrades]);
-  const ownedRecipes = useMemo(() => getOwnedRecipes(game.recipes), [game.recipes]);
-  const recipeQuality = useMemo(() => getRecipeQuality(game.recipes), [game.recipes]);
+  const totalComfort = useMemo(
+    () => getOwnedComfort(game.upgrades, adminStoreUpgrades),
+    [adminStoreUpgrades, game.upgrades],
+  );
+  const ownedRecipes = useMemo(() => getOwnedRecipes(game.recipes), [adminRecipes, game.recipes]);
+  const recipeQuality = useMemo(() => getRecipeQuality(game.recipes), [adminRecipes, game.recipes]);
   const shopQuality = useMemo(() => getShopQuality(game, totalComfort), [game, totalComfort]);
   const shopRank = useMemo(() => getShopRank(shopQuality), [shopQuality]);
   const customerLogCount = getCustomerLogCount(game);
@@ -8846,13 +8812,13 @@ function TeaShopCat() {
   }
 
   function buyUpgrade(id: string) {
-    const upgrade = UPGRADES.find((item) => item.id === id);
+    const upgrade = getStoreUpgradeById(id, adminStoreUpgrades);
     if (!upgrade) return;
     if (game.upgrades.includes(id) || game.teaCups < upgrade.cost) return;
 
     const previousTableCount = getTableCount(game);
     const nextUpgradeIds = [...game.upgrades, id];
-    const nextTableCount = getUnlockedTableCount(nextUpgradeIds);
+    const nextTableCount = getUnlockedTableCount(nextUpgradeIds, adminStoreUpgrades);
 
     setGame((prev) => {
       if (prev.upgrades.includes(id) || prev.teaCups < upgrade.cost) return prev;
@@ -8884,7 +8850,7 @@ function TeaShopCat() {
   }
 
   function buyRecipe(id: string) {
-    const recipe = SERVICE_ITEMS.find((item) => item.id === id);
+    const recipe = activeAdminRecipes.find((item) => item.enabled && item.id === id);
     if (!recipe || recipe.id === STARTER_RECIPE_ID) return;
 
     setGame((prev) => {
@@ -8900,7 +8866,7 @@ function TeaShopCat() {
   }
 
   function buyCooldownUpgrade(id: string) {
-    const upgrade = COOLDOWN_UPGRADES.find((item) => item.id === id);
+    const upgrade = activeAdminTrainingUpgrades.find((item) => item.enabled && item.id === id);
     if (!upgrade) return;
 
     setGame((prev) => {
@@ -9657,6 +9623,9 @@ function TeaShopCat() {
     const normalizedChats = normalizeAdminChats(adminChats);
     const normalizedMoodIcons = normalizeAdminMoodIcons(adminMoodIcons);
     const normalizedChatMenu = normalizeAdminChatMenuSettings(adminChatMenuSettings);
+    const normalizedStoreUpgrades = normalizeAdminStoreUpgrades(adminStoreUpgrades);
+    const normalizedRecipes = normalizeAdminRecipes(adminRecipes);
+    const normalizedTrainingUpgrades = normalizeAdminTrainingUpgrades(adminTrainingUpgrades);
     const normalizedCatSettings = normalizeAdminCatSettings(adminCatSettings);
     const normalizedCatPosePlacements = normalizeAdminCatPosePlacements(adminCatPosePlacements);
     const normalizedOpeningSettings = normalizeOpeningSettings(adminOpeningSettings);
@@ -9668,6 +9637,9 @@ function TeaShopCat() {
       chats: normalizedChats,
       moodIcons: normalizedMoodIcons,
       chatMenu: normalizedChatMenu,
+      storeUpgrades: normalizedStoreUpgrades,
+      recipes: normalizedRecipes,
+      trainingUpgrades: normalizedTrainingUpgrades,
       catSettings: normalizedCatSettings,
       catPosePlacements: normalizedCatPosePlacements,
       openingSettings: normalizedOpeningSettings,
@@ -9679,6 +9651,9 @@ function TeaShopCat() {
     saveAdminChats(normalizedChats);
     saveAdminMoodIcons(normalizedMoodIcons);
     saveAdminChatMenuSettings(normalizedChatMenu);
+    saveAdminStoreUpgrades(normalizedStoreUpgrades);
+    saveAdminRecipes(normalizedRecipes);
+    saveAdminTrainingUpgrades(normalizedTrainingUpgrades);
     saveAdminCatSettings(normalizedCatSettings);
     saveAdminCatPosePlacements(normalizedCatPosePlacements);
     void saveAdminLargeRecord('layouts', normalizedLayouts);
@@ -9687,6 +9662,9 @@ function TeaShopCat() {
     void saveAdminLargeRecord('chats', normalizedChats);
     void saveAdminLargeRecord('mood-icons', normalizedMoodIcons);
     void saveAdminLargeRecord('chat-menu', normalizedChatMenu);
+    void saveAdminLargeRecord('store-upgrades', normalizedStoreUpgrades);
+    void saveAdminLargeRecord('recipes', normalizedRecipes);
+    void saveAdminLargeRecord('training-upgrades', normalizedTrainingUpgrades);
     void saveAdminLargeRecord('cat-settings', normalizedCatSettings);
     void saveAdminLargeRecord('cat-pose-placements', normalizedCatPosePlacements);
     const openingSavedToLocalStorage = saveOpeningSettings(normalizedOpeningSettings);
@@ -9717,6 +9695,12 @@ function TeaShopCat() {
     setAdminChats(normalizedChats);
     setAdminMoodIcons(normalizedMoodIcons);
     setAdminChatMenuSettings(normalizedChatMenu);
+    setAdminStoreUpgrades(normalizedStoreUpgrades);
+    setActiveAdminStoreUpgrades(normalizedStoreUpgrades);
+    setAdminRecipes(normalizedRecipes);
+    setActiveAdminRecipes(normalizedRecipes);
+    setAdminTrainingUpgrades(normalizedTrainingUpgrades);
+    setActiveAdminTrainingUpgrades(normalizedTrainingUpgrades);
     setAdminCatSettings(normalizedCatSettings);
     setAdminCatPosePlacements(normalizedCatPosePlacements);
     setAdminOpeningSettings(normalizedOpeningSettings);
@@ -9955,6 +9939,9 @@ function TeaShopCat() {
         {scene === 'upgrades' ? (
           <UpgradesScreen
             game={game}
+            storeUpgrades={adminStoreUpgrades}
+            recipes={adminRecipes}
+            trainingUpgrades={adminTrainingUpgrades}
             totalComfort={totalComfort}
             recipeQuality={recipeQuality}
             ownedRecipes={ownedRecipes}
@@ -9979,6 +9966,9 @@ function TeaShopCat() {
             adminCatSettings={adminCatSettings}
             adminCatPosePlacements={adminCatPosePlacements}
             adminChatMenuSettings={adminChatMenuSettings}
+            adminStoreUpgrades={adminStoreUpgrades}
+            adminRecipes={adminRecipes}
+            adminTrainingUpgrades={adminTrainingUpgrades}
             adminMoodIcons={adminMoodIcons}
             openingSettings={adminOpeningSettings}
             characterSettings={adminCharacterSettings}
@@ -10012,6 +10002,18 @@ function TeaShopCat() {
             }}
             onAdminChatMenuSettingsChange={(settings) => {
               setAdminChatMenuSettings(normalizeAdminChatMenuSettings(settings));
+              setAdminSaveMessage('Saved');
+            }}
+            onAdminStoreUpgradesChange={(upgrades) => {
+              setAdminStoreUpgrades(normalizeAdminStoreUpgrades(upgrades));
+              setAdminSaveMessage('Saved');
+            }}
+            onAdminRecipesChange={(recipes) => {
+              setAdminRecipes(normalizeAdminRecipes(recipes));
+              setAdminSaveMessage('Saved');
+            }}
+            onAdminTrainingUpgradesChange={(upgrades) => {
+              setAdminTrainingUpgrades(normalizeAdminTrainingUpgrades(upgrades));
               setAdminSaveMessage('Saved');
             }}
             onAdminMoodIconsChange={(icons) => {
@@ -10089,27 +10091,6 @@ interface TopBarProps {
   onMenu: () => void;
   onPause: () => void;
   onToggleDebugBlockers: () => void;
-}
-
-function BugIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path
-        d="M10 12h12l2 5v5a8 8 0 0 1-16 0v-5l2-5Z"
-        fill="#f2dfbf"
-        stroke="#6b432e"
-        strokeLinejoin="round"
-        strokeWidth="2.3"
-      />
-      <path
-        d="M11 12 8 7M21 12l3-5M8 17H4M24 17h4M8 22H4M24 22h4M16 13v15M12 20h8"
-        fill="none"
-        stroke="#6b432e"
-        strokeLinecap="round"
-        strokeWidth="2.3"
-      />
-    </svg>
-  );
 }
 
 function TopBar({
@@ -11248,6 +11229,9 @@ interface AdminScreenProps {
   adminCatSettings: AdminCatSettings;
   adminCatPosePlacements: AdminCatPosePlacements;
   adminChatMenuSettings: AdminChatMenuSettings;
+  adminStoreUpgrades: AdminStoreUpgrade[];
+  adminRecipes: AdminRecipe[];
+  adminTrainingUpgrades: AdminTrainingUpgrade[];
   adminMoodIcons: AdminMoodIcon[];
   openingSettings: AdminOpeningSettings;
   characterSettings: AdminCharacterSettings;
@@ -11263,6 +11247,9 @@ interface AdminScreenProps {
   ) => void;
   onAdminChatEntryTest: (subjectId: AdminSubjectId, entryId: string) => void;
   onAdminChatMenuSettingsChange: (settings: AdminChatMenuSettings) => void;
+  onAdminStoreUpgradesChange: (upgrades: AdminStoreUpgrade[]) => void;
+  onAdminRecipesChange: (recipes: AdminRecipe[]) => void;
+  onAdminTrainingUpgradesChange: (upgrades: AdminTrainingUpgrade[]) => void;
   onAdminMoodIconsChange: (icons: AdminMoodIcon[]) => void;
   onOpeningSettingsChange: (settings: AdminOpeningSettings) => void;
   onBack: () => void;
@@ -11338,6 +11325,9 @@ function AdminScreen({
   adminCatSettings,
   adminCatPosePlacements,
   adminChatMenuSettings,
+  adminStoreUpgrades,
+  adminRecipes,
+  adminTrainingUpgrades,
   adminMoodIcons,
   openingSettings,
   characterSettings,
@@ -11350,6 +11340,9 @@ function AdminScreen({
   onAdminCatPosePlacementChange,
   onAdminChatEntryTest,
   onAdminChatMenuSettingsChange,
+  onAdminStoreUpgradesChange,
+  onAdminRecipesChange,
+  onAdminTrainingUpgradesChange,
   onAdminMoodIconsChange,
   onOpeningSettingsChange,
   onBack,
@@ -11413,6 +11406,12 @@ function AdminScreen({
   const [selectedChatEntryId, setSelectedChatEntryId] = useState('');
   const [chatEditorMode, setChatEditorMode] = useState<AdminChatEditorMode>('list');
   const [chatToolMode, setChatToolMode] = useState<AdminChatToolMode>('chats');
+  const [selectedStoreUpgradeId, setSelectedStoreUpgradeId] = useState('');
+  const [storeCatalogTab, setStoreCatalogTab] = useState<'upgrades' | 'recipes' | 'training'>(
+    'upgrades',
+  );
+  const [selectedAdminRecipeId, setSelectedAdminRecipeId] = useState('');
+  const [selectedAdminTrainingId, setSelectedAdminTrainingId] = useState('');
   const [previewChatKind, setPreviewChatKind] = useState<AdminChatKind>('story');
   const [previewChatEntryId, setPreviewChatEntryId] = useState('');
   const [selectedTalkingCatPose, setSelectedTalkingCatPose] = useState<CatPoseKey>('idle');
@@ -11582,6 +11581,39 @@ function AdminScreen({
       src: service.imageSrc,
     }));
 
+    const adminRecipeAssets: AdminAssetItem[] = normalizeAdminRecipes(adminRecipes)
+      .filter((recipe) => recipe.imageSrc)
+      .map((recipe) => ({
+        id: `admin-recipe-${recipe.id}`,
+        kind: 'static',
+        label: recipe.name,
+        owner: recipe.category,
+        detail: 'Recipe image',
+        src: recipe.imageSrc,
+      }));
+
+    const storeUpgradeAssets: AdminAssetItem[] = normalizeAdminStoreUpgrades(adminStoreUpgrades)
+      .filter((upgrade) => upgrade.iconSrc)
+      .map((upgrade) => ({
+        id: `store-upgrade-${upgrade.id}`,
+        kind: 'static',
+        label: upgrade.name,
+        owner: 'Store',
+        detail: 'Upgrade icon',
+        src: upgrade.iconSrc ?? '',
+      }));
+
+    const trainingAssets: AdminAssetItem[] = normalizeAdminTrainingUpgrades(adminTrainingUpgrades)
+      .filter((upgrade) => upgrade.iconSrc)
+      .map((upgrade) => ({
+        id: `training-${upgrade.id}`,
+        kind: 'static',
+        label: upgrade.name,
+        owner: 'Training',
+        detail: 'Training icon',
+        src: upgrade.iconSrc ?? '',
+      }));
+
     const sceneAssets: AdminAssetItem[] = [
       {
         id: 'scene-shop-background',
@@ -11593,10 +11625,16 @@ function AdminScreen({
       },
     ];
 
-    return [...storeAssets, ...portraitAssets, ...recipeAssets, ...sceneAssets].filter(
-      (asset) => asset.src,
-    );
-  }, [characterSettings, layouts]);
+    return [
+      ...storeAssets,
+      ...portraitAssets,
+      ...recipeAssets,
+      ...adminRecipeAssets,
+      ...storeUpgradeAssets,
+      ...trainingAssets,
+      ...sceneAssets,
+    ].filter((asset) => asset.src);
+  }, [adminRecipes, adminStoreUpgrades, adminTrainingUpgrades, characterSettings, layouts]);
   const selectedAsset = adminAssets.find((asset) => asset.id === selectedAssetId) ?? null;
   const safeOpeningSettings = normalizeOpeningSettings(openingSettings);
   const lilaOpeningImages = safeOpeningSettings.lilaImages;
@@ -11621,6 +11659,21 @@ function AdminScreen({
   const previewChatEntry =
     previewChatEntries.find((entry) => entry.id === previewChatEntryId) ??
     previewChatEntries[0] ??
+    null;
+  const normalizedStoreUpgrades = normalizeAdminStoreUpgrades(adminStoreUpgrades);
+  const selectedStoreUpgrade =
+    normalizedStoreUpgrades.find((upgrade) => upgrade.id === selectedStoreUpgradeId) ??
+    normalizedStoreUpgrades[0] ??
+    null;
+  const normalizedAdminRecipes = normalizeAdminRecipes(adminRecipes);
+  const selectedAdminRecipe =
+    normalizedAdminRecipes.find((recipe) => recipe.id === selectedAdminRecipeId) ??
+    normalizedAdminRecipes[0] ??
+    null;
+  const normalizedAdminTrainingUpgrades = normalizeAdminTrainingUpgrades(adminTrainingUpgrades);
+  const selectedAdminTrainingUpgrade =
+    normalizedAdminTrainingUpgrades.find((upgrade) => upgrade.id === selectedAdminTrainingId) ??
+    normalizedAdminTrainingUpgrades[0] ??
     null;
   const previewChatImage =
     previewChatEntry && previewChatEntry.kind !== 'leave'
@@ -11766,7 +11819,7 @@ function AdminScreen({
           ...counts,
           [entry.kind]: counts[entry.kind] + 1,
         }),
-        { story: 0, comment: 0, leave: 0, order: 0, happy: 0 },
+        { story: 0, comment: 0, leave: 0, order: 0, happy: 0, comfort: 0 },
       );
   }
   const selectedChatCounts = getChatKindCounts(selectedCharacterId);
@@ -11781,11 +11834,13 @@ function AdminScreen({
             ? 'Chat menu editor'
             : sidePanelMode === 'cat'
               ? 'Cat editor'
-              : sidePanelMode === 'ref'
-                ? 'Reference editor'
-                : sidePanelMode === 'opening'
-                  ? 'Opening editor'
-                  : 'Inspector';
+              : sidePanelMode === 'store'
+                ? 'Store editor'
+                : sidePanelMode === 'ref'
+                  ? 'Reference editor'
+                  : sidePanelMode === 'opening'
+                    ? 'Opening editor'
+                    : 'Inspector';
   const sidePanelEyebrow =
     sidePanelMode === 'characters'
       ? 'Roster'
@@ -11797,11 +11852,13 @@ function AdminScreen({
             ? 'Chat Menu'
             : sidePanelMode === 'cat'
               ? 'Cat'
-              : sidePanelMode === 'ref'
-                ? 'Ref'
-                : sidePanelMode === 'opening'
-                  ? 'Opening'
-                  : 'Properties';
+              : sidePanelMode === 'store'
+                ? 'Store'
+                : sidePanelMode === 'ref'
+                  ? 'Ref'
+                  : sidePanelMode === 'opening'
+                    ? 'Opening'
+                    : 'Properties';
   const sidePanelTitle =
     sidePanelMode === 'characters'
       ? 'Characters'
@@ -11813,11 +11870,13 @@ function AdminScreen({
             ? 'Action Wheel'
             : sidePanelMode === 'cat'
               ? 'Cat Images'
-              : sidePanelMode === 'ref'
-                ? 'Reference Points'
-                : sidePanelMode === 'opening'
-                  ? 'Opening'
-                  : 'Inspector';
+              : sidePanelMode === 'store'
+                ? 'Store Upgrades'
+                : sidePanelMode === 'ref'
+                  ? 'Reference Points'
+                  : sidePanelMode === 'opening'
+                    ? 'Opening'
+                    : 'Inspector';
 
   useEffect(() => {
     if (onionCharacterId === selectedCharacterId) setOnionCharacterId('');
@@ -11994,7 +12053,11 @@ function AdminScreen({
     });
   }
 
-  async function saveUploadedImageToRepo(file: File, imageSrc: string): Promise<string> {
+  async function saveUploadedImageToRepo(
+    file: File,
+    imageSrc: string,
+    folder: string = selectedCharacterId,
+  ): Promise<string> {
     if (!import.meta.env.DEV) return imageSrc;
 
     try {
@@ -12004,7 +12067,7 @@ function AdminScreen({
         body: JSON.stringify({
           dataUrl: imageSrc,
           filename: file.name,
-          folder: selectedCharacterId,
+          folder,
         }),
       });
       if (!response.ok) return imageSrc;
@@ -12018,6 +12081,7 @@ function AdminScreen({
   function readUploadedImages(
     event: ChangeEvent<HTMLInputElement>,
     onImages: (imageSrcs: string[]) => void,
+    folder: string = selectedCharacterId,
   ) {
     const input = event.currentTarget;
     const files = Array.from(input.files ?? []).filter((file) => file.type.startsWith('image/'));
@@ -12042,7 +12106,7 @@ function AdminScreen({
     ).then(
       (uploads) => {
         void Promise.all(
-          uploads.map((upload) => saveUploadedImageToRepo(upload.file, upload.imageSrc)),
+          uploads.map((upload) => saveUploadedImageToRepo(upload.file, upload.imageSrc, folder)),
         ).then((imageSrcs) => onImages(imageSrcs));
         input.value = '';
       },
@@ -12055,11 +12119,12 @@ function AdminScreen({
   function readUploadedImage(
     event: ChangeEvent<HTMLInputElement>,
     onImage: (imageSrc: string) => void,
+    folder: string = selectedCharacterId,
   ) {
     readUploadedImages(event, (imageSrcs) => {
       const [imageSrc] = imageSrcs;
       if (imageSrc) onImage(imageSrc);
-    });
+    }, folder);
   }
 
   function getStagePosition(
@@ -13101,6 +13166,135 @@ function AdminScreen({
     }
   }
 
+  function updateStoreUpgrades(upgrades: AdminStoreUpgrade[]) {
+    onAdminStoreUpgradesChange(normalizeAdminStoreUpgrades(upgrades));
+  }
+
+  function updateStoreUpgrade(id: string, patch: Partial<AdminStoreUpgrade>) {
+    updateStoreUpgrades(
+      normalizedStoreUpgrades.map((upgrade) =>
+        upgrade.id === id ? normalizeAdminStoreUpgrade({ ...upgrade, ...patch }, upgrade) : upgrade,
+      ),
+    );
+  }
+
+  function addStoreUpgrade() {
+    const id = getUniqueCatalogId('New Upgrade', normalizedStoreUpgrades);
+    const upgrade: AdminStoreUpgrade = {
+      id,
+      name: 'New Upgrade',
+      kind: 'Comfort',
+      cost: 100,
+      comfort: 1,
+      happiness: 1,
+      description: 'Describe what this adds to the shop.',
+      effect: 'Comfort +1',
+      iconSrc: '',
+      enabled: true,
+    };
+    updateStoreUpgrades([...normalizedStoreUpgrades, upgrade]);
+    setSelectedStoreUpgradeId(id);
+  }
+
+  function deleteStoreUpgrade(id: string) {
+    const upgrade = normalizedStoreUpgrades.find((item) => item.id === id);
+    if (!upgrade) return;
+    if (!window.confirm(`Delete ${upgrade.name}? Players who owned it will no longer get its effect.`)) {
+      return;
+    }
+    const nextUpgrades = normalizedStoreUpgrades.filter((item) => item.id !== id);
+    updateStoreUpgrades(nextUpgrades);
+    setSelectedStoreUpgradeId(nextUpgrades[0]?.id ?? '');
+  }
+
+  function updateAdminRecipes(recipes: AdminRecipe[]) {
+    onAdminRecipesChange(normalizeAdminRecipes(recipes));
+  }
+
+  function updateAdminRecipe(id: string, patch: Partial<AdminRecipe>) {
+    updateAdminRecipes(
+      normalizedAdminRecipes.map((recipe) =>
+        recipe.id === id ? normalizeAdminRecipe({ ...recipe, ...patch }, recipe) : recipe,
+      ),
+    );
+  }
+
+  function addAdminRecipe() {
+    const id = getUniqueCatalogId('New Recipe', normalizedAdminRecipes);
+    const recipe: AdminRecipe = {
+      id,
+      label: 'new recipe',
+      name: 'New Recipe',
+      category: 'Tea',
+      imageSrc: '/items/blackTea.png',
+      cost: 100,
+      quality: 5,
+      moodBoost: 10,
+      tipBonus: 5,
+      happinessGain: 1,
+      reputationBonus: 1,
+      description: 'Describe this recipe.',
+      enabled: true,
+    };
+    updateAdminRecipes([...normalizedAdminRecipes, recipe]);
+    setSelectedAdminRecipeId(id);
+    setStoreCatalogTab('recipes');
+  }
+
+  function deleteAdminRecipe(id: string) {
+    const recipe = normalizedAdminRecipes.find((item) => item.id === id);
+    if (!recipe || recipe.id === STARTER_RECIPE_ID) return;
+    if (!window.confirm(`Delete ${recipe.name}? Players who owned it will lose that recipe.`)) {
+      return;
+    }
+    const nextRecipes = normalizedAdminRecipes.filter((item) => item.id !== id);
+    updateAdminRecipes(nextRecipes);
+    setSelectedAdminRecipeId(nextRecipes[0]?.id ?? '');
+  }
+
+  function updateAdminTrainingUpgrades(upgrades: AdminTrainingUpgrade[]) {
+    onAdminTrainingUpgradesChange(normalizeAdminTrainingUpgrades(upgrades));
+  }
+
+  function updateAdminTrainingUpgrade(id: string, patch: Partial<AdminTrainingUpgrade>) {
+    updateAdminTrainingUpgrades(
+      normalizedAdminTrainingUpgrades.map((upgrade) =>
+        upgrade.id === id
+          ? normalizeAdminTrainingUpgrade({ ...upgrade, ...patch }, upgrade)
+          : upgrade,
+      ),
+    );
+  }
+
+  function addAdminTrainingUpgrade() {
+    const id = getUniqueCatalogId('New Training', normalizedAdminTrainingUpgrades);
+    const upgrade: AdminTrainingUpgrade = {
+      id,
+      name: 'New Training',
+      action: 'purr',
+      cost: 100,
+      reductionMs: 1_000,
+      description: 'Describe what this training improves.',
+      iconSrc: '',
+      effect: 'Purr -1s',
+      enabled: true,
+    };
+    updateAdminTrainingUpgrades([...normalizedAdminTrainingUpgrades, upgrade]);
+    setSelectedAdminTrainingId(id);
+    setStoreCatalogTab('training');
+  }
+
+  function deleteAdminTrainingUpgrade(id: string) {
+    const upgrade = normalizedAdminTrainingUpgrades.find((item) => item.id === id);
+    if (!upgrade) return;
+    if (!window.confirm(`Delete ${upgrade.name}? Players who owned it will lose that training.`)) {
+      return;
+    }
+    const nextUpgrades = normalizedAdminTrainingUpgrades.filter((item) => item.id !== id);
+    updateAdminTrainingUpgrades(nextUpgrades);
+    setSelectedAdminTrainingId(nextUpgrades[0]?.id ?? '');
+  }
+
   const openingMode = sidePanelMode === 'opening';
   const charactersMode = sidePanelMode === 'characters';
   const refMode = sidePanelMode === 'ref';
@@ -13108,7 +13302,11 @@ function AdminScreen({
   const storePlacementEditMode =
     sidePanelMode === 'inspector' && previewMode === 'shop' && !referenceEditMode;
   const fullWorkbenchMode =
-    openingMode || charactersMode || sidePanelMode === 'chatMenu' || sidePanelMode === 'cat';
+    openingMode ||
+    charactersMode ||
+    sidePanelMode === 'chatMenu' ||
+    sidePanelMode === 'cat' ||
+    sidePanelMode === 'store';
 
   function selectCharacterForDetail(characterId: AdminSubjectId) {
     onSelectCharacter(characterId);
@@ -13290,6 +13488,13 @@ function AdminScreen({
           onClick={() => openSidePanel('chatMenu')}
         >
           <span>Chat Menu</span>
+        </button>
+        <button
+          className={sidePanelMode === 'store' ? 'active' : ''}
+          type="button"
+          onClick={() => openSidePanel('store')}
+        >
+          <span>Store</span>
         </button>
         <button
           className={sidePanelMode === 'cat' ? 'active' : ''}
@@ -13542,6 +13747,10 @@ function AdminScreen({
                         <span>
                           <strong>{selectedChatCounts.order}</strong>
                           Order
+                        </span>
+                        <span>
+                          <strong>{selectedChatCounts.comfort}</strong>
+                          Comfort
                         </span>
                       </div>
                       <div className="admin-character-settings-grid">
@@ -14163,6 +14372,681 @@ function AdminScreen({
               ))}
             </div>
           </div>
+        ) : sidePanelMode === 'store' ? (
+          <div className="admin-store-board" aria-label="Admin store upgrade editor">
+            <header className="admin-board-header">
+              <div>
+                <p className="eyebrow">Store</p>
+                <h2>
+                  {storeCatalogTab === 'recipes'
+                    ? 'Recipes'
+                    : storeCatalogTab === 'training'
+                      ? 'Training'
+                      : 'Store Upgrades'}
+                </h2>
+              </div>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={
+                  storeCatalogTab === 'recipes'
+                    ? addAdminRecipe
+                    : storeCatalogTab === 'training'
+                      ? addAdminTrainingUpgrade
+                      : addStoreUpgrade
+                }
+              >
+                {storeCatalogTab === 'recipes'
+                  ? 'Add Recipe'
+                  : storeCatalogTab === 'training'
+                    ? 'Add Training'
+                    : 'Add Upgrade'}
+              </button>
+            </header>
+            <div className="admin-spot-tabs" aria-label="Store catalog sections">
+              {(['upgrades', 'recipes', 'training'] as const).map((tab) => (
+                <button
+                  className={storeCatalogTab === tab ? 'active' : ''}
+                  key={tab}
+                  type="button"
+                  onClick={() => setStoreCatalogTab(tab)}
+                >
+                  {tab === 'upgrades' ? 'Store Upgrades' : tab === 'recipes' ? 'Recipes' : 'Training'}
+                </button>
+              ))}
+            </div>
+            {storeCatalogTab === 'upgrades' ? (
+            <div className="admin-store-upgrade-layout">
+              <section className="admin-store-upgrade-list" aria-label="Store upgrades">
+                {normalizedStoreUpgrades.map((upgrade) => (
+                  <button
+                    className={`admin-store-upgrade-row ${
+                      selectedStoreUpgrade?.id === upgrade.id ? 'active' : ''
+                    } ${upgrade.enabled ? '' : 'disabled'}`}
+                    key={upgrade.id}
+                    type="button"
+                    onClick={() => setSelectedStoreUpgradeId(upgrade.id)}
+                  >
+                    <span className="admin-store-upgrade-icon">
+                      {upgrade.iconSrc ? (
+                        <img alt="" draggable={false} src={resolveAssetSrc(upgrade.iconSrc)} />
+                      ) : (
+                        getLegacyStoreUpgradeIcon(upgrade.id)
+                      )}
+                    </span>
+                    <span>
+                      <strong>{upgrade.name}</strong>
+                      <small>{getStoreUpgradeEffectText(upgrade)}</small>
+                    </span>
+                    <span className="admin-store-upgrade-cost">{upgrade.cost}</span>
+                  </button>
+                ))}
+                {normalizedStoreUpgrades.length === 0 ? (
+                  <p className="admin-muted-copy">No store upgrades yet.</p>
+                ) : null}
+              </section>
+
+              {selectedStoreUpgrade ? (
+                <section className="admin-store-upgrade-editor" aria-label="Selected upgrade">
+                  <header className="admin-chat-topline">
+                    <div>
+                      <p className="eyebrow">Upgrade</p>
+                      <h2>{selectedStoreUpgrade.name}</h2>
+                    </div>
+                    <button
+                      className="danger-button"
+                      type="button"
+                      onClick={() => deleteStoreUpgrade(selectedStoreUpgrade.id)}
+                    >
+                      Delete
+                    </button>
+                  </header>
+                  <div className="admin-store-upgrade-preview">
+                    <span className="admin-store-upgrade-preview-icon">
+                      {selectedStoreUpgrade.iconSrc ? (
+                        <img
+                          alt=""
+                          draggable={false}
+                          src={resolveAssetSrc(selectedStoreUpgrade.iconSrc)}
+                        />
+                      ) : (
+                        getLegacyStoreUpgradeIcon(selectedStoreUpgrade.id)
+                      )}
+                    </span>
+                    <label className="admin-upload-line">
+                      <span>Icon</span>
+                      <strong>Upload Icon</strong>
+                      <input
+                        accept="image/*"
+                        type="file"
+                        onChange={(event) =>
+                          readUploadedImage(
+                            event,
+                            (iconSrc) => updateStoreUpgrade(selectedStoreUpgrade.id, { iconSrc }),
+                            'store-upgrades',
+                          )
+                        }
+                      />
+                    </label>
+                    {selectedStoreUpgrade.iconSrc ? (
+                      <button
+                        className="danger-text-button"
+                        type="button"
+                        onClick={() => updateStoreUpgrade(selectedStoreUpgrade.id, { iconSrc: '' })}
+                      >
+                        Clear Icon
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="admin-character-settings-grid admin-store-upgrade-fields">
+                    <label>
+                      <span>ID</span>
+                      <input
+                        type="text"
+                        value={selectedStoreUpgrade.id}
+                        onChange={(event) => {
+                          const nextId = getUniqueCatalogId(
+                            event.currentTarget.value,
+                            normalizedStoreUpgrades.filter(
+                              (upgrade) => upgrade.id !== selectedStoreUpgrade.id,
+                            ),
+                          );
+                          updateStoreUpgrades(
+                            normalizedStoreUpgrades.map((upgrade) =>
+                              upgrade.id === selectedStoreUpgrade.id
+                                ? { ...upgrade, id: nextId }
+                                : upgrade,
+                            ),
+                          );
+                          setSelectedStoreUpgradeId(nextId);
+                        }}
+                      />
+                    </label>
+                    <label>
+                      <span>Name</span>
+                      <input
+                        type="text"
+                        value={selectedStoreUpgrade.name}
+                        onChange={(event) =>
+                          updateStoreUpgrade(selectedStoreUpgrade.id, {
+                            name: event.currentTarget.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Kind</span>
+                      <select
+                        value={selectedStoreUpgrade.kind}
+                        onChange={(event) =>
+                          updateStoreUpgrade(selectedStoreUpgrade.id, {
+                            kind: upgradeKindValue(event.currentTarget.value, 'Comfort'),
+                          })
+                        }
+                      >
+                        <option value="Furniture">Furniture</option>
+                        <option value="Decor">Decor</option>
+                        <option value="Comfort">Comfort</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Enabled</span>
+                      <input
+                        checked={selectedStoreUpgrade.enabled ?? true}
+                        type="checkbox"
+                        onChange={(event) =>
+                          updateStoreUpgrade(selectedStoreUpgrade.id, {
+                            enabled: event.currentTarget.checked,
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Cost</span>
+                      <input
+                        min={0}
+                        type="number"
+                        value={selectedStoreUpgrade.cost}
+                        onChange={(event) =>
+                          updateStoreUpgrade(selectedStoreUpgrade.id, {
+                            cost: Number(event.currentTarget.value),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Comfort add</span>
+                      <input
+                        min={0}
+                        type="number"
+                        value={selectedStoreUpgrade.comfort}
+                        onChange={(event) =>
+                          updateStoreUpgrade(selectedStoreUpgrade.id, {
+                            comfort: Number(event.currentTarget.value),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Cafe comfort add</span>
+                      <input
+                        min={0}
+                        max={100}
+                        type="number"
+                        value={selectedStoreUpgrade.happiness}
+                        onChange={(event) =>
+                          updateStoreUpgrade(selectedStoreUpgrade.id, {
+                            happiness: Number(event.currentTarget.value),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Unlock table</span>
+                      <select
+                        value={selectedStoreUpgrade.unlocksTable ?? 0}
+                        onChange={(event) =>
+                          updateStoreUpgrade(selectedStoreUpgrade.id, {
+                            unlocksTable:
+                              Number(event.currentTarget.value) > 1
+                                ? Number(event.currentTarget.value)
+                                : undefined,
+                          })
+                        }
+                      >
+                        <option value={0}>No table</option>
+                        <option value={2}>Table 2</option>
+                        <option value={3}>Table 3</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Effect text</span>
+                      <input
+                        type="text"
+                        value={selectedStoreUpgrade.effect ?? ''}
+                        onChange={(event) =>
+                          updateStoreUpgrade(selectedStoreUpgrade.id, {
+                            effect: event.currentTarget.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="admin-wide-field">
+                      <span>Description</span>
+                      <textarea
+                        value={selectedStoreUpgrade.description}
+                        onChange={(event) =>
+                          updateStoreUpgrade(selectedStoreUpgrade.id, {
+                            description: event.currentTarget.value,
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                </section>
+              ) : (
+                <div className="admin-empty-state">
+                  <h2>No upgrade selected</h2>
+                  <p>Add an upgrade to start editing the store.</p>
+                </div>
+              )}
+            </div>
+            ) : null}
+            {storeCatalogTab === 'recipes' ? (
+              <div className="admin-store-upgrade-layout">
+                <section className="admin-store-upgrade-list" aria-label="Recipes">
+                  {normalizedAdminRecipes.map((recipe) => (
+                    <button
+                      className={`admin-store-upgrade-row ${
+                        selectedAdminRecipe?.id === recipe.id ? 'active' : ''
+                      } ${recipe.enabled ? '' : 'disabled'}`}
+                      key={recipe.id}
+                      type="button"
+                      onClick={() => setSelectedAdminRecipeId(recipe.id)}
+                    >
+                      <span className="admin-store-upgrade-icon">
+                        <img alt="" draggable={false} src={resolveAssetSrc(recipe.imageSrc)} />
+                      </span>
+                      <span>
+                        <strong>{recipe.name}</strong>
+                        <small>{recipe.category} / Quality +{recipe.quality}</small>
+                      </span>
+                      <span className="admin-store-upgrade-cost">{recipe.cost}</span>
+                    </button>
+                  ))}
+                </section>
+
+                {selectedAdminRecipe ? (
+                  <section className="admin-store-upgrade-editor" aria-label="Selected recipe">
+                    <header className="admin-chat-topline">
+                      <div>
+                        <p className="eyebrow">Recipe</p>
+                        <h2>{selectedAdminRecipe.name}</h2>
+                      </div>
+                      <button
+                        className="danger-button"
+                        disabled={selectedAdminRecipe.id === STARTER_RECIPE_ID}
+                        type="button"
+                        onClick={() => deleteAdminRecipe(selectedAdminRecipe.id)}
+                      >
+                        Delete
+                      </button>
+                    </header>
+                    <div className="admin-store-upgrade-preview">
+                      <span className="admin-store-upgrade-preview-icon">
+                        <img
+                          alt=""
+                          draggable={false}
+                          src={resolveAssetSrc(selectedAdminRecipe.imageSrc)}
+                        />
+                      </span>
+                      <label className="admin-upload-line">
+                        <span>Recipe image</span>
+                        <strong>Upload Image</strong>
+                        <input
+                          accept="image/*"
+                          type="file"
+                          onChange={(event) =>
+                            readUploadedImage(
+                              event,
+                              (imageSrc) =>
+                                updateAdminRecipe(selectedAdminRecipe.id, { imageSrc }),
+                              'recipes',
+                            )
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="admin-character-settings-grid admin-store-upgrade-fields">
+                      <label>
+                        <span>ID</span>
+                        <input
+                          type="text"
+                          value={selectedAdminRecipe.id}
+                          onChange={(event) => {
+                            const nextId = getUniqueCatalogId(
+                              event.currentTarget.value,
+                              normalizedAdminRecipes.filter(
+                                (recipe) => recipe.id !== selectedAdminRecipe.id,
+                              ),
+                            );
+                            updateAdminRecipes(
+                              normalizedAdminRecipes.map((recipe) =>
+                                recipe.id === selectedAdminRecipe.id
+                                  ? { ...recipe, id: nextId }
+                                  : recipe,
+                              ),
+                            );
+                            setSelectedAdminRecipeId(nextId);
+                          }}
+                        />
+                      </label>
+                      <label>
+                        <span>Name</span>
+                        <input
+                          type="text"
+                          value={selectedAdminRecipe.name}
+                          onChange={(event) =>
+                            updateAdminRecipe(selectedAdminRecipe.id, {
+                              name: event.currentTarget.value,
+                              label: event.currentTarget.value.toLowerCase(),
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Category</span>
+                        <select
+                          value={selectedAdminRecipe.category}
+                          onChange={(event) =>
+                            updateAdminRecipe(selectedAdminRecipe.id, {
+                              category: recipeCategoryValue(event.currentTarget.value, 'Tea'),
+                            })
+                          }
+                        >
+                          <option value="Tea">Tea</option>
+                          <option value="Coffee">Coffee</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Enabled</span>
+                        <input
+                          checked={selectedAdminRecipe.enabled ?? true}
+                          type="checkbox"
+                          onChange={(event) =>
+                            updateAdminRecipe(selectedAdminRecipe.id, {
+                              enabled: event.currentTarget.checked,
+                            })
+                          }
+                        />
+                      </label>
+                      {([
+                        ['Cost', 'cost'],
+                        ['Quality', 'quality'],
+                        ['Mood boost', 'moodBoost'],
+                        ['Tip bonus', 'tipBonus'],
+                        ['Cafe comfort', 'happinessGain'],
+                        ['Reputation', 'reputationBonus'],
+                      ] as const satisfies readonly [string, keyof Pick<
+                        AdminRecipe,
+                        | 'cost'
+                        | 'quality'
+                        | 'moodBoost'
+                        | 'tipBonus'
+                        | 'happinessGain'
+                        | 'reputationBonus'
+                      >][]).map(([label, key]) => (
+                        <label key={key}>
+                          <span>{label}</span>
+                          <input
+                            min={0}
+                            type="number"
+                            value={selectedAdminRecipe[key]}
+                            onChange={(event) =>
+                              updateAdminRecipe(selectedAdminRecipe.id, {
+                                [key]: Number(event.currentTarget.value),
+                              } as Partial<AdminRecipe>)
+                            }
+                          />
+                        </label>
+                      ))}
+                      <label className="admin-wide-field">
+                        <span>Description</span>
+                        <textarea
+                          value={selectedAdminRecipe.description}
+                          onChange={(event) =>
+                            updateAdminRecipe(selectedAdminRecipe.id, {
+                              description: event.currentTarget.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                  </section>
+                ) : (
+                  <div className="admin-empty-state">
+                    <h2>No recipe selected</h2>
+                    <p>Add a recipe to start editing.</p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+            {storeCatalogTab === 'training' ? (
+              <div className="admin-store-upgrade-layout">
+                <section className="admin-store-upgrade-list" aria-label="Training upgrades">
+                  {normalizedAdminTrainingUpgrades.map((upgrade) => (
+                    <button
+                      className={`admin-store-upgrade-row ${
+                        selectedAdminTrainingUpgrade?.id === upgrade.id ? 'active' : ''
+                      } ${upgrade.enabled ? '' : 'disabled'}`}
+                      key={upgrade.id}
+                      type="button"
+                      onClick={() => setSelectedAdminTrainingId(upgrade.id)}
+                    >
+                      <span className="admin-store-upgrade-icon">
+                        {upgrade.iconSrc ? (
+                          <img alt="" draggable={false} src={resolveAssetSrc(upgrade.iconSrc)} />
+                        ) : upgrade.action === 'cute' ? (
+                          <StarIcon />
+                        ) : upgrade.action === 'quiet' ? (
+                          <CupIcon />
+                        ) : (
+                          <PawIcon />
+                        )}
+                      </span>
+                      <span>
+                        <strong>{upgrade.name}</strong>
+                        <small>{upgrade.effect || `${careActionLabel(upgrade.action)} -${formatCooldown(upgrade.reductionMs)}`}</small>
+                      </span>
+                      <span className="admin-store-upgrade-cost">{upgrade.cost}</span>
+                    </button>
+                  ))}
+                </section>
+
+                {selectedAdminTrainingUpgrade ? (
+                  <section className="admin-store-upgrade-editor" aria-label="Selected training">
+                    <header className="admin-chat-topline">
+                      <div>
+                        <p className="eyebrow">Training</p>
+                        <h2>{selectedAdminTrainingUpgrade.name}</h2>
+                      </div>
+                      <button
+                        className="danger-button"
+                        type="button"
+                        onClick={() => deleteAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id)}
+                      >
+                        Delete
+                      </button>
+                    </header>
+                    <div className="admin-store-upgrade-preview">
+                      <span className="admin-store-upgrade-preview-icon">
+                        {selectedAdminTrainingUpgrade.iconSrc ? (
+                          <img
+                            alt=""
+                            draggable={false}
+                            src={resolveAssetSrc(selectedAdminTrainingUpgrade.iconSrc)}
+                          />
+                        ) : (
+                          <PawIcon />
+                        )}
+                      </span>
+                      <label className="admin-upload-line">
+                        <span>Icon</span>
+                        <strong>Upload Icon</strong>
+                        <input
+                          accept="image/*"
+                          type="file"
+                          onChange={(event) =>
+                            readUploadedImage(
+                              event,
+                              (iconSrc) =>
+                                updateAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id, {
+                                  iconSrc,
+                                }),
+                              'training',
+                            )
+                          }
+                        />
+                      </label>
+                      {selectedAdminTrainingUpgrade.iconSrc ? (
+                        <button
+                          className="danger-text-button"
+                          type="button"
+                          onClick={() =>
+                            updateAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id, {
+                              iconSrc: '',
+                            })
+                          }
+                        >
+                          Clear Icon
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="admin-character-settings-grid admin-store-upgrade-fields">
+                      <label>
+                        <span>ID</span>
+                        <input
+                          type="text"
+                          value={selectedAdminTrainingUpgrade.id}
+                          onChange={(event) => {
+                            const nextId = getUniqueCatalogId(
+                              event.currentTarget.value,
+                              normalizedAdminTrainingUpgrades.filter(
+                                (upgrade) => upgrade.id !== selectedAdminTrainingUpgrade.id,
+                              ),
+                            );
+                            updateAdminTrainingUpgrades(
+                              normalizedAdminTrainingUpgrades.map((upgrade) =>
+                                upgrade.id === selectedAdminTrainingUpgrade.id
+                                  ? { ...upgrade, id: nextId }
+                                  : upgrade,
+                              ),
+                            );
+                            setSelectedAdminTrainingId(nextId);
+                          }}
+                        />
+                      </label>
+                      <label>
+                        <span>Name</span>
+                        <input
+                          type="text"
+                          value={selectedAdminTrainingUpgrade.name}
+                          onChange={(event) =>
+                            updateAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id, {
+                              name: event.currentTarget.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Action</span>
+                        <select
+                          value={selectedAdminTrainingUpgrade.action}
+                          onChange={(event) =>
+                            updateAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id, {
+                              action: careActionValue(event.currentTarget.value, 'purr'),
+                            })
+                          }
+                        >
+                          <option value="purr">Purr</option>
+                          <option value="quiet">Listen</option>
+                          <option value="roll">Roll</option>
+                          <option value="cute">Be Cute</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Enabled</span>
+                        <input
+                          checked={selectedAdminTrainingUpgrade.enabled ?? true}
+                          type="checkbox"
+                          onChange={(event) =>
+                            updateAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id, {
+                              enabled: event.currentTarget.checked,
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Cost</span>
+                        <input
+                          min={0}
+                          type="number"
+                          value={selectedAdminTrainingUpgrade.cost}
+                          onChange={(event) =>
+                            updateAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id, {
+                              cost: Number(event.currentTarget.value),
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Cooldown reduction ms</span>
+                        <input
+                          min={0}
+                          step={250}
+                          type="number"
+                          value={selectedAdminTrainingUpgrade.reductionMs}
+                          onChange={(event) =>
+                            updateAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id, {
+                              reductionMs: Number(event.currentTarget.value),
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Effect text</span>
+                        <input
+                          type="text"
+                          value={selectedAdminTrainingUpgrade.effect ?? ''}
+                          onChange={(event) =>
+                            updateAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id, {
+                              effect: event.currentTarget.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="admin-wide-field">
+                        <span>Description</span>
+                        <textarea
+                          value={selectedAdminTrainingUpgrade.description}
+                          onChange={(event) =>
+                            updateAdminTrainingUpgrade(selectedAdminTrainingUpgrade.id, {
+                              description: event.currentTarget.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                  </section>
+                ) : (
+                  <div className="admin-empty-state">
+                    <h2>No training selected</h2>
+                    <p>Add training to start editing.</p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
         ) : sidePanelMode === 'chats' ? (
           <div className="admin-chats-board" aria-label="Admin chat editor">
             <aside className="admin-chat-character-column" aria-label="Chat characters">
@@ -14318,8 +15202,9 @@ function AdminScreen({
                           <div>
                             {addingChatGroupId === group.id ? (
                               <span className="admin-chat-add-menu">
-                                {(['comment', 'story', 'leave', 'order'] as AdminChatKind[]).map(
-                                  (kind) => (
+                                {(
+                                  ['comment', 'story', 'leave', 'order', 'comfort'] as AdminChatKind[]
+                                ).map((kind) => (
                                     <button
                                       key={kind}
                                       type="button"
@@ -14327,8 +15212,7 @@ function AdminScreen({
                                     >
                                       {ADMIN_CHAT_KIND_LABELS[kind]}
                                     </button>
-                                  ),
-                                )}
+                                  ))}
                               </span>
                             ) : null}
                             <button
@@ -16397,16 +17281,18 @@ function AdminScreen({
                   <div className="admin-chat-preview-tester">
                     <h3>Test Dialogue</h3>
                     <div className="admin-spot-tabs" aria-label="Dialogue type to preview">
-                      {(['comment', 'story', 'order', 'leave'] as AdminChatKind[]).map((kind) => (
-                        <button
-                          className={previewChatKind === kind ? 'active' : ''}
-                          key={kind}
-                          type="button"
-                          onClick={() => setPreviewChatKind(kind)}
-                        >
-                          {ADMIN_CHAT_KIND_LABELS[kind]}
-                        </button>
-                      ))}
+                      {(['comment', 'story', 'order', 'leave', 'comfort'] as AdminChatKind[]).map(
+                        (kind) => (
+                          <button
+                            className={previewChatKind === kind ? 'active' : ''}
+                            key={kind}
+                            type="button"
+                            onClick={() => setPreviewChatKind(kind)}
+                          >
+                            {ADMIN_CHAT_KIND_LABELS[kind]}
+                          </button>
+                        ),
+                      )}
                     </div>
                     <label>
                       <span>Chat</span>
@@ -18043,6 +18929,9 @@ function SummaryScreen({ game, shopQuality, shopRank, onEndDay }: SummaryScreenP
 
 interface UpgradesScreenProps {
   game: GameState;
+  storeUpgrades: AdminStoreUpgrade[];
+  recipes: AdminRecipe[];
+  trainingUpgrades: AdminTrainingUpgrade[];
   totalComfort: number;
   recipeQuality: number;
   ownedRecipes: ServiceItem[];
@@ -18058,6 +18947,9 @@ interface UpgradesScreenProps {
 
 function UpgradesScreen({
   game,
+  storeUpgrades,
+  recipes,
+  trainingUpgrades,
   totalComfort,
   recipeQuality,
   ownedRecipes,
@@ -18073,13 +18965,17 @@ function UpgradesScreen({
   const [activeRecipeCategory, setActiveRecipeCategory] = useState<RecipeCategory>('Coffee');
   const ownedRecipeIds = new Set(ownedRecipes.map((recipe) => recipe.id));
   const recipeCategories = ['Tea', 'Coffee'] as const;
-  const visibleRecipes = SERVICE_ITEMS.filter((recipe) => recipe.category === activeRecipeCategory);
-  const tableUpgrades = UPGRADES.filter(
-    (upgrade) => upgrade.id === SECOND_TABLE_UPGRADE_ID || upgrade.id === THIRD_TABLE_UPGRADE_ID,
+  const visibleRecipes = normalizeAdminRecipes(recipes).filter(
+    (recipe) => recipe.enabled && recipe.category === activeRecipeCategory,
   );
-  const comfortUpgrades = UPGRADES.filter(
-    (upgrade) => upgrade.id !== SECOND_TABLE_UPGRADE_ID && upgrade.id !== THIRD_TABLE_UPGRADE_ID,
+  const visibleTrainingUpgrades = normalizeAdminTrainingUpgrades(trainingUpgrades).filter(
+    (upgrade) => upgrade.enabled,
   );
+  const visibleStoreUpgrades = normalizeAdminStoreUpgrades(storeUpgrades).filter(
+    (upgrade) => upgrade.enabled,
+  );
+  const tableUpgrades = getStoreUpgradesByCategory(visibleStoreUpgrades, 'table');
+  const comfortUpgrades = getStoreUpgradesByCategory(visibleStoreUpgrades, 'comfort');
   const tabs = [
     { id: 'store', label: 'Store Upgrade' },
     { id: 'recipes', label: 'Recipes' },
@@ -18162,7 +19058,12 @@ function UpgradesScreen({
                     return (
                       <article className={`upgrade-item ${owned ? 'owned' : ''}`} key={recipe.id}>
                         <div className="upgrade-art recipe-art">
-                          <ServiceIcon kind={recipe.id} />
+                          <img
+                            alt=""
+                            className="service-icon-img"
+                            draggable={false}
+                            src={resolveAssetSrc(recipe.imageSrc)}
+                          />
                         </div>
                         <div>
                           <span className="upgrade-kind">{recipe.category} Recipe</span>
@@ -18201,7 +19102,7 @@ function UpgradesScreen({
                 </span>
               </div>
               <div className="upgrade-grid">
-                {COOLDOWN_UPGRADES.map((upgrade) => {
+                {visibleTrainingUpgrades.map((upgrade) => {
                   const owned = game.upgrades.includes(upgrade.id);
                   const canBuy = game.teaCups >= upgrade.cost && !owned;
                   const actionLabel = careActionLabel(upgrade.action);
@@ -18209,7 +19110,14 @@ function UpgradesScreen({
                   return (
                     <article className={`upgrade-item ${owned ? 'owned' : ''}`} key={upgrade.id}>
                       <div className="upgrade-art training-art">
-                        {upgrade.action === 'cute' ? (
+                        {upgrade.iconSrc ? (
+                          <img
+                            alt=""
+                            className="service-icon-img"
+                            draggable={false}
+                            src={resolveAssetSrc(upgrade.iconSrc)}
+                          />
+                        ) : upgrade.action === 'cute' ? (
                           <StarIcon />
                         ) : upgrade.action === 'quiet' ? (
                           <CupIcon />
@@ -18222,7 +19130,7 @@ function UpgradesScreen({
                         <h3>{upgrade.name}</h3>
                         <p>{upgrade.description}</p>
                         <span className="comfort-bonus">
-                          {actionLabel} -{formatCooldown(upgrade.reductionMs)}
+                          {upgrade.effect || `${actionLabel} -${formatCooldown(upgrade.reductionMs)}`}
                         </span>
                       </div>
                       <button
@@ -18260,13 +19168,13 @@ function UpgradesScreen({
                   return (
                     <article className={`upgrade-item ${owned ? 'owned' : ''}`} key={upgrade.id}>
                       <div className="upgrade-art">
-                        <UpgradeIcon id={upgrade.id} />
+                        <UpgradeIcon iconSrc={upgrade.iconSrc} id={upgrade.id} />
                       </div>
                       <div>
                         <span className="upgrade-kind">{upgrade.kind}</span>
                         <h3>{upgrade.name}</h3>
                         <p>{upgrade.description}</p>
-                        <span className="comfort-bonus">Comfort +{upgrade.comfort}</span>
+                        <span className="comfort-bonus">{getStoreUpgradeEffectText(upgrade)}</span>
                       </div>
                       <button
                         className={owned ? 'owned-button' : 'buy-button'}
@@ -18293,7 +19201,7 @@ function UpgradesScreen({
             >
               <div className="section-head">
                 <h3>Store Upgrade</h3>
-                <span>{getTableCount(game)}/3 tables</span>
+                <span>{getUnlockedTableCount(game.upgrades, visibleStoreUpgrades)}/3 tables</span>
               </div>
               <div className="upgrade-grid">
                 {tableUpgrades.map((upgrade) => {
@@ -18303,13 +19211,13 @@ function UpgradesScreen({
                   return (
                     <article className={`upgrade-item ${owned ? 'owned' : ''}`} key={upgrade.id}>
                       <div className="upgrade-art">
-                        <UpgradeIcon id={upgrade.id} />
+                        <UpgradeIcon iconSrc={upgrade.iconSrc} id={upgrade.id} />
                       </div>
                       <div>
                         <span className="upgrade-kind">{upgrade.kind}</span>
                         <h3>{upgrade.name}</h3>
                         <p>{upgrade.description}</p>
-                        <span className="comfort-bonus">Adds another customer spot</span>
+                        <span className="comfort-bonus">{getStoreUpgradeEffectText(upgrade)}</span>
                       </div>
                       <button
                         className={owned ? 'owned-button' : 'buy-button'}
@@ -18549,66 +19457,6 @@ function LoadingScreen({ adminReady, catImageSrc, poseLabel, state }: LoadingScr
         </div>
       </section>
     </main>
-  );
-}
-
-interface IconButtonProps {
-  children: React.ReactNode;
-  className?: string;
-  label: string;
-  onClick: () => void;
-}
-
-function IconButton({ children, className = '', label, onClick }: IconButtonProps) {
-  return (
-    <button
-      className={`icon-button ${className}`.trim()}
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-    >
-      {children}
-    </button>
-  );
-}
-
-interface UiImageIconProps {
-  alt: string;
-  className?: string;
-  src: string;
-}
-
-function UiImageIcon({ alt, className = '', src }: UiImageIconProps) {
-  return (
-    <img
-      className={`ui-image-icon ${className}`.trim()}
-      alt={alt}
-      draggable={false}
-      src={resolveAssetSrc(src)}
-    />
-  );
-}
-
-interface MeterProps {
-  label: string;
-  value: number;
-}
-
-function Meter({ label, value }: MeterProps) {
-  const safeValue = clamp(value, 0, 100);
-
-  return (
-    <div
-      className="meter"
-      role="meter"
-      aria-label={label}
-      aria-valuenow={safeValue}
-      aria-valuemin={0}
-      aria-valuemax={100}
-    >
-      <span style={{ width: `${safeValue}%` }} />
-    </div>
   );
 }
 
@@ -18858,15 +19706,22 @@ function Shelf({ className }: ShelfProps) {
 
 interface UpgradeIconProps {
   id: string;
+  iconSrc?: string;
 }
 
-function UpgradeIcon({ id }: UpgradeIconProps) {
-  if (id === 'cushion') return <CushionIcon />;
-  if (id === 'cat-bed') return <BedIcon />;
-  if (id === 'window-seat') return <WindowSeatIcon />;
-  if (id === 'hearth') return <HearthIcon />;
-  if (id === 'tea-plant') return <PlantIcon />;
-  return <LampIcon />;
+function UpgradeIcon({ id, iconSrc = '' }: UpgradeIconProps) {
+  if (iconSrc) {
+    return (
+      <img
+        alt=""
+        aria-hidden="true"
+        className="service-icon-img"
+        draggable={false}
+        src={resolveAssetSrc(iconSrc)}
+      />
+    );
+  }
+  return <>{getLegacyStoreUpgradeIcon(id)}</>;
 }
 
 interface ServiceIconProps {
@@ -18897,317 +19752,6 @@ function MoodIconBubble({ src = DEFAULT_MOOD_ICON_SRC, className = '' }: MoodIco
     <span className={`mood-icon-bubble ${className}`} aria-hidden="true">
       <img alt="" draggable={false} src={resolveAssetSrc(src)} />
     </span>
-  );
-}
-
-function CupIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M7 11h15v8a7 7 0 0 1-14 0v-8Z" fill="#fff3dc" stroke="#7a4c31" strokeWidth="2" />
-      <path d="M22 13h3a3 3 0 0 1 0 6h-3" fill="none" stroke="#7a4c31" strokeWidth="2" />
-      <path d="M8 25h15" stroke="#7a4c31" strokeWidth="2" strokeLinecap="round" />
-      <path d="M14 9c-1-2 2-3 1-5" stroke="#d6805e" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path
-        d="M10 22h12c-2-2-2-5-2-8a4 4 0 0 0-8 0c0 3 0 6-2 8Z"
-        fill="#e8c381"
-        stroke="#6b432e"
-        strokeWidth="2"
-      />
-      <path d="M13 25h6" stroke="#6b432e" strokeWidth="2" strokeLinecap="round" />
-      <path d="M15 8h2" stroke="#6b432e" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="16" cy="24" r="2" fill="#6b432e" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="11" fill="#8fa467" stroke="#5d6b45" strokeWidth="2" />
-      <path
-        d="M10 16l4 4 8-9"
-        fill="none"
-        stroke="#fff9ed"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function RotateIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path
-        d="M8 11a8 8 0 0 1 13-4l2 2"
-        fill="none"
-        stroke="#6b432e"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M23 4v6h-6"
-        fill="none"
-        stroke="#6b432e"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect
-        x="9"
-        y="13"
-        width="15"
-        height="10"
-        rx="2"
-        fill="#fff3df"
-        stroke="#6b432e"
-        strokeWidth="2"
-        transform="rotate(-8 16.5 18)"
-      />
-      <path
-        d="M24 21a8 8 0 0 1-13 4l-2-2"
-        fill="none"
-        stroke="#6b432e"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9 28v-6h6"
-        fill="none"
-        stroke="#6b432e"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PawIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="11" cy="11" r="4" fill="#9f6845" />
-      <circle cx="20" cy="10" r="4" fill="#9f6845" />
-      <circle cx="7" cy="19" r="4" fill="#9f6845" />
-      <circle cx="24" cy="18" r="4" fill="#9f6845" />
-      <path d="M10 24c2-6 10-6 12 0 1 4-13 4-12 0Z" fill="#9f6845" />
-    </svg>
-  );
-}
-
-function BookIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path
-        d="M6 7h8c2 0 3 1 3 3v16c0-2-1-3-3-3H6V7Z"
-        fill="#8fa467"
-        stroke="#5d6b45"
-        strokeWidth="2"
-      />
-      <path
-        d="M26 7h-8c-2 0-3 1-3 3v16c0-2 1-3 3-3h8V7Z"
-        fill="#e8cf92"
-        stroke="#7a5a30"
-        strokeWidth="2"
-      />
-      <path d="M11 12h3M20 12h3M20 17h3" stroke="#7a5a30" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ShopIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M6 14h20v13H6V14Z" fill="#d9b07a" stroke="#6b432e" strokeWidth="2" />
-      <path d="M4 14 7 6h18l3 8H4Z" fill="#a86b42" stroke="#6b432e" strokeWidth="2" />
-      <path d="M13 27v-8h6v8" fill="#6d8544" stroke="#6b432e" strokeWidth="2" />
-      <path d="M9 18h3M21 18h3" stroke="#6b432e" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function LampIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M16 3v7" stroke="#6b432e" strokeWidth="2" strokeLinecap="round" />
-      <path d="M9 18c1-5 3-8 7-8s6 3 7 8H9Z" fill="#d7a44c" stroke="#6b432e" strokeWidth="2" />
-      <path d="M13 20h6" stroke="#6b432e" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="16" cy="24" r="4" fill="#f4d782" opacity="0.8" />
-    </svg>
-  );
-}
-
-function SunIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="6" fill="#f4be55" />
-      <path
-        d="M16 3v5M16 24v5M3 16h5M24 16h5M7 7l4 4M21 21l4 4M25 7l-4 4M11 21l-4 4"
-        stroke="#d89434"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function MenuIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M7 10h18M7 16h18M7 22h18" stroke="#6b432e" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PauseIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <rect x="9" y="7" width="5" height="18" rx="2" fill="#7a4c31" />
-      <rect x="18" y="7" width="5" height="18" rx="2" fill="#7a4c31" />
-    </svg>
-  );
-}
-
-function HeartIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path
-        d="M16 27S5 20 5 12a6 6 0 0 1 11-3 6 6 0 0 1 11 3c0 8-11 15-11 15Z"
-        fill="#df7070"
-        stroke="#8b4545"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
-
-function StarIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path
-        d="m16 4 3.4 7 7.7 1.1-5.6 5.4 1.3 7.6L16 21.5l-6.8 3.6 1.3-7.6-5.6-5.4 7.7-1.1L16 4Z"
-        fill="#e8bf63"
-        stroke="#7a5a30"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
-
-function CatHeadIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path
-        d="M7 14 9 5l6 5 6-5 4 9a10 10 0 1 1-18 0Z"
-        fill="#f2dfbf"
-        stroke="#6b432e"
-        strokeWidth="2"
-      />
-      <circle cx="12" cy="17" r="1.6" fill="#2f231b" />
-      <circle cx="20" cy="17" r="1.6" fill="#2f231b" />
-      <path d="M13 22q3 3 6 0" stroke="#2f231b" strokeWidth="2" strokeLinecap="round" fill="none" />
-    </svg>
-  );
-}
-
-function LeafIcon() {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path
-        d="M6 18c8-9 16-7 20-6-2 8-11 12-20 6Z"
-        fill="#8fa467"
-        stroke="#5d6b45"
-        strokeWidth="2"
-      />
-      <path d="M8 18c6-1 10-3 15-6" stroke="#5d6b45" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CushionIcon() {
-  return (
-    <svg viewBox="0 0 80 60" aria-hidden="true">
-      <ellipse cx="40" cy="36" rx="30" ry="16" fill="#d97979" stroke="#7a4c31" strokeWidth="4" />
-      <path
-        d="M15 35c6-11 44-11 50 0"
-        fill="none"
-        stroke="#e9a0a0"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function BedIcon() {
-  return (
-    <svg viewBox="0 0 80 60" aria-hidden="true">
-      <ellipse cx="40" cy="34" rx="30" ry="18" fill="#9a6236" stroke="#593b2b" strokeWidth="4" />
-      <ellipse cx="40" cy="34" rx="18" ry="9" fill="#c58b55" />
-      <path d="M31 31h18" stroke="#593b2b" strokeWidth="4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PlantIcon() {
-  return (
-    <svg viewBox="0 0 80 60" aria-hidden="true">
-      <path d="M30 35h22l-4 18H34Z" fill="#a86b42" stroke="#6b432e" strokeWidth="4" />
-      <path
-        d="M40 36C26 22 23 11 38 15c7 2 7 12 2 21Z"
-        fill="#8fa467"
-        stroke="#5d6b45"
-        strokeWidth="3"
-      />
-      <path
-        d="M42 36c3-18 17-25 22-13-3 11-11 15-22 13Z"
-        fill="#6d8544"
-        stroke="#5d6b45"
-        strokeWidth="3"
-      />
-    </svg>
-  );
-}
-
-function WindowSeatIcon() {
-  return (
-    <svg viewBox="0 0 80 60" aria-hidden="true">
-      <path d="M18 10h44v30H18Z" fill="#f6d996" stroke="#6b432e" strokeWidth="4" />
-      <path d="M40 10v30M18 25h44" stroke="#6b432e" strokeWidth="3" />
-      <path d="M12 42h56v9H12Z" fill="#9a6236" stroke="#6b432e" strokeWidth="4" />
-      <path
-        d="M19 43c6-8 36-8 42 0"
-        fill="none"
-        stroke="#d97979"
-        strokeWidth="6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function HearthIcon() {
-  return (
-    <svg viewBox="0 0 80 60" aria-hidden="true">
-      <path d="M16 24h48v28H16Z" fill="#7a4c31" stroke="#593b2b" strokeWidth="4" />
-      <path d="M24 24c2-13 30-13 32 0" fill="#a86b42" stroke="#593b2b" strokeWidth="4" />
-      <path
-        d="M40 48c-9-8-1-14 0-21 8 7 11 14 0 21Z"
-        fill="#f2c66e"
-        stroke="#c8793b"
-        strokeWidth="3"
-      />
-      <path d="M30 51h20" stroke="#2f231b" strokeWidth="4" strokeLinecap="round" />
-    </svg>
   );
 }
 
