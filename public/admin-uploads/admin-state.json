@@ -8151,6 +8151,29 @@
             "triggerStoryId": "",
             "triggerDelayDays": 0,
             "moodIconIds": []
+          },
+          {
+            "id": "shadow-comfort-1782475017811-6",
+            "kind": "comfort",
+            "title": "Comfort 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "shadow-comfort-1782475017811-6-0",
+                "kind": "bubble",
+                "text": "Oh... well I feel a little better.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Oh... well I feel a little better."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
           }
         ]
       },
@@ -9323,6 +9346,29 @@
             "triggerStoryId": "",
             "triggerDelayDays": 0,
             "moodIconIds": []
+          },
+          {
+            "id": "matthew-comfort-1782475047487-5",
+            "kind": "comfort",
+            "title": "Comfort 1",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "matthew-comfort-1782475047487-5-0",
+                "kind": "bubble",
+                "text": "Wow I feel better now little kitty!",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Wow I feel better now little kitty!"
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
           }
         ]
       },
@@ -10371,6 +10417,29 @@
             ],
             "bubbles": [
               "If I could please get my order."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "liam-comfort-1782475070656-5",
+            "kind": "comfort",
+            "title": "Comfort 6",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "liam-comfort-1782475070656-5-0",
+                "kind": "bubble",
+                "text": "Well...",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Well..."
             ],
             "catReply": null,
             "triggerStoryId": "",
@@ -11445,6 +11514,29 @@
             "triggerStoryId": "",
             "triggerDelayDays": 0,
             "moodIconIds": []
+          },
+          {
+            "id": "alfrin-comfort-1782475084331-6",
+            "kind": "comfort",
+            "title": "Comfort 7",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alfrin-comfort-1782475084331-6-0",
+                "kind": "bubble",
+                "text": "Interesting... i feel better now.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Interesting... i feel better now."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
           }
         ]
       },
@@ -12069,6 +12161,29 @@
               "I used to sit in this exact spot as a teenager.",
               "This used to be a different little shop. Sadly the owner passed away. No family so it was closed down for a while.",
               "Then Grace bought it over, since then no once has been able to live up to her expectations."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "alaric-comfort-1782475100668-4",
+            "kind": "comfort",
+            "title": "Comfort 5",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "alaric-comfort-1782475100668-4-0",
+                "kind": "bubble",
+                "text": "I feel a bit better now.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I feel a bit better now."
             ],
             "catReply": null,
             "triggerStoryId": "",
@@ -12958,6 +13073,29 @@
             ],
             "bubbles": [
               "I lost track of time. Closing, right. I'm going."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "eli-comfort-1782475109251-5",
+            "kind": "comfort",
+            "title": "Comfort 6",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "eli-comfort-1782475109251-5-0",
+                "kind": "bubble",
+                "text": "Well meow meow kitty. I feel a bit better now.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Well meow meow kitty. I feel a bit better now."
             ],
             "catReply": null,
             "triggerStoryId": "",
@@ -14002,6 +14140,29 @@
             "triggerStoryId": "",
             "triggerDelayDays": 0,
             "moodIconIds": []
+          },
+          {
+            "id": "miles-comfort-1782475122711-4",
+            "kind": "comfort",
+            "title": "Comfort 5",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "miles-comfort-1782475122711-4-0",
+                "kind": "bubble",
+                "text": "Well you caught me off guard and i feel better.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Well you caught me off guard and i feel better."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
           }
         ]
       },
@@ -14583,6 +14744,29 @@
             ],
             "bubbles": [
               "Um, not to be a bother. Can I get my order."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
+          },
+          {
+            "id": "nia-comfort-1782475139123-5",
+            "kind": "comfort",
+            "title": "Comfort 6",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "nia-comfort-1782475139123-5-0",
+                "kind": "bubble",
+                "text": "awe your so cute and now I feel so much better.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "awe your so cute and now I feel so much better."
             ],
             "catReply": null,
             "triggerStoryId": "",
@@ -15528,6 +15712,29 @@
             "triggerStoryId": "",
             "triggerDelayDays": 0,
             "moodIconIds": []
+          },
+          {
+            "id": "gene-comfort-1782475158808-3",
+            "kind": "comfort",
+            "title": "Comfort 4",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "gene-comfort-1782475158808-3-0",
+                "kind": "bubble",
+                "text": "I feel a bit better now.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "I feel a bit better now."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
           }
         ]
       },
@@ -16183,6 +16390,29 @@
             "triggerStoryId": "",
             "triggerDelayDays": 0,
             "moodIconIds": []
+          },
+          {
+            "id": "quou-comfort-1782475162635-4",
+            "kind": "comfort",
+            "title": "Comfort 5",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "quou-comfort-1782475162635-4-0",
+                "kind": "bubble",
+                "text": "Well, i think we both feel better now.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Well, i think we both feel better now."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
           }
         ]
       },
@@ -16553,6 +16783,29 @@
             "triggerStoryId": "",
             "triggerDelayDays": 0,
             "moodIconIds": []
+          },
+          {
+            "id": "custom_1-comfort-1782475183787-4",
+            "kind": "comfort",
+            "title": "Comfort 5",
+            "summary": "",
+            "startImageSrc": "",
+            "blocks": [
+              {
+                "id": "custom_1-comfort-1782475183787-4-0",
+                "kind": "bubble",
+                "text": "Hm... i feel like shit thanks.",
+                "imageSrc": "",
+                "catReply": null
+              }
+            ],
+            "bubbles": [
+              "Hm... i feel like shit thanks."
+            ],
+            "catReply": null,
+            "triggerStoryId": "",
+            "triggerDelayDays": 0,
+            "moodIconIds": []
           }
         ]
       },
@@ -16875,6 +17128,326 @@
       }
     }
   },
+  "storeUpgrades": [
+    {
+      "id": "second-table-spot",
+      "name": "Second Table Spot",
+      "kind": "Furniture",
+      "cost": 120,
+      "comfort": 0,
+      "happiness": 2,
+      "description": "Opens a second customer spot for busier shop days.",
+      "iconSrc": "",
+      "effect": "Adds another customer spot.",
+      "unlocksTable": 2,
+      "enabled": true
+    },
+    {
+      "id": "third-table-spot",
+      "name": "Third Table Spot",
+      "kind": "Furniture",
+      "cost": 260,
+      "comfort": 0,
+      "happiness": 3,
+      "description": "Opens the third customer spot when the shop is ready for a full room.",
+      "iconSrc": "",
+      "effect": "Adds another customer spot.",
+      "unlocksTable": 3,
+      "enabled": true
+    },
+    {
+      "id": "cushion",
+      "name": "Cozy Cushion",
+      "kind": "Furniture",
+      "cost": 50,
+      "comfort": 1,
+      "happiness": 4,
+      "description": "Soft seats help shy customers settle in.",
+      "iconSrc": "",
+      "effect": "Comfort +1",
+      "enabled": true
+    },
+    {
+      "id": "cat-bed",
+      "name": "Cat Bed",
+      "kind": "Furniture",
+      "cost": 80,
+      "comfort": 2,
+      "happiness": 5,
+      "description": "A sunny rest spot between visits.",
+      "iconSrc": "",
+      "effect": "Comfort +2",
+      "enabled": true
+    },
+    {
+      "id": "tea-plant",
+      "name": "Tea Plant",
+      "kind": "Decor",
+      "cost": 60,
+      "comfort": 1,
+      "happiness": 4,
+      "description": "Fresh green leaves brighten the counter.",
+      "iconSrc": "",
+      "effect": "Comfort +1",
+      "enabled": true
+    },
+    {
+      "id": "lamp",
+      "name": "Hanging Lamp",
+      "kind": "Comfort",
+      "cost": 70,
+      "comfort": 2,
+      "happiness": 5,
+      "description": "A warmer glow makes purring easier.",
+      "iconSrc": "",
+      "effect": "Comfort +2",
+      "enabled": true
+    },
+    {
+      "id": "window-seat",
+      "name": "Window Seat",
+      "kind": "Furniture",
+      "cost": 130,
+      "comfort": 3,
+      "happiness": 6,
+      "description": "A quiet place for regulars to linger.",
+      "iconSrc": "",
+      "effect": "Comfort +3",
+      "enabled": true
+    },
+    {
+      "id": "hearth",
+      "name": "Little Hearth",
+      "kind": "Comfort",
+      "cost": 180,
+      "comfort": 4,
+      "happiness": 8,
+      "description": "Warmth that turns short visits into generous ones.",
+      "iconSrc": "",
+      "effect": "Comfort +4",
+      "enabled": true
+    }
+  ],
+  "recipes": [
+    {
+      "id": "blackTea",
+      "label": "black tea",
+      "name": "Black Tea",
+      "category": "Tea",
+      "imageSrc": "/items/blackTea.png",
+      "cost": 0,
+      "quality": 4,
+      "moodBoost": 14,
+      "tipBonus": 8,
+      "happinessGain": 2,
+      "reputationBonus": 1,
+      "description": "A dependable, full-bodied cup. Every good shop starts with a steady pour.",
+      "enabled": true
+    },
+    {
+      "id": "greenTea",
+      "label": "green tea",
+      "name": "Green Tea",
+      "category": "Tea",
+      "imageSrc": "/items/greenTea.png",
+      "cost": 85,
+      "quality": 8,
+      "moodBoost": 12,
+      "tipBonus": 10,
+      "happinessGain": 1,
+      "reputationBonus": 2,
+      "description": "A bright, gentle tea for guests who want the room to feel a little lighter.",
+      "enabled": true
+    },
+    {
+      "id": "chamomiletea",
+      "label": "chamomile tea",
+      "name": "Chamomile Tea",
+      "category": "Tea",
+      "imageSrc": "/items/chamomiletea.png",
+      "cost": 120,
+      "quality": 10,
+      "moodBoost": 16,
+      "tipBonus": 12,
+      "happinessGain": 2,
+      "reputationBonus": 3,
+      "description": "Soft flowers in a warm cup, perfect for customers who need a quiet minute.",
+      "enabled": true
+    },
+    {
+      "id": "peppermintTea",
+      "label": "peppermint tea",
+      "name": "Peppermint Tea",
+      "category": "Tea",
+      "imageSrc": "/items/peppermintTea.png",
+      "cost": 165,
+      "quality": 13,
+      "moodBoost": 18,
+      "tipBonus": 15,
+      "happinessGain": 3,
+      "reputationBonus": 4,
+      "description": "Fresh mint leaves make the whole table feel awake and cared for.",
+      "enabled": true
+    },
+    {
+      "id": "lemon",
+      "label": "lemon tea",
+      "name": "Lemon Tea",
+      "category": "Tea",
+      "imageSrc": "/items/lemon.png",
+      "cost": 230,
+      "quality": 17,
+      "moodBoost": 20,
+      "tipBonus": 18,
+      "happinessGain": 4,
+      "reputationBonus": 5,
+      "description": "A golden citrus recipe that makes the shop feel known for something special.",
+      "enabled": true
+    },
+    {
+      "id": "basicCoffee",
+      "label": "basic coffee",
+      "name": "Basic Coffee",
+      "category": "Coffee",
+      "imageSrc": "/items/basicCoffee.png",
+      "cost": 95,
+      "quality": 7,
+      "moodBoost": 11,
+      "tipBonus": 9,
+      "happinessGain": 1,
+      "reputationBonus": 2,
+      "description": "A clean, simple cup for guests who like their comfort direct.",
+      "enabled": true
+    },
+    {
+      "id": "americano",
+      "label": "americano",
+      "name": "Americano",
+      "category": "Coffee",
+      "imageSrc": "/items/americano.png",
+      "cost": 135,
+      "quality": 11,
+      "moodBoost": 13,
+      "tipBonus": 12,
+      "happinessGain": 2,
+      "reputationBonus": 3,
+      "description": "Smooth and steady, with enough depth to make the afternoon feel longer.",
+      "enabled": true
+    },
+    {
+      "id": "latte",
+      "label": "latte",
+      "name": "Latte",
+      "category": "Coffee",
+      "imageSrc": "/items/latte.png",
+      "cost": 185,
+      "quality": 14,
+      "moodBoost": 17,
+      "tipBonus": 15,
+      "happinessGain": 3,
+      "reputationBonus": 4,
+      "description": "A creamy heart in the cup, made for customers who notice little kindnesses.",
+      "enabled": true
+    },
+    {
+      "id": "cappuccino",
+      "label": "cappuccino",
+      "name": "Cappuccino",
+      "category": "Coffee",
+      "imageSrc": "/items/cappuccino.png",
+      "cost": 225,
+      "quality": 16,
+      "moodBoost": 19,
+      "tipBonus": 17,
+      "happinessGain": 3,
+      "reputationBonus": 5,
+      "description": "Foamy, warm, and just fancy enough to feel like a treat.",
+      "enabled": true
+    },
+    {
+      "id": "mocha",
+      "label": "mocha",
+      "name": "Mocha",
+      "category": "Coffee",
+      "imageSrc": "/items/mocha.png",
+      "cost": 280,
+      "quality": 20,
+      "moodBoost": 22,
+      "tipBonus": 21,
+      "happinessGain": 4,
+      "reputationBonus": 6,
+      "description": "Chocolatey comfort with a flourish, the kind of recipe people remember.",
+      "enabled": true
+    }
+  ],
+  "trainingUpgrades": [
+    {
+      "id": "purr-practice",
+      "name": "Purr Practice",
+      "action": "purr",
+      "cost": 110,
+      "reductionMs": 1500,
+      "description": "Shortens the purr cooldown so the cat can reassure guests more often.",
+      "iconSrc": "",
+      "effect": "Purr -2s",
+      "enabled": true
+    },
+    {
+      "id": "soft-rumble",
+      "name": "Soft Rumble",
+      "action": "purr",
+      "cost": 210,
+      "reductionMs": 1500,
+      "description": "A steadier purr rhythm for busier shop days.",
+      "iconSrc": "",
+      "effect": "Purr -2s",
+      "enabled": true
+    },
+    {
+      "id": "quiet-cushion",
+      "name": "Quiet Cushion",
+      "action": "quiet",
+      "cost": 95,
+      "reductionMs": 1000,
+      "description": "Shortens the listen cooldown with a more comfortable listening spot.",
+      "iconSrc": "",
+      "effect": "Listen -1s",
+      "enabled": true
+    },
+    {
+      "id": "listening-ritual",
+      "name": "Listening Ritual",
+      "action": "quiet",
+      "cost": 175,
+      "reductionMs": 1000,
+      "description": "A practiced little pause that helps the cat listen again sooner.",
+      "iconSrc": "",
+      "effect": "Listen -1s",
+      "enabled": true
+    },
+    {
+      "id": "cozy-flop",
+      "name": "Cozy Flop",
+      "action": "roll",
+      "cost": 160,
+      "reductionMs": 1500,
+      "description": "Shortens the roll over cooldown for guests who warm up to silly trust.",
+      "iconSrc": "",
+      "effect": "Roll -2s",
+      "enabled": true
+    },
+    {
+      "id": "bright-whiskers",
+      "name": "Bright Whiskers",
+      "action": "cute",
+      "cost": 190,
+      "reductionMs": 1500,
+      "description": "Shortens the be cute cooldown for guests who need a little charm.",
+      "iconSrc": "",
+      "effect": "Be Cute -2s",
+      "enabled": true
+    }
+  ],
   "catSettings": {
     "idle": "/admin-uploads/shadow/1782357028668-chatgpt-image-jun-24-2026-10-57-54-pm-0003-layer.png",
     "meow": "/admin-uploads/shadow/1782357035533-chatgpt-image-jun-24-2026-10-57-54-pm-0004-layer.png",

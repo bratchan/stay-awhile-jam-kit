@@ -6927,9 +6927,9 @@ function TeaShopCat() {
     : '';
   const currentComfortChatReady =
     serviceServed &&
-    currentConversationKind === 'story' &&
-    currentStoryComplete &&
-    mood >= 100;
+    mood >= 100 &&
+    (currentConversationKind === 'kitty' ||
+      (currentConversationKind === 'story' && currentStoryComplete));
   const currentKittyChat = currentComfortChatReady
     ? getAdminComfortChat(currentCustomer, game, currentVisitNumber, currentChatSeed)
     : getKittyChat(currentCustomer, game, currentVisitNumber, currentChatSeed, currentForcedEntryId);
@@ -13090,10 +13090,13 @@ function AdminScreen({
 
   function chatMenuActionStyle(actionId: CatActionId): CSSProperties {
     const item = adminChatMenuSettings.items[actionId];
+    const hasCustomBackground = Boolean(item.imageSrc);
     return {
       backgroundImage: cssAssetUrl(item.imageSrc),
-      backgroundPosition: `${item.imagePosition.x}% ${item.imagePosition.y}%`,
-      backgroundSize: `${item.imageScale}% ${item.imageScale}%`,
+      backgroundPosition: hasCustomBackground
+        ? `${item.imagePosition.x}% ${item.imagePosition.y}%`
+        : 'center',
+      backgroundSize: hasCustomBackground ? '100% 100%' : `${item.imageScale}% ${item.imageScale}%`,
       left: `${item.position.x}%`,
       top: `${item.position.y}%`,
       right: 'auto',
@@ -17016,45 +17019,27 @@ function AdminScreen({
                       <small>{Math.round(selectedTalkingLayout.bubble.y)}%</small>
                     </label>
                   </fieldset>
-                  <fieldset className="admin-reference-point-editor admin-reference-scale-editor">
-                    <legend>Cat Pose Placement</legend>
-                    <div className="admin-spot-tabs admin-cat-pose-tabs">
-                      {CAT_POSE_KEYS.map((poseKey) => (
-                        <button
-                          className={selectedTalkingCatPose === poseKey ? 'active' : ''}
-                          key={poseKey}
-                          type="button"
-                          onClick={() => setSelectedTalkingCatPose(poseKey)}
-                        >
-                          {getCatPoseLabel(poseKey)}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="admin-helper-text">
-                      Drag the cat in the preview to place this pose for every guest.
-                    </p>
-                  </fieldset>
                   <label>
-                    <span>{getCatPoseLabel(selectedTalkingCatPose)} scale</span>
+                    <span>Idle pose scale</span>
                     <input
                       min={35}
                       max={250}
                       type="range"
-                      value={selectedGlobalCatPoseLayout.catScale}
+                      value={idleCatPoseLayout.catScale}
                       onInput={(event) =>
                         onAdminCatPosePlacementChange(
-                          selectedTalkingCatPose,
+                          'idle',
                           { catScale: Number(event.currentTarget.value) },
                         )
                       }
                       onChange={(event) =>
                         onAdminCatPosePlacementChange(
-                          selectedTalkingCatPose,
+                          'idle',
                           { catScale: Number(event.target.value) },
                         )
                       }
                     />
-                    <small>{selectedGlobalCatPoseLayout.catScale}%</small>
+                    <small>{idleCatPoseLayout.catScale}%</small>
                   </label>
                   <label className="admin-toggle-row">
                     <span>Flip cat</span>
@@ -18305,10 +18290,13 @@ function VisitScreen({
     imageSrc = chatMenuImage(actionId),
   ): CSSProperties {
     const item = safeChatMenuSettings.items[actionId];
+    const hasCustomBackground = Boolean(imageSrc);
     return {
       backgroundImage: cssAssetUrl(imageSrc),
-      backgroundPosition: `${item.imagePosition.x}% ${item.imagePosition.y}%`,
-      backgroundSize: `${item.imageScale}% ${item.imageScale}%`,
+      backgroundPosition: hasCustomBackground
+        ? `${item.imagePosition.x}% ${item.imagePosition.y}%`
+        : 'center',
+      backgroundSize: hasCustomBackground ? '100% 100%' : `${item.imageScale}% ${item.imageScale}%`,
       left: `${item.position.x}%`,
       top: `${item.position.y}%`,
       right: 'auto',
@@ -18724,7 +18712,7 @@ function VisitScreen({
                 : `${customer.name} is served`
             }
           >
-            {renderActionLock(serveLocked)}
+            {renderActionLock(serveLocked && !serviceServed)}
             {serveMenuImage ? null : nextUnservedService ? (
               <ServiceIcon kind={nextUnservedService.id} />
             ) : (

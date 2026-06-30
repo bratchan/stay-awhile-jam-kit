@@ -2924,8 +2924,12 @@ h3 {
 }
 
 .admin-cat-placement-stage .cat-sprite-frame {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(72%, 560px);
+  height: min(82%, 560px);
+  transform: translate(-50%, -50%);
 }
 
 .admin-cat-placement-onion .cat-sprite {
